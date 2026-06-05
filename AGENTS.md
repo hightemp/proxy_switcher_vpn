@@ -26,9 +26,16 @@ Reference project:
 
 `/home/hightemp/Projects/proxy_switcher/proxy_switcher`
 
+Prepared local upstream repositories for VPN/sing-box research:
+
+- `tmp/sing-box`
+- `tmp/sing-box-for-android`
+- `tmp/sing-box-for-android/third_party/termux-app`
+
 Rules:
 
 - Treat the reference project as read-only.
+- Treat prepared upstream repositories in `tmp/` as read-only references unless a task explicitly asks for a local prototype there.
 - Do not modify, format, delete, move, or generate files inside the reference project.
 - Copy only needed patterns/files manually into this repository.
 - Do not blindly duplicate the whole reference project.

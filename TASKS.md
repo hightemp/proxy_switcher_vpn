@@ -356,8 +356,9 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
 - Goal: Verify whether and how sing-box can be embedded or run in this app.
 - Context files to inspect:
   - `PRD.md` sections 10, 21, 22.
-  - sing-box official source/docs.
-  - sing-box Android client/core integration if used.
+  - `tmp/sing-box`
+  - `tmp/sing-box-for-android`
+  - `tmp/sing-box-for-android/third_party/termux-app`
   - Android `VpnService` and `protect()` documentation.
 - Files likely to create/change:
   - `docs/spikes/SPIKE-001-sing-box-android.md`
