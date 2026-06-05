@@ -1,0 +1,88 @@
+name: Android Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x ./gradlew
+
+      - name: Decode release keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          for name in KEYSTORE_BASE64 KEYSTORE_PASSWORD KEY_ALIAS KEY_PASSWORD; do
+            if [ -z "${!name}" ]; then
+              echo "::error::$name secret is not set. Configure release signing secrets first."
+              exit 1
+            fi
+          done
+          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.keystore"
+          echo "KEYSTORE_FILE=$RUNNER_TEMP/release.keystore" >> "$GITHUB_ENV"
+
+      - name: Verify libbox artifact
+        run: ./gradlew verifyLibboxArtifact
+
+      - name: Build signed release APK
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: ./gradlew clean app:assembleRelease
+
+      - name: Verify APK signature
+        run: |
+          APK=app/build/outputs/apk/release/app-release.apk
+          if [ ! -f "$APK" ]; then
+            echo "::error::Signed APK not found at $APK."
+            ls -la app/build/outputs/apk/release/
+            exit 1
+          fi
+          BUILD_TOOLS=$(ls "$ANDROID_HOME"/build-tools/ | sort -V | tail -n1)
+          "$ANDROID_HOME/build-tools/$BUILD_TOOLS/apksigner" verify --verbose "$APK"
+
+      - name: Rename APK for release
+        run: |
+          mv app/build/outputs/apk/release/app-release.apk \
+             app/build/outputs/apk/release/proxy_switcher_vpn-${{ github.ref_name }}.apk
+
+      - name: Upload built APK as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-apk
+          path: app/build/outputs/apk/release/proxy_switcher_vpn-${{ github.ref_name }}.apk
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          body: |
+            Release for tag ${{ github.ref_name }}
+            Build commit: ${{ github.sha }}
+
+            This APK is signed from repository secrets. Confirm GPL/source obligations
+            before publishing builds that embed sing-box/libbox artifacts.
+          files: |
+            app/build/outputs/apk/release/proxy_switcher_vpn-${{ github.ref_name }}.apk
