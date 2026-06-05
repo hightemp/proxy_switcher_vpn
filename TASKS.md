@@ -1418,7 +1418,7 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
 
 ### TASK-190: Execute MVP Manual QA
 
-- Status: blocked
+- Status: completed
 - Goal: Verify the complete MVP on a real device or emulator.
 - Context files to inspect:
   - `docs/qa/manual-vpn-checklist.md`
@@ -1433,8 +1433,12 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
   - Added `docs/qa/results/2026-06-05-mvp-manual-qa-blocked.md` documenting the attempted environment checks, blockers, unexecuted checklist items, and requirements to unblock.
   - Partially executed on 2026-06-05 against Samsung SM-A165F / Android 15 with local SOCKS5 and HTTP proxy harnesses exposed through `adb reverse`; SOCKS5, HTTP, permission approval/denial, TUN creation, DoH-through-proxy, IPv6 unreachable behavior, and runtime upstream fail-closed behavior passed after fixes.
   - Device QA found and fixed missing `ACCESS_NETWORK_STATE`, Android Private DNS TCP/853 leakage to the TUN DNS address, and missing runtime upstream fail-closed monitoring.
-  - Added `docs/qa/results/2026-06-05-mvp-manual-qa-partial.md` with pass/partial/blocked results.
-  - TASK-190 remains blocked because HTTPS proxy validation needs a trusted HTTPS proxy endpoint, UDP/443 needs a reliable manual packet/log capture, and notification Stop plus full Logs screen UI checks still need device interaction.
+  - Added `docs/qa/results/2026-06-05-mvp-manual-qa-partial.md` with the completed connected-device run.
+  - Completed on 2026-06-05 against Samsung SM-A165F / Android 15. HTTPS proxy validation passed with a trusted qip.sh wildcard certificate endpoint over `adb reverse`, production TLS validation enabled, resolved proxy server `127.0.0.1`, and `tls.server_name: "test.i.qip.sh"`.
+  - HTTPS DNS-through-proxy passed after carrying the protected proxy probe's resolved host into sing-box config generation and disabling sing-box auto interface detection only for resolved loopback proxy endpoints; the host harness observed `CONNECT 1.1.1.1:443`.
+  - Foreground notification Stop passed from the Samsung notification shade; tapping `Stop` removed `tun0`, removed the notification, and stopped the service.
+  - Logs UI passed level filtering, type filtering, and clearing; Clear logs produced `No logs`.
+  - UDP/443 block was verified by active config `reject/drop`, a device UDP/443 probe with VPN stability, and no HTTPS proxy CONNECT traffic. Packet-level capture was not available on the non-rooted device and is documented as a residual limitation in the QA result.
 - Acceptance criteria:
   - VPN permission flow passes.
   - Foreground notification passes.
@@ -1514,4 +1518,52 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
   - Manual per-app route tests.
 - Dependencies:
   - TASK-190
+- Estimated risk: medium
+
+### TASK-203: Add Compatible Proxy Import And Export
+
+- Status: done
+- Goal: Add proxy list import/export that can read JSON exported by the reference
+  `proxy_switcher` app.
+- Context files to inspect:
+  - `PRD.md` Proxy CRUD section.
+  - `/home/hightemp/Projects/proxy_switcher/proxy_switcher/app/src/main/java/com/hightemp/proxy_switcher/utils/ProxyTransfer.kt`
+  - `/home/hightemp/Projects/proxy_switcher/proxy_switcher/app/src/main/java/com/hightemp/proxy_switcher/ui/screens/ProxyListScreen.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/ui/screens/ProxyListScreen.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/ui/viewmodel/VpnViewModel.kt`
+- Files likely to create/change:
+  - `PRD.md`
+  - `TASKS.md`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/utils/ProxyTransfer.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/ui/viewmodel/VpnViewModel.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/ui/screens/ProxyListScreen.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/MainActivity.kt`
+  - `app/src/test/java/com/hightemp/proxy_switcher_vpn/utils/ProxyTransferTest.kt`
+  - `app/src/test/java/com/hightemp/proxy_switcher_vpn/ui/viewmodel/VpnViewModelTest.kt`
+- Implementation notes:
+  - Preserve the reference JSON array format: `host`, `port`, `type`,
+    optional `username`, optional `password`, optional `label`, and `isEnabled`.
+  - Import creates new local proxy rows with fresh ids.
+  - Export may include proxy passwords because it is a user-requested backup
+    format; logs, diagnostics, and previews must still mask secrets.
+  - Completed on 2026-06-05: added `ProxyTransfer` using the reference app's
+    JSON array fields and defaults, plus unit tests proving imports from
+    reference-style exports and round-trip exports stay compatible.
+  - `VpnViewModel` now exports the current proxy list and imports parsed proxies
+    as fresh rows without logging proxy credentials.
+  - `ProxyListScreen` now exposes top-bar import/export actions, JSON paste/copy
+    dialogs, and Android document picker load/save flows matching the reference
+    app pattern while keeping the screen stateless for ViewModel ownership.
+  - Smoke commands `./gradlew test` and `./gradlew assembleDebug` passed.
+- Acceptance criteria:
+  - Proxy list exposes import and export actions.
+  - JSON exported by the reference `proxy_switcher` app imports successfully.
+  - Exported JSON remains compatible with the reference format.
+  - Invalid or empty imports return a useful error.
+- Test/smoke commands:
+  - `./gradlew test`
+  - `./gradlew assembleDebug`
+- Dependencies:
+  - TASK-130
+  - TASK-131
 - Estimated risk: medium

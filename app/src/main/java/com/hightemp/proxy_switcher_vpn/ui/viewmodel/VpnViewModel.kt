@@ -8,6 +8,7 @@ import com.hightemp.proxy_switcher_vpn.data.settings.AppSettings
 import com.hightemp.proxy_switcher_vpn.data.settings.SettingsRepository
 import com.hightemp.proxy_switcher_vpn.proxy.ProxyReachabilityTester
 import com.hightemp.proxy_switcher_vpn.service.VpnRuntimeState
+import com.hightemp.proxy_switcher_vpn.utils.ProxyTransfer
 import com.hightemp.proxy_switcher_vpn.vpn.diagnostics.VpnDiagnostics
 import com.hightemp.proxy_switcher_vpn.vpn.diagnostics.VpnDiagnosticsRepository
 import com.hightemp.proxy_switcher_vpn.vpn.diagnostics.VpnPermissionDiagnosticStatus
@@ -244,6 +245,31 @@ class VpnViewModel @Inject constructor(
                     )
                 )
             }
+        }
+    }
+
+    fun exportProxiesToText(): String = ProxyTransfer.export(proxyList.value)
+
+    fun importProxiesFromText(
+        text: String,
+        onResult: (importedCount: Int, errorMessage: String?) -> Unit
+    ) {
+        val result = ProxyTransfer.import(text)
+        if (!result.isSuccess) {
+            onResult(0, result.errorMessage)
+            return
+        }
+        viewModelScope.launch {
+            result.proxies.forEach { proxy ->
+                proxyRepository.insertProxy(proxy.copy(id = 0L))
+            }
+            _uiState.update {
+                it.copy(
+                    message = "Imported ${result.proxies.size} proxies.",
+                    lastError = null
+                )
+            }
+            onResult(result.proxies.size, null)
         }
     }
 

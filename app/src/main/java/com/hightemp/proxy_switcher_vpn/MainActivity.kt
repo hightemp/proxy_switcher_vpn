@@ -109,7 +109,9 @@ class MainActivity : ComponentActivity() {
                             },
                             onSelectProxy = viewModel::onProxySelected,
                             onDeleteProxy = viewModel::onProxyDeleted,
-                            onTestProxy = viewModel::onProxyTestRequested
+                            onTestProxy = viewModel::onProxyTestRequested,
+                            onExportProxies = viewModel::exportProxiesToText,
+                            onImportProxies = viewModel::importProxiesFromText
                         )
                     }
                     composable("add_proxy") {

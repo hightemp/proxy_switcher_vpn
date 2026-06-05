@@ -1,5 +1,8 @@
 package com.hightemp.proxy_switcher_vpn.ui.screens
 
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -7,16 +10,22 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Upload
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -24,13 +33,22 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.hightemp.proxy_switcher_vpn.data.local.ProxyEntity
@@ -51,8 +69,53 @@ fun ProxyListScreen(
     onSelectProxy: (ProxyEntity) -> Unit,
     onDeleteProxy: (ProxyEntity) -> Unit,
     onTestProxy: (ProxyEntity) -> Unit,
+    onExportProxies: () -> String,
+    onImportProxies: (String, (Int, String?) -> Unit) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    var showExportDialog by remember { mutableStateOf(false) }
+    var showImportDialog by remember { mutableStateOf(false) }
+    var exportText by remember { mutableStateOf("") }
+    val showImportResult = { count: Int, error: String? ->
+        if (error != null) {
+            Toast.makeText(context, error, Toast.LENGTH_LONG).show()
+        } else {
+            Toast.makeText(context, "Imported $count proxies", Toast.LENGTH_SHORT).show()
+        }
+    }
+    val saveFileLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json")
+    ) { uri ->
+        if (uri != null) {
+            runCatching {
+                context.contentResolver.openOutputStream(uri)?.use { output ->
+                    output.write(exportText.toByteArray(Charsets.UTF_8))
+                } ?: error("Could not open output file")
+            }.onSuccess {
+                Toast.makeText(context, "Saved to file", Toast.LENGTH_SHORT).show()
+            }.onFailure { error ->
+                Toast.makeText(context, "Save failed: ${error.message}", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+    val openFileLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            val text = runCatching {
+                context.contentResolver.openInputStream(uri)?.use { input ->
+                    String(input.readBytes(), Charsets.UTF_8)
+                }
+            }.getOrNull()
+            if (text == null) {
+                Toast.makeText(context, "Could not read file", Toast.LENGTH_LONG).show()
+            } else {
+                onImportProxies(text, showImportResult)
+            }
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -64,7 +127,20 @@ fun ProxyListScreen(
                         )
                     }
                 },
-                title = { Text("Proxies") }
+                title = { Text("Proxies") },
+                actions = {
+                    IconButton(onClick = { showImportDialog = true }) {
+                        Icon(Icons.Default.Download, contentDescription = "Import proxies")
+                    }
+                    IconButton(
+                        onClick = {
+                            exportText = onExportProxies()
+                            showExportDialog = true
+                        }
+                    ) {
+                        Icon(Icons.Default.Upload, contentDescription = "Export proxies")
+                    }
+                }
             )
         },
         floatingActionButton = {
@@ -105,6 +181,140 @@ fun ProxyListScreen(
             }
         }
     }
+
+    if (showExportDialog) {
+        ExportProxyDialog(
+            text = exportText,
+            onDismiss = { showExportDialog = false },
+            onSaveToFile = { saveFileLauncher.launch("proxies.json") }
+        )
+    }
+
+    if (showImportDialog) {
+        ImportProxyDialog(
+            onDismiss = { showImportDialog = false },
+            onImportText = { text ->
+                onImportProxies(text) { count, error ->
+                    showImportResult(count, error)
+                    if (error == null) {
+                        showImportDialog = false
+                    }
+                }
+            },
+            onLoadFromFile = {
+                showImportDialog = false
+                openFileLauncher.launch(arrayOf("application/json", "text/plain", "*/*"))
+            }
+        )
+    }
+}
+
+@Composable
+private fun ExportProxyDialog(
+    text: String,
+    onDismiss: () -> Unit,
+    onSaveToFile: () -> Unit
+) {
+    val clipboard = LocalClipboardManager.current
+    val context = LocalContext.current
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Export Proxies") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = "Export includes saved proxy credentials.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                OutlinedTextField(
+                    value = text,
+                    onValueChange = {},
+                    readOnly = true,
+                    textStyle = MaterialTheme.typography.bodySmall.copy(
+                        fontFamily = FontFamily.Monospace
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 320.dp)
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    clipboard.setText(AnnotatedString(text))
+                    Toast.makeText(context, "Copied to clipboard", Toast.LENGTH_SHORT).show()
+                }
+            ) {
+                Text("Copy")
+            }
+        },
+        dismissButton = {
+            Row {
+                TextButton(onClick = onSaveToFile) {
+                    Text("Save to file")
+                }
+                TextButton(onClick = onDismiss) {
+                    Text("Close")
+                }
+            }
+        }
+    )
+}
+
+@Composable
+private fun ImportProxyDialog(
+    onDismiss: () -> Unit,
+    onImportText: (String) -> Unit,
+    onLoadFromFile: () -> Unit
+) {
+    var text by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Import Proxies") },
+        text = {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "Paste exported JSON below, or load it from a file.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                OutlinedTextField(
+                    value = text,
+                    onValueChange = { text = it },
+                    label = { Text("JSON") },
+                    textStyle = MaterialTheme.typography.bodySmall.copy(
+                        fontFamily = FontFamily.Monospace
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 120.dp, max = 280.dp)
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onImportText(text) },
+                enabled = text.isNotBlank()
+            ) {
+                Text("Import")
+            }
+        },
+        dismissButton = {
+            Row {
+                TextButton(onClick = onLoadFromFile) {
+                    Text("Load from file")
+                }
+                TextButton(onClick = onDismiss) {
+                    Text("Cancel")
+                }
+            }
+        }
+    )
 }
 
 @Composable
@@ -253,7 +463,9 @@ private fun ProxyListScreenPreview() {
             onEditProxy = {},
             onSelectProxy = {},
             onDeleteProxy = {},
-            onTestProxy = {}
+            onTestProxy = {},
+            onExportProxies = { "[]" },
+            onImportProxies = { _, onResult -> onResult(0, null) }
         )
     }
 }

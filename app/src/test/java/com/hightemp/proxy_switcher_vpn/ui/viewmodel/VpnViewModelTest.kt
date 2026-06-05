@@ -16,6 +16,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -24,6 +25,7 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TestWatcher
@@ -71,9 +73,65 @@ class VpnViewModelTest {
         assertFalse(viewModel.stats.value.isRunning)
     }
 
-    private fun newViewModel(): VpnViewModel {
+    @Test
+    fun importProxiesFromReferenceTextInsertsFreshRows() = runTest {
+        val proxyDao = FakeProxyDao()
+        val viewModel = newViewModel(proxyDao = proxyDao)
+        var importedCount = -1
+        var errorMessage: String? = "unset"
+
+        viewModel.importProxiesFromText(
+            """
+                [
+                  {
+                    "host": "legacy.example",
+                    "port": 1080,
+                    "type": "SOCKS5",
+                    "username": "user",
+                    "password": "password",
+                    "label": "Legacy",
+                    "isEnabled": true
+                  }
+                ]
+            """.trimIndent()
+        ) { count, error ->
+            importedCount = count
+            errorMessage = error
+        }
+        advanceUntilIdle()
+
+        assertEquals(1, importedCount)
+        assertNull(errorMessage)
+        val imported = proxyDao.snapshot().single()
+        assertEquals(1L, imported.id)
+        assertEquals("legacy.example", imported.host)
+        assertEquals(1080, imported.port)
+        assertEquals("Imported 1 proxies.", viewModel.uiState.value.message)
+    }
+
+    @Test
+    fun invalidProxyImportDoesNotInsertRows() = runTest {
+        val proxyDao = FakeProxyDao()
+        val viewModel = newViewModel(proxyDao = proxyDao)
+        var importedCount = -1
+        var errorMessage: String? = null
+
+        viewModel.importProxiesFromText("not-json") { count, error ->
+            importedCount = count
+            errorMessage = error
+        }
+        advanceUntilIdle()
+
+        assertEquals(0, importedCount)
+        assertEquals(emptyList<ProxyEntity>(), proxyDao.snapshot())
+        assertFalse(errorMessage.isNullOrBlank())
+    }
+
+    private fun newViewModel(
+        proxyDao: ProxyDao = FakeProxyDao()
+    ): VpnViewModel {
         return VpnViewModel(
-            proxyRepository = ProxyRepository(FakeProxyDao()),
+            proxyRepository = ProxyRepository(proxyDao),
             settingsRepository = SettingsRepository(FakePreferencesDataStore()),
             proxyTester = FakeReachabilityTester(),
             diagnosticsRepository = VpnDiagnosticsRepository()
@@ -116,6 +174,8 @@ class VpnViewModelTest {
         override suspend fun deleteProxy(proxy: ProxyEntity) {
             proxies.value = proxies.value.filterNot { existing -> existing.id == proxy.id }
         }
+
+        fun snapshot(): List<ProxyEntity> = proxies.value
     }
 
     private class FakePreferencesDataStore : DataStore<Preferences> {

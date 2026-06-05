@@ -72,6 +72,8 @@ New project should keep these conventions, but replace system proxy management w
 ## 6. Product Requirements
 
 - The user can create, edit, delete, select, and test upstream proxies.
+- The user can import and export the saved proxy list using the JSON format from
+  the reference `proxy_switcher` app, so proxy exports from that app can be read.
 - The user can start VPN only after Android VPN permission is granted through `VpnService.prepare()`.
 - The app runs the VPN as a foreground service with a clear persistent notification.
 - The user can stop VPN from the app and from the foreground notification.
@@ -98,6 +100,9 @@ New project should keep these conventions, but replace system proxy management w
   - password.
 - Validate host and port before save.
 - Mask proxy passwords in logs, config previews, and UI summaries.
+- Import/export proxy list as a JSON array compatible with the reference
+  `proxy_switcher` app fields: `host`, `port`, `type`, optional `username`,
+  optional `password`, optional `label`, and `isEnabled`.
 
 ### VPN Lifecycle
 
@@ -570,6 +575,7 @@ VPN/sing-box additions:
 Included:
 
 - Proxy CRUD for SOCKS5, HTTP, HTTPS with optional auth.
+- Compatible proxy list import/export using the reference app JSON format.
 - Selected proxy persistence.
 - VPN permission flow.
 - Foreground VPN service.
@@ -600,7 +606,6 @@ Excluded:
 - Automatic reconnect with backoff and fail-closed policy.
 - Per-app traffic statistics if core/platform support allows.
 - Proxy health checks and latency display.
-- Import/export proxy list if useful from the reference app pattern.
 - Advanced DNS server selection.
 - Configurable QUIC/UDP policy.
 - Structured log export with redaction.
