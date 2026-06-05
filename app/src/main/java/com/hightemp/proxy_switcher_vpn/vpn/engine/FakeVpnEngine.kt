@@ -17,6 +17,8 @@ class FakeVpnEngine @Inject constructor() : VpnEngine {
     override val counters: StateFlow<VpnEngineCounters> = _counters.asStateFlow()
 
     private var nextStartFailure: String? = null
+    var lastStartRequest: VpnEngineStartRequest? = null
+        private set
 
     fun failNextStart(message: String) {
         nextStartFailure = message
@@ -25,6 +27,7 @@ class FakeVpnEngine @Inject constructor() : VpnEngine {
     override suspend fun start(
         request: VpnEngineStartRequest
     ): VpnEngineCommandResult {
+        lastStartRequest = request
         val selectedProxy = SelectedProxySummary.from(request.selectedProxy)
         val startFailure = nextStartFailure
         nextStartFailure = null

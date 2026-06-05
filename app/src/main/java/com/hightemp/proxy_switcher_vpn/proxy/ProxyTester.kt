@@ -6,6 +6,7 @@ import com.hightemp.proxy_switcher_vpn.data.local.ProxyType
 import com.hightemp.proxy_switcher_vpn.vpn.platform.ActiveVpnServiceBridge
 import java.io.BufferedInputStream
 import java.io.BufferedOutputStream
+import java.io.Closeable
 import java.io.EOFException
 import java.io.IOException
 import java.net.ConnectException
@@ -33,7 +34,8 @@ private const val SOCKS_ADDRESS_DOMAIN = 0x03
 
 data class ProxyTestResult(
     val success: Boolean,
-    val message: String
+    val message: String,
+    val resolvedProxyHost: String? = null
 )
 
 interface ProxyReachabilityTester {
@@ -46,7 +48,8 @@ interface ProxyReachabilityTester {
 }
 
 class ProxyTester @Inject constructor(
-    private val activeVpnServiceBridge: ActiveVpnServiceBridge
+    private val activeVpnServiceBridge: ActiveVpnServiceBridge,
+    private val proxyNetworkResolver: ProxyNetworkResolver
 ) : ProxyReachabilityTester {
     override suspend fun test(
         proxy: ProxyEntity,
@@ -91,9 +94,9 @@ class ProxyTester @Inject constructor(
         targetHost: String,
         targetPort: Int,
         timeoutMillis: Int
-    ): ProxyTestResult = openProxySocket(proxy, useTls = false, timeoutMillis).use { socket ->
-        writeConnectRequest(socket, proxy, targetHost, targetPort)
-        readConnectResponse(socket)
+    ): ProxyTestResult = openProxySocket(proxy, useTls = false, timeoutMillis).use { connection ->
+        writeConnectRequest(connection.socket, proxy, targetHost, targetPort)
+        readConnectResponse(connection.socket).withResolvedProxyHost(connection.resolvedProxyHost)
     }
 
     private fun testHttpsConnect(
@@ -101,23 +104,29 @@ class ProxyTester @Inject constructor(
         targetHost: String,
         targetPort: Int,
         timeoutMillis: Int
-    ): ProxyTestResult = openProxySocket(proxy, useTls = true, timeoutMillis).use { socket ->
-        writeConnectRequest(socket, proxy, targetHost, targetPort)
-        readConnectResponse(socket)
+    ): ProxyTestResult = openProxySocket(proxy, useTls = true, timeoutMillis).use { connection ->
+        writeConnectRequest(connection.socket, proxy, targetHost, targetPort)
+        readConnectResponse(connection.socket).withResolvedProxyHost(connection.resolvedProxyHost)
     }
 
     private fun openProxySocket(
         proxy: ProxyEntity,
         useTls: Boolean,
         timeoutMillis: Int
-    ): Socket {
+    ): OpenProxySocket {
+        val target = proxyNetworkResolver.resolve(
+            host = proxy.host,
+            port = proxy.port,
+            preferNonVpnNetwork = activeVpnServiceBridge.isActive()
+        )
         val rawSocket = Socket()
         try {
             activeVpnServiceBridge.protectSocketIfActive(rawSocket)
-            rawSocket.connect(InetSocketAddress(proxy.host, proxy.port), timeoutMillis)
+            target.bindSocket(rawSocket)
+            rawSocket.connect(target.socketAddress, timeoutMillis)
             rawSocket.soTimeout = timeoutMillis
             if (!useTls) {
-                return rawSocket
+                return OpenProxySocket(rawSocket, target.serverHost)
             }
 
             val sslSocketFactory = SSLSocketFactory.getDefault() as SSLSocketFactory
@@ -127,9 +136,12 @@ class ProxyTester @Inject constructor(
                 proxy.port,
                 true
             ) as SSLSocket
+            sslSocket.sslParameters = sslSocket.sslParameters.apply {
+                endpointIdentificationAlgorithm = "HTTPS"
+            }
             sslSocket.soTimeout = timeoutMillis
             sslSocket.startHandshake()
-            return sslSocket
+            return OpenProxySocket(sslSocket, target.serverHost)
         } catch (throwable: Throwable) {
             rawSocket.closeQuietly()
             throw throwable
@@ -197,9 +209,15 @@ class ProxyTester @Inject constructor(
         targetPort: Int,
         timeoutMillis: Int
     ): ProxyTestResult {
+        val target = proxyNetworkResolver.resolve(
+            host = proxy.host,
+            port = proxy.port,
+            preferNonVpnNetwork = activeVpnServiceBridge.isActive()
+        )
         Socket().use { socket ->
             activeVpnServiceBridge.protectSocketIfActive(socket)
-            socket.connect(InetSocketAddress(proxy.host, proxy.port), timeoutMillis)
+            target.bindSocket(socket)
+            socket.connect(target.socketAddress, timeoutMillis)
             socket.soTimeout = timeoutMillis
 
             val input = BufferedInputStream(socket.getInputStream())
@@ -273,7 +291,20 @@ class ProxyTester @Inject constructor(
 
             input.skipSocks5Address(addressType)
             input.skipFully(2)
-            return ProxyTestResult(success = true, message = "Proxy test succeeded.")
+            return ProxyTestResult(
+                success = true,
+                message = "Proxy test succeeded.",
+                resolvedProxyHost = target.serverHost
+            )
+        }
+    }
+
+    private data class OpenProxySocket(
+        val socket: Socket,
+        val resolvedProxyHost: String
+    ) : Closeable {
+        override fun close() {
+            socket.close()
         }
     }
 
@@ -329,6 +360,10 @@ class ProxyTester @Inject constructor(
             else -> "Proxy test failed."
         }
         return ProxyTestResult(success = false, message = message)
+    }
+
+    private fun ProxyTestResult.withResolvedProxyHost(resolvedProxyHost: String): ProxyTestResult {
+        return if (success) copy(resolvedProxyHost = resolvedProxyHost) else this
     }
 
     private fun socks5ReplyMessage(reply: Int): String {

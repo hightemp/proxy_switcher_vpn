@@ -33,6 +33,10 @@ class SingBoxConfigGeneratorTest {
         assertEquals(1080, outbound["server_port"]?.jsonPrimitive?.int)
         assertEquals("5", outbound["version"]?.jsonPrimitive?.content)
         assertEquals("tcp", outbound["network"]?.jsonPrimitive?.content)
+        assertEquals(
+            DEFAULT_PROXY_HOST_BOOTSTRAP_DNS_TAG,
+            outbound["domain_resolver"]?.jsonPrimitive?.content
+        )
         assertNull(outbound["username"])
         assertNull(outbound["password"])
     }
@@ -69,6 +73,10 @@ class SingBoxConfigGeneratorTest {
 
         assertEquals("http", outbound["type"]?.jsonPrimitive?.content)
         assertEquals(8080, outbound["server_port"]?.jsonPrimitive?.int)
+        assertEquals(
+            DEFAULT_PROXY_HOST_BOOTSTRAP_DNS_TAG,
+            outbound["domain_resolver"]?.jsonPrimitive?.content
+        )
         assertNull(outbound["tls"])
         assertNull(outbound["username"])
         assertNull(outbound["password"])
@@ -109,10 +117,38 @@ class SingBoxConfigGeneratorTest {
 
         assertEquals("http", outbound["type"]?.jsonPrimitive?.content)
         assertEquals(8443, outbound["server_port"]?.jsonPrimitive?.int)
+        assertEquals(
+            DEFAULT_PROXY_HOST_BOOTSTRAP_DNS_TAG,
+            outbound["domain_resolver"]?.jsonPrimitive?.content
+        )
         assertEquals(true, tls?.get("enabled")?.jsonPrimitive?.boolean)
+        assertNull(tls?.get("server_name"))
         assertNull(tls?.get("insecure"))
         assertNull(outbound["username"])
         assertNull(outbound["password"])
+    }
+
+    @Test
+    fun generatedHttpsProxyUsesResolvedServerWithOriginalTlsServerName() {
+        val generated = generator.generate(
+            selectedProxy = proxy(type = ProxyType.HTTPS, port = 8443),
+            proxyEndpoint = SingBoxProxyEndpoint.resolved(
+                selectedProxy = proxy(type = ProxyType.HTTPS, port = 8443),
+                resolvedServer = "203.0.113.10"
+            )
+        )
+
+        val outbound = firstOutbound(generated.json)
+        val tls = outbound["tls"]?.jsonObject
+        val servers = dns(generated.json)
+            .getValue("servers")
+            .jsonArray
+            .map { it.jsonObject }
+
+        assertEquals("203.0.113.10", outbound["server"]?.jsonPrimitive?.content)
+        assertEquals("proxy.example", tls?.get("server_name")?.jsonPrimitive?.content)
+        assertNull(outbound["domain_resolver"])
+        assertFalse(servers.any { it["type"]?.jsonPrimitive?.content == "local" })
     }
 
     @Test
@@ -226,6 +262,22 @@ class SingBoxConfigGeneratorTest {
     }
 
     @Test
+    fun generatedConfigDisablesAutoDetectInterfaceForResolvedLoopbackProxy() {
+        val selectedProxy = proxy(type = ProxyType.HTTPS, port = 8443)
+        val generated = generator.generate(
+            selectedProxy = selectedProxy,
+            proxyEndpoint = SingBoxProxyEndpoint.resolved(
+                selectedProxy = selectedProxy,
+                resolvedServer = "127.0.0.1"
+            )
+        )
+
+        val route = route(generated.json)
+
+        assertEquals(false, route["auto_detect_interface"]?.jsonPrimitive?.boolean)
+    }
+
+    @Test
     fun generatedConfigDoesNotDefineDirectOutboundFallback() {
         val generated = generator.generate(proxy(type = ProxyType.HTTP))
 
@@ -260,6 +312,27 @@ class SingBoxConfigGeneratorTest {
         assertNull(tls?.get("insecure"))
         assertEquals(DEFAULT_DNS_SERVER_TAG, dns["final"]?.jsonPrimitive?.content)
         assertEquals("ipv4_only", dns["strategy"]?.jsonPrimitive?.content)
+    }
+
+    @Test
+    fun generatedDnsConfigUsesLocalResolverOnlyForProxyHostBootstrap() {
+        val generated = generator.generate(proxy(type = ProxyType.HTTPS))
+
+        val servers = dns(generated.json)
+            .getValue("servers")
+            .jsonArray
+            .map { it.jsonObject }
+        val bootstrap = servers.first {
+            it["tag"]?.jsonPrimitive?.content == DEFAULT_PROXY_HOST_BOOTSTRAP_DNS_TAG
+        }
+        val outbound = firstOutbound(generated.json)
+
+        assertEquals("local", bootstrap["type"]?.jsonPrimitive?.content)
+        assertEquals(
+            DEFAULT_PROXY_HOST_BOOTSTRAP_DNS_TAG,
+            outbound["domain_resolver"]?.jsonPrimitive?.content
+        )
+        assertEquals(DEFAULT_DNS_SERVER_TAG, dns(generated.json)["final"]?.jsonPrimitive?.content)
     }
 
     @Test

@@ -13,6 +13,7 @@ const val DEFAULT_PROXY_OUTBOUND_TAG = "proxy"
 const val DEFAULT_DIRECT_OUTBOUND_TAG = "direct"
 const val DEFAULT_BLOCK_OUTBOUND_TAG = "block"
 const val DEFAULT_DNS_SERVER_TAG = "doh"
+const val DEFAULT_PROXY_HOST_BOOTSTRAP_DNS_TAG = "proxy-host-bootstrap"
 const val TUN_INBOUND_TAG = "tun-in"
 private const val MASKED_SECRET = "***"
 
@@ -71,6 +72,17 @@ data class SingBoxHttpsDnsServer(
     }
 }
 
+data class SingBoxLocalDnsServer(
+    override val tag: String = DEFAULT_PROXY_HOST_BOOTSTRAP_DNS_TAG
+) : SingBoxDnsServer {
+    override fun toJsonObject(): JsonObject {
+        return buildJsonObject {
+            put("type", "local")
+            put("tag", tag)
+        }
+    }
+}
+
 sealed interface SingBoxInbound {
     val tag: String
 
@@ -116,6 +128,7 @@ data class SingBoxSocksOutbound(
     val serverPort: Int,
     val version: String = "5",
     val network: String = "tcp",
+    val domainResolver: String? = null,
     val username: String? = null,
     val password: String? = null
 ) : SingBoxOutbound {
@@ -127,6 +140,7 @@ data class SingBoxSocksOutbound(
             put("server_port", serverPort)
             put("version", version)
             put("network", network)
+            domainResolver?.let { put("domain_resolver", it) }
             putOptionalSecret("username", username, maskSecrets)
             putOptionalSecret("password", password, maskSecrets)
         }
@@ -139,6 +153,7 @@ data class SingBoxHttpOutbound(
     val serverPort: Int,
     val username: String? = null,
     val password: String? = null,
+    val domainResolver: String? = null,
     val tls: SingBoxTlsConfig? = null
 ) : SingBoxOutbound {
     override fun toJsonObject(maskSecrets: Boolean): JsonObject {
@@ -149,6 +164,7 @@ data class SingBoxHttpOutbound(
             put("server_port", serverPort)
             putOptionalSecret("username", username, maskSecrets)
             putOptionalSecret("password", password, maskSecrets)
+            domainResolver?.let { put("domain_resolver", it) }
             tls?.let { put("tls", it.toJsonObject()) }
         }
     }
@@ -156,11 +172,13 @@ data class SingBoxHttpOutbound(
 
 data class SingBoxTlsConfig(
     val enabled: Boolean = true,
+    val serverName: String? = null,
     val insecure: Boolean? = null
 ) {
     fun toJsonObject(): JsonObject {
         return buildJsonObject {
             put("enabled", enabled)
+            serverName?.let { put("server_name", it) }
             insecure?.let { put("insecure", it) }
         }
     }

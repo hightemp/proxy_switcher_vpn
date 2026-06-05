@@ -2,6 +2,10 @@
 
 Date: 2026-06-05
 
+Note: this file records the first TASK-190 attempt earlier on 2026-06-05. A
+later partial connected-device run is recorded in
+`docs/qa/results/2026-06-05-mvp-manual-qa-partial.md`.
+
 ## Scope
 
 Attempted to execute `docs/qa/manual-vpn-checklist.md` for TASK-190.

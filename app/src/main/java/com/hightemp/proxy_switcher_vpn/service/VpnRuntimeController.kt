@@ -1,6 +1,7 @@
 package com.hightemp.proxy_switcher_vpn.service
 
 import com.hightemp.proxy_switcher_vpn.data.local.ProxyEntity
+import com.hightemp.proxy_switcher_vpn.proxy.ProxyNetworkResolver
 import com.hightemp.proxy_switcher_vpn.proxy.ProxyReachabilityTester
 import com.hightemp.proxy_switcher_vpn.utils.AppLogger
 import com.hightemp.proxy_switcher_vpn.utils.LogType
@@ -8,6 +9,7 @@ import com.hightemp.proxy_switcher_vpn.vpn.engine.VpnEngine
 import com.hightemp.proxy_switcher_vpn.vpn.engine.VpnEngineCommandResult
 import com.hightemp.proxy_switcher_vpn.vpn.engine.VpnEngineStartRequest
 import com.hightemp.proxy_switcher_vpn.vpn.singbox.SingBoxConfigGenerator
+import com.hightemp.proxy_switcher_vpn.vpn.singbox.SingBoxProxyEndpoint
 import javax.inject.Inject
 
 sealed interface VpnRuntimeControllerResult {
@@ -17,7 +19,8 @@ sealed interface VpnRuntimeControllerResult {
 
 class VpnRuntimeController @Inject constructor(
     private val engine: VpnEngine,
-    private val proxyTester: ProxyReachabilityTester
+    private val proxyTester: ProxyReachabilityTester,
+    private val proxyNetworkResolver: ProxyNetworkResolver
 ) {
     private val configGenerator = SingBoxConfigGenerator()
 
@@ -42,8 +45,38 @@ class VpnRuntimeController @Inject constructor(
             )
         }
 
+        val proxyEndpoint = probe.resolvedProxyHost
+            ?.let { resolvedProxyHost ->
+                SingBoxProxyEndpoint.resolved(
+                    selectedProxy = selectedProxy,
+                    resolvedServer = resolvedProxyHost
+                )
+            }
+            ?: runCatching {
+                val target = proxyNetworkResolver.resolve(
+                    host = selectedProxy.host,
+                    port = selectedProxy.port,
+                    preferNonVpnNetwork = false
+                )
+                check(!target.socketAddress.isUnresolved) {
+                    "Proxy host could not be resolved."
+                }
+                SingBoxProxyEndpoint.resolved(
+                    selectedProxy = selectedProxy,
+                    resolvedServer = target.serverHost
+                )
+            }.getOrElse {
+                return failClosed(
+                    message = "Selected upstream proxy failed: Proxy host bootstrap resolution failed.",
+                    selectedProxy = selectedProxy
+                )
+            }
+
         val generatedConfig = runCatching {
-            configGenerator.generate(selectedProxy)
+            configGenerator.generate(
+                selectedProxy = selectedProxy,
+                proxyEndpoint = proxyEndpoint
+            )
         }.getOrElse {
             return failClosed(
                 message = "Failed to generate VPN config.",

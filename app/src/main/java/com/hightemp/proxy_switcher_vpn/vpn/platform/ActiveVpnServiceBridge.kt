@@ -20,6 +20,10 @@ class ActiveVpnServiceBridge @Inject constructor() {
         }
     }
 
+    fun isActive(): Boolean {
+        return activeService != null
+    }
+
     fun protectSocket(fd: Int) {
         val service = activeService ?: error("VPN service is not active.")
         if (!service.protectSocket(fd)) {

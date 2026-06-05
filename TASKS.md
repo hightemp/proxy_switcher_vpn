@@ -1429,8 +1429,12 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
 - Implementation notes:
   - Record Android version, device/emulator, proxy endpoints, and results.
   - Blocked on 2026-06-05: `adb devices` returned no connected device/emulator, no `emulator` binary is available in `PATH`, and the production libbox/TUN integration required by the manual checklist is not present in `app/src/main`.
-  - Production libbox/TUN integration was added later on 2026-06-05 by TASK-182 through TASK-186; remaining TASK-190 blocker is connected device/emulator availability plus reachable test proxy endpoints.
+  - Production libbox/TUN integration was added later on 2026-06-05 by TASK-182 through TASK-186; at that point the remaining blocker was connected device/emulator availability plus reachable test proxy endpoints. This was superseded by the partial connected-device run below.
   - Added `docs/qa/results/2026-06-05-mvp-manual-qa-blocked.md` documenting the attempted environment checks, blockers, unexecuted checklist items, and requirements to unblock.
+  - Partially executed on 2026-06-05 against Samsung SM-A165F / Android 15 with local SOCKS5 and HTTP proxy harnesses exposed through `adb reverse`; SOCKS5, HTTP, permission approval/denial, TUN creation, DoH-through-proxy, IPv6 unreachable behavior, and runtime upstream fail-closed behavior passed after fixes.
+  - Device QA found and fixed missing `ACCESS_NETWORK_STATE`, Android Private DNS TCP/853 leakage to the TUN DNS address, and missing runtime upstream fail-closed monitoring.
+  - Added `docs/qa/results/2026-06-05-mvp-manual-qa-partial.md` with pass/partial/blocked results.
+  - TASK-190 remains blocked because HTTPS proxy validation needs a trusted HTTPS proxy endpoint, UDP/443 needs a reliable manual packet/log capture, and notification Stop plus full Logs screen UI checks still need device interaction.
 - Acceptance criteria:
   - VPN permission flow passes.
   - Foreground notification passes.

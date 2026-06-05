@@ -13,14 +13,55 @@ data class GeneratedSingBoxConfig(
     val udpPolicy: UdpPolicy
 )
 
+data class SingBoxProxyEndpoint(
+    val server: String,
+    val tlsServerName: String? = null,
+    val domainResolver: String? = null
+) {
+    companion object {
+        fun fromProxy(selectedProxy: ProxyEntity): SingBoxProxyEndpoint {
+            val trimmedHost = selectedProxy.host.trim()
+            return SingBoxProxyEndpoint(
+                server = trimmedHost,
+                domainResolver = if (trimmedHost.isNumericAddressLiteral()) {
+                    null
+                } else {
+                    DEFAULT_PROXY_HOST_BOOTSTRAP_DNS_TAG
+                }
+            )
+        }
+
+        fun resolved(
+            selectedProxy: ProxyEntity,
+            resolvedServer: String
+        ): SingBoxProxyEndpoint {
+            val trimmedHost = selectedProxy.host.trim()
+            val trimmedServer = resolvedServer.trim()
+            return SingBoxProxyEndpoint(
+                server = trimmedServer,
+                tlsServerName = trimmedHost.takeIf {
+                    selectedProxy.type == ProxyType.HTTPS &&
+                        trimmedServer != trimmedHost &&
+                        !trimmedHost.isNumericAddressLiteral()
+                },
+                domainResolver = null
+            )
+        }
+    }
+}
+
 class SingBoxConfigGenerator(
     private val serializer: SingBoxConfigSerializer = SingBoxConfigSerializer(),
     private val tunConfig: TunConfig = TunConfig.mvpDefault(),
     private val dnsMode: DnsMode = DnsMode.proxySafeDoh(DEFAULT_PROXY_OUTBOUND_TAG),
     private val udpPolicy: UdpPolicy = UdpPolicy.mvpDefault()
 ) {
-    fun generate(selectedProxy: ProxyEntity): GeneratedSingBoxConfig {
+    fun generate(
+        selectedProxy: ProxyEntity,
+        proxyEndpoint: SingBoxProxyEndpoint = SingBoxProxyEndpoint.fromProxy(selectedProxy)
+    ): GeneratedSingBoxConfig {
         require(selectedProxy.host.isNotBlank()) { "Proxy host must not be blank." }
+        require(proxyEndpoint.server.isNotBlank()) { "Proxy endpoint server must not be blank." }
         require(selectedProxy.port in 1..65535) { "Proxy port must be between 1 and 65535." }
         require(tunConfig.isIpv4Only) { "MVP sing-box config supports IPv4-only TUN settings." }
         require(dnsMode.isProxySafe) { "MVP DNS must use a proxy-safe route." }
@@ -30,12 +71,14 @@ class SingBoxConfigGenerator(
         require(udpPolicy.blocksUdp443) { "MVP UDP policy must block UDP/443." }
 
         val config = SingBoxConfig(
-            dns = dnsMode.toDnsConfig(),
+            dns = dnsMode.toDnsConfig(
+                includeProxyHostBootstrap = proxyEndpoint.domainResolver != null
+            ),
             inbounds = listOf(tunConfig.toTunInbound()),
-            outbounds = listOf(selectedProxy.toOutbound()),
+            outbounds = listOf(selectedProxy.toOutbound(proxyEndpoint)),
             route = SingBoxRouteConfig(
                 finalTag = DEFAULT_PROXY_OUTBOUND_TAG,
-                autoDetectInterface = true,
+                autoDetectInterface = !proxyEndpoint.server.isLoopbackAddressLiteral(),
                 rules = listOf(
                     SingBoxDnsHijackRouteRule(),
                     tunConfig.toPrivateDnsRejectRule()
@@ -50,29 +93,35 @@ class SingBoxConfigGenerator(
         )
     }
 
-    private fun ProxyEntity.toOutbound(): SingBoxOutbound {
+    private fun ProxyEntity.toOutbound(endpoint: SingBoxProxyEndpoint): SingBoxOutbound {
         return when (type) {
             ProxyType.SOCKS5 -> SingBoxSocksOutbound(
                 tag = DEFAULT_PROXY_OUTBOUND_TAG,
-                server = host,
+                server = endpoint.server,
                 serverPort = port,
+                domainResolver = endpoint.domainResolver,
                 username = username,
                 password = password
             )
             ProxyType.HTTP -> SingBoxHttpOutbound(
                 tag = DEFAULT_PROXY_OUTBOUND_TAG,
-                server = host,
+                server = endpoint.server,
                 serverPort = port,
+                domainResolver = endpoint.domainResolver,
                 username = username,
                 password = password
             )
             ProxyType.HTTPS -> SingBoxHttpOutbound(
                 tag = DEFAULT_PROXY_OUTBOUND_TAG,
-                server = host,
+                server = endpoint.server,
                 serverPort = port,
                 username = username,
                 password = password,
-                tls = SingBoxTlsConfig(enabled = true)
+                domainResolver = endpoint.domainResolver,
+                tls = SingBoxTlsConfig(
+                    enabled = true,
+                    serverName = endpoint.tlsServerName
+                )
             )
         }
     }
@@ -86,9 +135,9 @@ class SingBoxConfigGenerator(
         )
     }
 
-    private fun DnsMode.toDnsConfig(): SingBoxDnsConfig {
-        return SingBoxDnsConfig(
-            servers = listOf(
+    private fun DnsMode.toDnsConfig(includeProxyHostBootstrap: Boolean): SingBoxDnsConfig {
+        val servers = buildList {
+            add(
                 SingBoxHttpsDnsServer(
                     server = server,
                     serverPort = serverPort,
@@ -96,6 +145,12 @@ class SingBoxConfigGenerator(
                     detour = detourOutboundTag
                 )
             )
+            if (includeProxyHostBootstrap) {
+                add(SingBoxLocalDnsServer())
+            }
+        }
+        return SingBoxDnsConfig(
+            servers = servers
         )
     }
 
@@ -123,3 +178,18 @@ class SingBoxConfigGenerator(
         const val ANDROID_PRIVATE_DNS_PORT = 853
     }
 }
+
+private fun String.isNumericAddressLiteral(): Boolean {
+    val value = trim()
+    return IPV4_LITERAL.matches(value) || ':' in value
+}
+
+private fun String.isLoopbackAddressLiteral(): Boolean {
+    val value = trim().lowercase()
+    return value == "localhost" ||
+        value == "::1" ||
+        value == "0:0:0:0:0:0:0:1" ||
+        value.startsWith("127.")
+}
+
+private val IPV4_LITERAL = Regex("""\d{1,3}(\.\d{1,3}){3}""")
