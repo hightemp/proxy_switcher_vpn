@@ -17,19 +17,7 @@ selected upstream proxy or through explicit Direct mode.
 The app does not change Android system proxy settings. It uses `VpnService`
 and an embedded sing-box core.
 
-## Features
-
-- route selection on the Home screen: `Direct` or a saved proxy;
-- `SOCKS5`, `HTTP`, and `HTTPS` proxy support;
-- add, edit, delete, and test proxies;
-- import and export proxy lists in a format compatible with `proxy_switcher`;
-- switch proxy while VPN is running without manual stop/start;
-- bounded retry/reconnect when the selected proxy or VPN engine has transient
-  connection problems;
-- logs, VPN diagnostics, traffic counters, masked config preview, and Android
-  logcat output for debugging.
-
-## MVP Limits
+## Limits
 
 - IPv4 only;
 - IPv6 is explicitly unsupported;
