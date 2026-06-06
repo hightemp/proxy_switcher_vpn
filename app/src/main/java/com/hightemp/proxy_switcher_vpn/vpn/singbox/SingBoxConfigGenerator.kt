@@ -70,27 +70,67 @@ class SingBoxConfigGenerator(
         }
         require(udpPolicy.blocksUdp443) { "MVP UDP policy must block UDP/443." }
 
-        val config = SingBoxConfig(
-            dns = dnsMode.toDnsConfig(
-                includeProxyHostBootstrap = proxyEndpoint.domainResolver != null
-            ),
-            inbounds = listOf(tunConfig.toTunInbound()),
+        val config = buildConfig(
+            dnsMode = dnsMode,
+            includeProxyHostBootstrap = proxyEndpoint.domainResolver != null,
             outbounds = listOf(selectedProxy.toOutbound(proxyEndpoint)),
-            route = SingBoxRouteConfig(
-                finalTag = DEFAULT_PROXY_OUTBOUND_TAG,
-                autoDetectInterface = !proxyEndpoint.server.isLoopbackAddressLiteral(),
-                rules = listOf(
-                    SingBoxSniffRouteRule(),
-                    SingBoxDnsHijackRouteRule(),
-                    tunConfig.toPrivateDnsRejectRule()
-                ) + udpPolicy.toRouteRules()
-            )
+            finalOutboundTag = DEFAULT_PROXY_OUTBOUND_TAG,
+            autoDetectInterface = !proxyEndpoint.server.isLoopbackAddressLiteral()
         )
 
         return GeneratedSingBoxConfig(
             json = serializer.serialize(config),
             maskedPreview = serializer.serialize(config, maskSecrets = true),
             udpPolicy = udpPolicy
+        )
+    }
+
+    fun generateDirect(): GeneratedSingBoxConfig {
+        require(tunConfig.isIpv4Only) { "MVP sing-box config supports IPv4-only TUN settings." }
+        require(udpPolicy.blocksUdp443) { "MVP UDP policy must block UDP/443." }
+
+        val directDnsMode = DnsMode.directDoh()
+        require(directDnsMode.isProxySafe) {
+            "Direct VPN mode DNS must use an explicit routed detour."
+        }
+
+        val config = buildConfig(
+            dnsMode = directDnsMode,
+            includeProxyHostBootstrap = false,
+            outbounds = listOf(SingBoxDirectOutbound()),
+            finalOutboundTag = DEFAULT_DIRECT_OUTBOUND_TAG,
+            autoDetectInterface = true
+        )
+
+        return GeneratedSingBoxConfig(
+            json = serializer.serialize(config),
+            maskedPreview = serializer.serialize(config, maskSecrets = true),
+            udpPolicy = udpPolicy
+        )
+    }
+
+    private fun buildConfig(
+        dnsMode: DnsMode,
+        includeProxyHostBootstrap: Boolean,
+        outbounds: List<SingBoxOutbound>,
+        finalOutboundTag: String,
+        autoDetectInterface: Boolean
+    ): SingBoxConfig {
+        return SingBoxConfig(
+            dns = dnsMode.toDnsConfig(
+                includeProxyHostBootstrap = includeProxyHostBootstrap
+            ),
+            inbounds = listOf(tunConfig.toTunInbound()),
+            outbounds = outbounds,
+            route = SingBoxRouteConfig(
+                finalTag = finalOutboundTag,
+                autoDetectInterface = autoDetectInterface,
+                rules = listOf(
+                    SingBoxSniffRouteRule(),
+                    SingBoxDnsHijackRouteRule(),
+                    tunConfig.toPrivateDnsRejectRule()
+                ) + udpPolicy.toRouteRules()
+            )
         )
     }
 

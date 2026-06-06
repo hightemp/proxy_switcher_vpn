@@ -17,4 +17,14 @@ class DnsModeTest {
         assertEquals("proxy", mode.detourOutboundTag)
         assertTrue(mode.isProxySafe)
     }
+
+    @Test
+    fun directDohModeUsesExplicitDirectRouteMode() {
+        val mode = DnsMode.directDoh()
+
+        assertEquals(DnsTransport.DNS_OVER_HTTPS, mode.transport)
+        assertEquals(DnsRouteMode.DIRECT_EXPLICIT, mode.routeMode)
+        assertEquals(null, mode.detourOutboundTag)
+        assertTrue(mode.isProxySafe)
+    }
 }

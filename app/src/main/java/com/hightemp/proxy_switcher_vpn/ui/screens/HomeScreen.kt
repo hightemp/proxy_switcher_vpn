@@ -12,25 +12,36 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.hightemp.proxy_switcher_vpn.data.local.ProxyEntity
+import com.hightemp.proxy_switcher_vpn.data.local.ProxyType
 import com.hightemp.proxy_switcher_vpn.data.settings.AppSettings
 import com.hightemp.proxy_switcher_vpn.service.VpnRuntimeSnapshot
 import com.hightemp.proxy_switcher_vpn.ui.theme.Proxy_switcher_vpnTheme
@@ -45,12 +56,16 @@ fun HomeScreen(
     settings: AppSettings,
     runtimeState: VpnRuntimeSnapshot,
     stats: VpnStats,
-    selectedProxyLabel: String?,
+    proxies: List<ProxyEntity>,
+    selectedProxyId: Long?,
     diagnosticsSummary: String,
     lastError: String?,
     canStartVpn: Boolean,
     onStartVpn: () -> Unit,
     onStopVpn: () -> Unit,
+    onDirectSelected: () -> Unit,
+    onProxySelected: (ProxyEntity) -> Unit,
+    onAddProxy: () -> Unit,
     onManageProxies: () -> Unit,
     onViewLogs: () -> Unit,
     onViewDiagnostics: () -> Unit,
@@ -95,10 +110,14 @@ fun HomeScreen(
                 }
             )
 
-            HomeInfoCard(title = "Selected proxy") {
-                Text(
-                    text = selectedProxyLabel ?: "No proxy selected",
-                    style = MaterialTheme.typography.bodyLarge
+            HomeInfoCard(title = "Selected route") {
+                ProxyRouteSelector(
+                    proxies = proxies,
+                    selectedProxyId = selectedProxyId,
+                    onDirectSelected = onDirectSelected,
+                    onProxySelected = onProxySelected,
+                    onAddProxy = onAddProxy,
+                    onManageProxies = onManageProxies
                 )
             }
 
@@ -173,6 +192,87 @@ fun HomeScreen(
                 onPrivacyDisclosureAccepted = onPrivacyDisclosureAccepted,
                 onDomainDestinationLoggingEnabled = onDomainDestinationLoggingEnabled
             )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ProxyRouteSelector(
+    proxies: List<ProxyEntity>,
+    selectedProxyId: Long?,
+    onDirectSelected: () -> Unit,
+    onProxySelected: (ProxyEntity) -> Unit,
+    onAddProxy: () -> Unit,
+    onManageProxies: () -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val selectedProxy = selectedProxyId?.let { selectedId ->
+        proxies.firstOrNull { proxy -> proxy.id == selectedId }
+    }
+    val selectedLabel = if (selectedProxyId == null) {
+        DIRECT_ROUTE_LABEL
+    } else {
+        selectedProxy?.displayLabel() ?: "Selected proxy unavailable"
+    }
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        ExposedDropdownMenuBox(
+            expanded = expanded,
+            onExpandedChange = { expanded = !expanded },
+            modifier = Modifier.weight(1f)
+        ) {
+            OutlinedTextField(
+                value = selectedLabel,
+                onValueChange = {},
+                readOnly = true,
+                trailingIcon = {
+                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+                },
+                modifier = Modifier
+                    .menuAnchor()
+                    .fillMaxWidth()
+            )
+            ExposedDropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                DropdownMenuItem(
+                    text = { Text(DIRECT_ROUTE_LABEL) },
+                    onClick = {
+                        expanded = false
+                        onDirectSelected()
+                    }
+                )
+                proxies.forEach { proxy ->
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                if (proxy.isEnabled) {
+                                    proxy.displayLabel()
+                                } else {
+                                    "${proxy.displayLabel()} - disabled"
+                                }
+                            )
+                        },
+                        enabled = proxy.isEnabled,
+                        onClick = {
+                            expanded = false
+                            onProxySelected(proxy)
+                        }
+                    )
+                }
+            }
+        }
+        IconButton(onClick = onAddProxy) {
+            Icon(Icons.Default.Add, contentDescription = "Add proxy")
+        }
+        IconButton(onClick = onManageProxies) {
+            Icon(Icons.Default.Settings, contentDescription = "Manage proxies")
         }
     }
 }
@@ -272,6 +372,12 @@ private fun formatBytes(bytes: Long): String {
     return "%.1f MiB".format(kib / 1024.0)
 }
 
+private fun ProxyEntity.displayLabel(): String {
+    return "${label ?: host}:$port ($type)"
+}
+
+private const val DIRECT_ROUTE_LABEL = "Direct Connection"
+
 @Preview(showBackground = true)
 @Composable
 private fun HomeScreenPreview() {
@@ -284,12 +390,24 @@ private fun HomeScreenPreview() {
             settings = AppSettings(),
             runtimeState = VpnRuntimeSnapshot(),
             stats = VpnStats(bytesIn = 2048, bytesOut = 4096),
-            selectedProxyLabel = "Test proxy (SOCKS5)",
+            proxies = listOf(
+                ProxyEntity(
+                    id = 1L,
+                    host = "proxy.example",
+                    port = 1080,
+                    type = ProxyType.SOCKS5,
+                    label = "Test proxy"
+                )
+            ),
+            selectedProxyId = 1L,
             diagnosticsSummary = "IPv4 only; DNS proxy-safe; UDP/443 blocked.",
             lastError = null,
             canStartVpn = true,
             onStartVpn = {},
             onStopVpn = {},
+            onDirectSelected = {},
+            onProxySelected = {},
+            onAddProxy = {},
             onManageProxies = {},
             onViewLogs = {},
             onViewDiagnostics = {},

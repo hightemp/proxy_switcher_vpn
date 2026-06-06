@@ -5,6 +5,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import javax.inject.Inject
+import com.hightemp.proxy_switcher_vpn.vpn.routing.VpnRouteSelection
+import com.hightemp.proxy_switcher_vpn.vpn.routing.proxyOrNull
 
 class FakeVpnEngine @Inject constructor() : VpnEngine {
     private val _state = MutableStateFlow(VpnEngineState())
@@ -28,13 +30,13 @@ class FakeVpnEngine @Inject constructor() : VpnEngine {
         request: VpnEngineStartRequest
     ): VpnEngineCommandResult {
         lastStartRequest = request
-        val selectedProxy = SelectedProxySummary.from(request.selectedProxy)
+        val selectedProxy = request.routeSelection.proxyOrNull()?.let(SelectedProxySummary::from)
         val startFailure = nextStartFailure
         nextStartFailure = null
 
         appendLog(
             VpnEngineLogLevel.INFO,
-            "Starting VPN engine for ${selectedProxy.type} ${selectedProxy.host}:${selectedProxy.port}."
+            "Starting VPN engine for ${request.routeSelection.logLabel()}."
         )
         _state.value = VpnEngineState(
             status = VpnEngineStatus.STARTING,
@@ -105,5 +107,12 @@ class FakeVpnEngine @Inject constructor() : VpnEngine {
 
     private companion object {
         const val MAX_LOG_ENTRIES = 100
+    }
+}
+
+private fun VpnRouteSelection.logLabel(): String {
+    return when (this) {
+        VpnRouteSelection.Direct -> "Direct Connection"
+        is VpnRouteSelection.Proxy -> "${proxy.type} ${proxy.host}:${proxy.port}"
     }
 }

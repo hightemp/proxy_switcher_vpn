@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.emptyPreferences
 import com.hightemp.proxy_switcher_vpn.data.local.ProxyDao
 import com.hightemp.proxy_switcher_vpn.data.local.ProxyEntity
+import com.hightemp.proxy_switcher_vpn.data.local.ProxyType
 import com.hightemp.proxy_switcher_vpn.data.repository.ProxyRepository
 import com.hightemp.proxy_switcher_vpn.data.settings.SettingsRepository
 import com.hightemp.proxy_switcher_vpn.proxy.ProxyReachabilityTester
@@ -16,6 +17,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestDispatcher
@@ -25,7 +28,9 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Assert.assertNull
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TestWatcher
@@ -36,14 +41,41 @@ class VpnViewModelTest {
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
 
+    @Before
+    fun setUp() {
+        VpnRuntimeState.markStopped("Test reset.")
+    }
+
     @After
     fun tearDown() {
         VpnRuntimeState.markStopped("Test reset.")
     }
 
     @Test
-    fun startIsDisabledWithoutSelectedProxy() = runTest {
+    fun directRouteIsStartableByDefault() = runTest {
         val viewModel = newViewModel()
+        backgroundScope.launch { viewModel.canStartVpn.collect() }
+        advanceUntilIdle()
+
+        assertEquals("Direct Connection", viewModel.selectedRoute.value?.displayLabel)
+        assertTrue(viewModel.canStartVpn.value)
+        assertTrue(viewModel.canStartVpnNow())
+    }
+
+    @Test
+    fun startIsDisabledWhenStoredProxyIdIsUnavailable() = runTest {
+        val viewModel = newViewModel()
+
+        viewModel.onProxySelected(
+            ProxyEntity(
+                id = 99L,
+                host = "missing.example",
+                port = 1080,
+                type = ProxyType.SOCKS5
+            )
+        )
+        backgroundScope.launch { viewModel.canStartVpn.collect() }
+        advanceUntilIdle()
 
         assertFalse(viewModel.canStartVpn.value)
         assertFalse(viewModel.canStartVpnNow())
@@ -51,7 +83,7 @@ class VpnViewModelTest {
         viewModel.onStartVpnBlockedNoSelectedProxy()
 
         assertEquals(
-            "Select a valid proxy before starting VPN.",
+            "Select Direct or a valid enabled proxy before starting VPN.",
             viewModel.uiState.value.lastError
         )
     }

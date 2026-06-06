@@ -3,6 +3,7 @@ package com.hightemp.proxy_switcher_vpn.vpn.diagnostics
 import com.hightemp.proxy_switcher_vpn.data.local.ProxyEntity
 import com.hightemp.proxy_switcher_vpn.service.VpnServiceStatus
 import com.hightemp.proxy_switcher_vpn.vpn.engine.VpnEngineCounters
+import com.hightemp.proxy_switcher_vpn.vpn.routing.VpnRouteSelection
 import com.hightemp.proxy_switcher_vpn.vpn.stats.VpnStats
 import com.hightemp.proxy_switcher_vpn.vpn.udp.UdpPolicy
 
@@ -74,7 +75,7 @@ data class VpnDiagnostics(
         severity = DiagnosticSeverity.WARNING
     ),
     val selectedProxy: DiagnosticField = DiagnosticField(
-        label = "Selected proxy",
+        label = "Selected route",
         value = "none",
         severity = DiagnosticSeverity.WARNING
     ),
@@ -215,19 +216,35 @@ data class VpnDiagnostics(
         fun selectedProxyField(proxy: ProxyEntity?): DiagnosticField {
             return if (proxy == null) {
                 DiagnosticField(
-                    label = "Selected proxy",
+                    label = "Selected route",
                     value = "none",
                     severity = DiagnosticSeverity.WARNING
                 )
             } else {
                 DiagnosticField(
-                    label = "Selected proxy",
+                    label = "Selected route",
                     value = "${proxy.label ?: proxy.host}:${proxy.port} (${proxy.type})",
                     severity = if (proxy.isEnabled) {
                         DiagnosticSeverity.OK
                     } else {
                         DiagnosticSeverity.WARNING
                     }
+                )
+            }
+        }
+
+        fun selectedRouteField(routeSelection: VpnRouteSelection?): DiagnosticField {
+            return when (routeSelection) {
+                VpnRouteSelection.Direct -> DiagnosticField(
+                    label = "Selected route",
+                    value = "Direct Connection",
+                    severity = DiagnosticSeverity.OK
+                )
+                is VpnRouteSelection.Proxy -> selectedProxyField(routeSelection.proxy)
+                null -> DiagnosticField(
+                    label = "Selected route",
+                    value = "none",
+                    severity = DiagnosticSeverity.WARNING
                 )
             }
         }

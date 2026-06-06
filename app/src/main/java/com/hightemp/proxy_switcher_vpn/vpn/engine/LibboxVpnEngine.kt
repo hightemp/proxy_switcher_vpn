@@ -1,12 +1,14 @@
 package com.hightemp.proxy_switcher_vpn.vpn.engine
 
 import android.content.Context
-import com.hightemp.proxy_switcher_vpn.data.local.ProxyEntity
 import com.hightemp.proxy_switcher_vpn.utils.AppLogger
 import com.hightemp.proxy_switcher_vpn.utils.LogType
 import com.hightemp.proxy_switcher_vpn.vpn.platform.ActiveVpnServiceBridge
 import com.hightemp.proxy_switcher_vpn.vpn.platform.AndroidLibboxPlatformInterface
 import com.hightemp.proxy_switcher_vpn.vpn.platform.DefaultNetworkMonitor
+import com.hightemp.proxy_switcher_vpn.vpn.routing.VpnRouteSelection
+import com.hightemp.proxy_switcher_vpn.vpn.routing.proxyOrNull
+import com.hightemp.proxy_switcher_vpn.vpn.routing.sensitiveValues
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.nekohasekai.libbox.CommandServer
 import io.nekohasekai.libbox.OverrideOptions
@@ -47,14 +49,14 @@ class LibboxVpnEngine @Inject constructor(
         lifecycleLock.withLock {
             closeCommandServerLocked()
 
-            val selectedProxy = SelectedProxySummary.from(request.selectedProxy)
+            val selectedProxy = request.routeSelection.proxyOrNull()?.let(SelectedProxySummary::from)
             _state.value = VpnEngineState(
                 status = VpnEngineStatus.STARTING,
                 selectedProxy = selectedProxy
             )
             appendLog(
                 VpnEngineLogLevel.INFO,
-                "Starting sing-box for ${selectedProxy.type} ${selectedProxy.host}:${selectedProxy.port}."
+                "Starting sing-box for ${request.routeSelection.logLabel()}."
             )
             AppLogger.info(
                 message = "Starting sing-box VPN engine.",
@@ -93,7 +95,7 @@ class LibboxVpnEngine @Inject constructor(
                     VpnEngineCommandResult.Success
                 },
                 onFailure = { throwable ->
-                    val safeMessage = throwable.toSafeMessage(request.selectedProxy)
+                    val safeMessage = throwable.toSafeMessage(request.routeSelection)
                     closeCommandServerLocked()
                     _counters.update {
                         it.copy(failedConnections = it.failedConnections + 1)
@@ -110,7 +112,7 @@ class LibboxVpnEngine @Inject constructor(
                     AppLogger.error(
                         message = "sing-box failed to start: $safeMessage",
                         type = LogType.VPN,
-                        sensitiveValues = request.selectedProxy.sensitiveValues()
+                        sensitiveValues = request.routeSelection.sensitiveValues()
                     )
                     VpnEngineCommandResult.Failure(
                         message = "sing-box failed to start: $safeMessage",
@@ -229,20 +231,22 @@ class LibboxVpnEngine @Inject constructor(
         }
     }
 
-    private fun Throwable.toSafeMessage(selectedProxy: ProxyEntity): String {
+    private fun Throwable.toSafeMessage(routeSelection: VpnRouteSelection): String {
         val rawMessage = message?.takeIf { it.isNotBlank() } ?: javaClass.simpleName
-        return selectedProxy.sensitiveValues().fold(rawMessage) { masked, secret ->
+        return routeSelection.sensitiveValues().fold(rawMessage) { masked, secret ->
             masked.replace(secret, MASKED_SECRET)
         }
-    }
-
-    private fun ProxyEntity.sensitiveValues(): List<String> {
-        return listOfNotNull(username, password)
-            .filter { it.isNotBlank() }
     }
 
     private companion object {
         const val MAX_LOG_ENTRIES = 100
         const val MASKED_SECRET = "***"
+    }
+}
+
+private fun VpnRouteSelection.logLabel(): String {
+    return when (this) {
+        VpnRouteSelection.Direct -> "Direct Connection"
+        is VpnRouteSelection.Proxy -> "${proxy.type} ${proxy.host}:${proxy.port}"
     }
 }

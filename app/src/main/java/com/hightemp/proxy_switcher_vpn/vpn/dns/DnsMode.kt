@@ -5,7 +5,8 @@ enum class DnsTransport {
 }
 
 enum class DnsRouteMode {
-    SELECTED_PROXY
+    SELECTED_PROXY,
+    DIRECT_EXPLICIT
 }
 
 data class DnsMode(
@@ -14,10 +15,13 @@ data class DnsMode(
     val server: String,
     val serverPort: Int,
     val path: String,
-    val detourOutboundTag: String
+    val detourOutboundTag: String?
 ) {
     val isProxySafe: Boolean =
-        routeMode == DnsRouteMode.SELECTED_PROXY && detourOutboundTag.isNotBlank()
+        when (routeMode) {
+            DnsRouteMode.SELECTED_PROXY -> !detourOutboundTag.isNullOrBlank()
+            DnsRouteMode.DIRECT_EXPLICIT -> true
+        }
 
     companion object {
         fun proxySafeDoh(detourOutboundTag: String): DnsMode {
@@ -28,6 +32,17 @@ data class DnsMode(
                 serverPort = 443,
                 path = "/dns-query",
                 detourOutboundTag = detourOutboundTag
+            )
+        }
+
+        fun directDoh(): DnsMode {
+            return DnsMode(
+                transport = DnsTransport.DNS_OVER_HTTPS,
+                routeMode = DnsRouteMode.DIRECT_EXPLICIT,
+                server = "1.1.1.1",
+                serverPort = 443,
+                path = "/dns-query",
+                detourOutboundTag = null
             )
         }
     }

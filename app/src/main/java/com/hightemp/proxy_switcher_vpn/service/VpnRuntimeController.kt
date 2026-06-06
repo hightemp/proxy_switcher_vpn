@@ -8,6 +8,8 @@ import com.hightemp.proxy_switcher_vpn.utils.LogType
 import com.hightemp.proxy_switcher_vpn.vpn.engine.VpnEngine
 import com.hightemp.proxy_switcher_vpn.vpn.engine.VpnEngineCommandResult
 import com.hightemp.proxy_switcher_vpn.vpn.engine.VpnEngineStartRequest
+import com.hightemp.proxy_switcher_vpn.vpn.routing.VpnRouteSelection
+import com.hightemp.proxy_switcher_vpn.vpn.routing.sensitiveValues
 import com.hightemp.proxy_switcher_vpn.vpn.singbox.SingBoxConfigGenerator
 import com.hightemp.proxy_switcher_vpn.vpn.singbox.SingBoxProxyEndpoint
 import javax.inject.Inject
@@ -24,12 +26,17 @@ class VpnRuntimeController @Inject constructor(
 ) {
     private val configGenerator = SingBoxConfigGenerator()
 
-    suspend fun start(selectedProxy: ProxyEntity): VpnRuntimeControllerResult {
+    suspend fun start(routeSelection: VpnRouteSelection): VpnRuntimeControllerResult {
         AppLogger.info(
-            message = "VPN start requested.",
+            message = "VPN start requested for ${routeSelection.displayLabel}.",
             type = LogType.VPN
         )
 
+        if (routeSelection == VpnRouteSelection.Direct) {
+            return startDirect()
+        }
+
+        val selectedProxy = (routeSelection as VpnRouteSelection.Proxy).proxy
         val probe = runCatching {
             proxyTester.test(selectedProxy)
         }.getOrElse {
@@ -87,7 +94,7 @@ class VpnRuntimeController @Inject constructor(
         val startResult = runCatching {
             engine.start(
                 VpnEngineStartRequest(
-                    selectedProxy = selectedProxy,
+                    routeSelection = routeSelection,
                     generatedConfig = generatedConfig.json
                 )
             )
@@ -110,6 +117,47 @@ class VpnRuntimeController @Inject constructor(
                 failClosed(
                     message = startResult.message,
                     selectedProxy = selectedProxy
+                )
+            }
+        }
+    }
+
+    private suspend fun startDirect(): VpnRuntimeControllerResult {
+        val generatedConfig = runCatching {
+            configGenerator.generateDirect()
+        }.getOrElse {
+            return failClosed(
+                message = "Failed to generate direct VPN config.",
+                routeSelection = VpnRouteSelection.Direct
+            )
+        }
+
+        val startResult = runCatching {
+            engine.start(
+                VpnEngineStartRequest(
+                    routeSelection = VpnRouteSelection.Direct,
+                    generatedConfig = generatedConfig.json
+                )
+            )
+        }.getOrElse {
+            return failClosed(
+                message = "Direct VPN engine failed to start.",
+                routeSelection = VpnRouteSelection.Direct
+            )
+        }
+
+        return when (startResult) {
+            VpnEngineCommandResult.Success -> {
+                AppLogger.info(
+                    message = "Direct VPN engine started.",
+                    type = LogType.VPN
+                )
+                VpnRuntimeControllerResult.Success
+            }
+            is VpnEngineCommandResult.Failure -> {
+                failClosed(
+                    message = startResult.message,
+                    routeSelection = VpnRouteSelection.Direct
                 )
             }
         }
@@ -138,16 +186,22 @@ class VpnRuntimeController @Inject constructor(
         message: String,
         selectedProxy: ProxyEntity
     ): VpnRuntimeControllerResult.Failure {
+        return failClosed(
+            message = message,
+            routeSelection = VpnRouteSelection.Proxy(selectedProxy)
+        )
+    }
+
+    private suspend fun failClosed(
+        message: String,
+        routeSelection: VpnRouteSelection
+    ): VpnRuntimeControllerResult.Failure {
         engine.stop()
         AppLogger.error(
             message = "VPN stopped fail-closed: $message",
             type = LogType.PROXY,
-            sensitiveValues = selectedProxy.sensitiveValues()
+            sensitiveValues = routeSelection.sensitiveValues()
         )
         return VpnRuntimeControllerResult.Failure(message)
-    }
-
-    private fun ProxyEntity.sensitiveValues(): List<String> {
-        return listOfNotNull(username, password)
     }
 }

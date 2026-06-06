@@ -1,7 +1,7 @@
 package com.hightemp.proxy_switcher_vpn.vpn.diagnostics
 
-import com.hightemp.proxy_switcher_vpn.data.local.ProxyEntity
 import com.hightemp.proxy_switcher_vpn.service.VpnRuntimeSnapshot
+import com.hightemp.proxy_switcher_vpn.vpn.routing.VpnRouteSelection
 import com.hightemp.proxy_switcher_vpn.vpn.singbox.SingBoxConfigGenerator
 import com.hightemp.proxy_switcher_vpn.vpn.stats.VpnStats
 import javax.inject.Inject
@@ -14,19 +14,19 @@ class VpnDiagnosticsRepository @Inject constructor() {
     fun diagnostics(
         permissionStatus: Flow<VpnPermissionDiagnosticStatus>,
         runtimeState: Flow<VpnRuntimeSnapshot>,
-        selectedProxy: Flow<ProxyEntity?>,
+        selectedRoute: Flow<VpnRouteSelection?>,
         stats: Flow<VpnStats>
     ): Flow<VpnDiagnostics> {
         return combine(
             permissionStatus,
             runtimeState,
-            selectedProxy,
+            selectedRoute,
             stats
-        ) { permission, runtime, proxy, vpnStats ->
+        ) { permission, runtime, routeSelection, vpnStats ->
             buildDiagnostics(
                 permission = permission,
                 runtime = runtime,
-                proxy = proxy,
+                routeSelection = routeSelection,
                 stats = vpnStats
             )
         }
@@ -35,11 +35,15 @@ class VpnDiagnosticsRepository @Inject constructor() {
     fun buildDiagnostics(
         permission: VpnPermissionDiagnosticStatus,
         runtime: VpnRuntimeSnapshot,
-        proxy: ProxyEntity?,
+        routeSelection: VpnRouteSelection?,
         stats: VpnStats
     ): VpnDiagnostics {
-        val generatedConfig = proxy?.let { selectedProxy ->
-            runCatching { configGenerator.generate(selectedProxy) }.getOrNull()
+        val generatedConfig = when (routeSelection) {
+            VpnRouteSelection.Direct -> runCatching { configGenerator.generateDirect() }.getOrNull()
+            is VpnRouteSelection.Proxy -> runCatching {
+                configGenerator.generate(routeSelection.proxy)
+            }.getOrNull()
+            null -> null
         }
         val udpPolicy = generatedConfig?.udpPolicy ?: VpnDiagnostics().udpPolicy
 
@@ -52,7 +56,7 @@ class VpnDiagnosticsRepository @Inject constructor() {
             foregroundService = VpnDiagnostics.foregroundServiceField(runtime.status),
             singBoxCore = VpnDiagnostics.singBoxField(runtime.status),
             tunInterface = VpnDiagnostics.tunField(runtime.status),
-            selectedProxy = VpnDiagnostics.selectedProxyField(proxy),
+            selectedProxy = VpnDiagnostics.selectedRouteField(routeSelection),
             udp = DiagnosticField(
                 label = "UDP",
                 value = udpPolicy.diagnosticSummary,

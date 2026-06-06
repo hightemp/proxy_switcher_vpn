@@ -1508,6 +1508,62 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
   - TASK-186
 - Estimated risk: medium
 
+### TASK-206: Add Home Route Selector And Runtime Switching
+
+- Status: done
+- Goal: Add a reference-style Home route selector with Direct and saved proxies,
+  and apply route changes while VPN is already running.
+- Context files to inspect:
+  - `PRD.md` Home UI, VPN lifecycle, DNS, and fail-closed sections.
+  - `/home/hightemp/Projects/proxy_switcher/proxy_switcher/app/src/main/java/com/hightemp/proxy_switcher/ui/screens/HomeScreen.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/ui/screens/HomeScreen.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/ui/viewmodel/VpnViewModel.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/vpn/ProxyVpnService.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/service/VpnRuntimeController.kt`
+- Files likely to change:
+  - `PRD.md`
+  - `TASKS.md`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/MainActivity.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/ui/screens/HomeScreen.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/ui/viewmodel/VpnViewModel.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/service/VpnRuntimeController.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/vpn/ProxyVpnService.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/vpn/dns/DnsMode.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/vpn/diagnostics/`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/vpn/engine/`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/vpn/singbox/`
+  - focused unit tests for ViewModel, config generation, diagnostics, and runtime.
+- Acceptance criteria:
+  - Home shows a dropdown with Direct first and then saved enabled proxies.
+  - Home exposes nearby add/manage proxy buttons.
+  - Direct is an explicit mode, not a fallback after upstream proxy failure.
+  - Starting VPN in Direct creates a sing-box config with a direct outbound and
+    DoH routed through that explicit direct outbound.
+  - Selecting another proxy or Direct while VPN is running applies the new route
+    without requiring a manual stop/start.
+  - Selecting a failing upstream proxy while switching still stops fail-closed.
+- Test/smoke commands:
+  - `./gradlew test`
+  - `./gradlew assembleDebug`
+  - connected-device UI smoke on Samsung SM-A165F / Android 15:
+    - Home dropdown showed Direct and saved proxies.
+    - Direct was selected and started VPN successfully.
+    - While VPN was RUNNING, selecting `proxy fornex ge:8888 (HTTPS)` switched
+      the active VPN route without manual stop/start.
+    - Chrome loaded `https://2ip.ru` after the switch and showed IP
+      `5.187.7.126`.
+- Implementation notes:
+  - Added `VpnRouteSelection` for explicit Direct/Proxy runtime mode.
+  - Direct config uses a sing-box `direct` outbound as route final. DoH remains
+    HTTPS-based; direct-mode DNS omits `detour: "direct"` because sing-box
+    rejects detouring DNS to an empty direct outbound.
+  - `ProxyVpnService.ACTION_SWITCH_ROUTE` reloads the route while preserving the
+    foreground VPN service lifecycle. Upstream monitoring runs only for proxy
+    selections.
+- Dependencies:
+  - TASK-205
+- Estimated risk: medium
+
 ## Phase 20: Post-MVP Improvements
 
 ### TASK-200: Evaluate Full UDP Proxying

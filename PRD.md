@@ -72,6 +72,11 @@ New project should keep these conventions, but replace system proxy management w
 ## 6. Product Requirements
 
 - The user can create, edit, delete, select, and test upstream proxies.
+- The user can explicitly select Direct mode from Home. Direct mode routes
+  through the VPN engine's direct outbound and must not be used as a silent
+  fallback when a selected upstream proxy fails.
+- If VPN is running and the user selects Direct or another proxy, the app
+  applies the new route without requiring a manual stop/start.
 - The user can import and export the saved proxy list using the JSON format from
   the reference `proxy_switcher` app, so proxy exports from that app can be read.
 - The user can start VPN only after Android VPN permission is granted through `VpnService.prepare()`.
@@ -333,10 +338,11 @@ Use the reference project's simple Compose Material 3 style:
 Expected screens:
 
 1. Home screen
-   - selected proxy dropdown/card.
+   - selected route dropdown/card with Direct and saved proxies.
+   - add/manage proxy buttons next to the selector.
    - START/STOP VPN button.
    - current VPN status.
-   - current selected proxy.
+   - current selected route.
    - bytes in/out.
    - last error.
    - quick diagnostics summary.

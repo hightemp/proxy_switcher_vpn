@@ -24,6 +24,9 @@ import com.hightemp.proxy_switcher_vpn.utils.AppLogger
 import com.hightemp.proxy_switcher_vpn.utils.LogType
 import com.hightemp.proxy_switcher_vpn.vpn.platform.ActiveVpnService
 import com.hightemp.proxy_switcher_vpn.vpn.platform.ActiveVpnServiceBridge
+import com.hightemp.proxy_switcher_vpn.vpn.routing.VpnRouteSelection
+import com.hightemp.proxy_switcher_vpn.vpn.routing.isValidForStart
+import com.hightemp.proxy_switcher_vpn.vpn.routing.proxyOrNull
 import dagger.hilt.android.AndroidEntryPoint
 import io.nekohasekai.libbox.Libbox
 import io.nekohasekai.libbox.RoutePrefix
@@ -71,6 +74,7 @@ class ProxyVpnService : VpnService(), ActiveVpnService {
         when (intent?.action) {
             ACTION_START -> startVpn()
             ACTION_STOP -> stopVpn()
+            ACTION_SWITCH_ROUTE -> switchRoute(intent)
             else -> {
                 if (VpnRuntimeState.state.value.isRunning) {
                     startVpn()
@@ -233,17 +237,59 @@ class ProxyVpnService : VpnService(), ActiveVpnService {
             createNotification("VPN service starting.")
         )
         startJob = serviceScope.launch {
-            val selectedProxy = loadSelectedProxy()
-            if (selectedProxy == null) {
-                failClosedAndStop("Select a valid proxy before starting VPN.")
+            val routeSelection = loadRouteSelection()
+            if (!routeSelection.isValidForStart()) {
+                failClosedAndStop("Select Direct or a valid enabled proxy before starting VPN.")
                 return@launch
             }
 
-            when (val result = runtimeController.start(selectedProxy)) {
+            when (val result = runtimeController.start(routeSelection!!)) {
                 VpnRuntimeControllerResult.Success -> {
                     val runningMessage = "VPN service running."
                     VpnRuntimeState.markRunning(runningMessage)
-                    startUpstreamMonitor(selectedProxy)
+                    startUpstreamMonitor(routeSelection)
+                    notify(runningMessage)
+                    sendStatus(runningMessage)
+                }
+                is VpnRuntimeControllerResult.Failure -> {
+                    failClosedAndStop(result.message)
+                }
+            }
+        }
+    }
+
+    private fun switchRoute(intent: Intent) {
+        val snapshot = VpnRuntimeState.state.value
+        when (snapshot.status) {
+            VpnServiceStatus.RUNNING -> Unit
+            VpnServiceStatus.STARTING,
+            VpnServiceStatus.STOPPING -> {
+                sendStatus(snapshot.statusMessage ?: "VPN transition is in progress.")
+                return
+            }
+            VpnServiceStatus.STOPPED,
+            VpnServiceStatus.ERROR -> {
+                sendStatus(snapshot.statusMessage ?: "VPN is not running.")
+                return
+            }
+        }
+        if (startJob?.isActive == true || stopJob?.isActive == true) return
+
+        upstreamMonitorJob?.cancel()
+        VpnRuntimeState.markStarting("Switching VPN route.")
+        notify("Switching VPN route.")
+        startJob = serviceScope.launch {
+            val routeSelection = loadRouteSelection(intent)
+            if (!routeSelection.isValidForStart()) {
+                failClosedAndStop("Selected VPN route is not available.")
+                return@launch
+            }
+
+            when (val result = runtimeController.start(routeSelection!!)) {
+                VpnRuntimeControllerResult.Success -> {
+                    val runningMessage = "VPN route switched to ${routeSelection.displayLabel}."
+                    VpnRuntimeState.markRunning(runningMessage)
+                    startUpstreamMonitor(routeSelection)
                     notify(runningMessage)
                     sendStatus(runningMessage)
                 }
@@ -286,14 +332,23 @@ class ProxyVpnService : VpnService(), ActiveVpnService {
         }
     }
 
-    private suspend fun loadSelectedProxy(): ProxyEntity? {
-        val selectedProxyId = settingsRepository.settings.first().selectedProxyId ?: return null
+    private suspend fun loadRouteSelection(intent: Intent? = null): VpnRouteSelection? {
+        val requestedProxyId = intent
+            ?.takeIf { it.hasExtra(EXTRA_PROXY_ID) }
+            ?.getLongExtra(EXTRA_PROXY_ID, EXTRA_PROXY_ID_DIRECT)
+        val selectedProxyId = requestedProxyId
+            ?: settingsRepository.settings.first().selectedProxyId
+
+        if (selectedProxyId == null || selectedProxyId == EXTRA_PROXY_ID_DIRECT) {
+            return VpnRouteSelection.Direct
+        }
+
         val proxy = proxyRepository.getProxyById(selectedProxyId) ?: return null
         return proxy.takeIf {
             it.isEnabled &&
                 it.host.isNotBlank() &&
                 it.port in 1..65535
-        }
+        }?.let(VpnRouteSelection::Proxy)
     }
 
     private fun failClosedAndStop(message: String) {
@@ -314,8 +369,9 @@ class ProxyVpnService : VpnService(), ActiveVpnService {
         stopSelf()
     }
 
-    private fun startUpstreamMonitor(selectedProxy: ProxyEntity) {
+    private fun startUpstreamMonitor(routeSelection: VpnRouteSelection) {
         upstreamMonitorJob?.cancel()
+        val selectedProxy = routeSelection.proxyOrNull() ?: return
         upstreamMonitorJob = serviceScope.launch {
             while (isActive) {
                 delay(UPSTREAM_MONITOR_INTERVAL_MILLIS)
@@ -420,8 +476,12 @@ class ProxyVpnService : VpnService(), ActiveVpnService {
     companion object {
         const val ACTION_START = "com.hightemp.proxy_switcher_vpn.action.START_VPN"
         const val ACTION_STOP = "com.hightemp.proxy_switcher_vpn.action.STOP_VPN"
+        const val ACTION_SWITCH_ROUTE =
+            "com.hightemp.proxy_switcher_vpn.action.SWITCH_ROUTE"
         const val ACTION_STATUS_CHANGED =
             "com.hightemp.proxy_switcher_vpn.action.VPN_STATUS_CHANGED"
+        const val EXTRA_PROXY_ID = "extra_proxy_id"
+        const val EXTRA_PROXY_ID_DIRECT = -1L
         const val EXTRA_IS_RUNNING = "extra_is_running"
         const val EXTRA_STATUS_MESSAGE = "extra_status_message"
         const val CHANNEL_ID = "vpn_foreground_service"

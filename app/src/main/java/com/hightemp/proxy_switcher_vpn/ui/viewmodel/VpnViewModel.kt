@@ -12,6 +12,8 @@ import com.hightemp.proxy_switcher_vpn.utils.ProxyTransfer
 import com.hightemp.proxy_switcher_vpn.vpn.diagnostics.VpnDiagnostics
 import com.hightemp.proxy_switcher_vpn.vpn.diagnostics.VpnDiagnosticsRepository
 import com.hightemp.proxy_switcher_vpn.vpn.diagnostics.VpnPermissionDiagnosticStatus
+import com.hightemp.proxy_switcher_vpn.vpn.routing.VpnRouteSelection
+import com.hightemp.proxy_switcher_vpn.vpn.routing.isValidForStart
 import com.hightemp.proxy_switcher_vpn.vpn.stats.VpnStats
 import com.hightemp.proxy_switcher_vpn.vpn.stats.VpnStatsStore
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -84,7 +86,20 @@ class VpnViewModel @Inject constructor(
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = null
     )
-    val canStartVpn: StateFlow<Boolean> = selectedProxy
+    val selectedRoute: StateFlow<VpnRouteSelection?> = combine(settings, proxyList) { settings, proxies ->
+        val selectedProxyId = settings.selectedProxyId
+        if (selectedProxyId == null) {
+            VpnRouteSelection.Direct
+        } else {
+            proxies.firstOrNull { proxy -> proxy.id == selectedProxyId }
+                ?.let(VpnRouteSelection::Proxy)
+        }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = VpnRouteSelection.Direct
+    )
+    val canStartVpn: StateFlow<Boolean> = selectedRoute
         .combine(_uiState) { proxy, uiState ->
             proxy.isValidForStart() &&
                 uiState.permissionStatus != VpnPermissionStatus.REQUESTING
@@ -100,7 +115,7 @@ class VpnViewModel @Inject constructor(
             state.permissionStatus.toDiagnosticStatus()
         },
         runtimeState = VpnRuntimeState.state,
-        selectedProxy = selectedProxy,
+        selectedRoute = selectedRoute,
         stats = stats
     ).stateIn(
         scope = viewModelScope,
@@ -168,8 +183,8 @@ class VpnViewModel @Inject constructor(
     fun onStartVpnBlockedNoSelectedProxy() {
         _uiState.update {
             it.copy(
-                message = "Select a valid proxy before starting VPN.",
-                lastError = "Select a valid proxy before starting VPN."
+                message = "Select Direct or a valid enabled proxy before starting VPN.",
+                lastError = "Select Direct or a valid enabled proxy before starting VPN."
             )
         }
     }
@@ -185,8 +200,14 @@ class VpnViewModel @Inject constructor(
     }
 
     fun canStartVpnNow(): Boolean =
-        selectedProxy.value.isValidForStart() &&
+        selectedRoute.value.isValidForStart() &&
             !VpnRuntimeState.state.value.isForegroundServiceActive
+
+    fun onDirectSelected() {
+        viewModelScope.launch {
+            settingsRepository.setSelectedProxyId(null)
+        }
+    }
 
     fun onProxySelected(proxy: ProxyEntity) {
         viewModelScope.launch {
@@ -292,13 +313,6 @@ class VpnViewModel @Inject constructor(
         viewModelScope.launch {
             settingsRepository.setDomainDestinationLoggingEnabled(enabled)
         }
-    }
-
-    private fun ProxyEntity?.isValidForStart(): Boolean {
-        return this != null &&
-            isEnabled &&
-            host.isNotBlank() &&
-            port in 1..65535
     }
 
     private fun VpnPermissionStatus.toDiagnosticStatus(): VpnPermissionDiagnosticStatus {

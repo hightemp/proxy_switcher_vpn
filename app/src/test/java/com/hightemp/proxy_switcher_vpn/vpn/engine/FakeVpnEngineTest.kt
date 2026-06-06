@@ -2,6 +2,7 @@ package com.hightemp.proxy_switcher_vpn.vpn.engine
 
 import com.hightemp.proxy_switcher_vpn.data.local.ProxyEntity
 import com.hightemp.proxy_switcher_vpn.data.local.ProxyType
+import com.hightemp.proxy_switcher_vpn.vpn.routing.VpnRouteSelection
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -54,6 +55,22 @@ class FakeVpnEngineTest {
     }
 
     @Test
+    fun directStartMovesEngineToRunningWithoutSelectedProxy() = runTest {
+        val engine = FakeVpnEngine()
+
+        val result = engine.start(
+            VpnEngineStartRequest(
+                routeSelection = VpnRouteSelection.Direct,
+                generatedConfig = """{"type":"direct"}"""
+            )
+        )
+
+        assertEquals(VpnEngineCommandResult.Success, result)
+        assertEquals(VpnEngineStatus.RUNNING, engine.state.value.status)
+        assertNull(engine.state.value.selectedProxy)
+    }
+
+    @Test
     fun runtimeErrorMovesEngineToError() = runTest {
         val engine = FakeVpnEngine()
         engine.start(startRequest())
@@ -67,14 +84,16 @@ class FakeVpnEngineTest {
 
     private fun startRequest(): VpnEngineStartRequest {
         return VpnEngineStartRequest(
-            selectedProxy = ProxyEntity(
-                id = 7L,
-                host = "proxy.example",
-                port = 1080,
-                type = ProxyType.SOCKS5,
-                username = "user-1",
-                password = "secret-password",
-                label = "Primary"
+            routeSelection = VpnRouteSelection.Proxy(
+                ProxyEntity(
+                    id = 7L,
+                    host = "proxy.example",
+                    port = 1080,
+                    type = ProxyType.SOCKS5,
+                    username = "user-1",
+                    password = "secret-password",
+                    label = "Primary"
+                )
             ),
             generatedConfig = """{"password":"secret-password"}"""
         )

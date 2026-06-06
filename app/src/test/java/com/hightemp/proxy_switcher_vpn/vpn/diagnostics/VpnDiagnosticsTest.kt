@@ -5,6 +5,7 @@ import com.hightemp.proxy_switcher_vpn.data.local.ProxyType
 import com.hightemp.proxy_switcher_vpn.service.VpnRuntimeSnapshot
 import com.hightemp.proxy_switcher_vpn.service.VpnServiceStatus
 import com.hightemp.proxy_switcher_vpn.vpn.engine.VpnEngineCounters
+import com.hightemp.proxy_switcher_vpn.vpn.routing.VpnRouteSelection
 import com.hightemp.proxy_switcher_vpn.vpn.stats.VpnStats
 import com.hightemp.proxy_switcher_vpn.vpn.udp.UdpPolicy
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -77,7 +78,7 @@ class VpnDiagnosticsTest {
                     isForegroundServiceActive = true
                 )
             ),
-            selectedProxy = MutableStateFlow(proxy),
+            selectedRoute = MutableStateFlow(VpnRouteSelection.Proxy(proxy)),
             stats = MutableStateFlow(
                 VpnStats(
                     bytesIn = 12L,
@@ -109,13 +110,15 @@ class VpnDiagnosticsTest {
         val diagnostics = repository.buildDiagnostics(
             permission = VpnPermissionDiagnosticStatus.UNKNOWN,
             runtime = VpnRuntimeSnapshot(),
-            proxy = ProxyEntity(
+            routeSelection = VpnRouteSelection.Proxy(
+                ProxyEntity(
                 id = 1L,
                 host = "proxy.example",
                 port = 1080,
                 type = ProxyType.SOCKS5,
                 username = "user",
                 password = "secret"
+                )
             ),
             stats = VpnStats()
         )
@@ -123,5 +126,19 @@ class VpnDiagnosticsTest {
         assertFalse(diagnostics.selectedProxy.value.contains("user"))
         assertFalse(diagnostics.selectedProxy.value.contains("secret"))
         assertEquals("proxy.example:1080 (SOCKS5)", diagnostics.selectedProxy.value)
+    }
+
+    @Test
+    fun diagnosticsRepositoryBuildsDirectConfigPreview() {
+        val repository = VpnDiagnosticsRepository()
+        val diagnostics = repository.buildDiagnostics(
+            permission = VpnPermissionDiagnosticStatus.GRANTED,
+            runtime = VpnRuntimeSnapshot(),
+            routeSelection = VpnRouteSelection.Direct,
+            stats = VpnStats()
+        )
+
+        assertEquals("Direct Connection", diagnostics.selectedProxy.value)
+        assertTrue(diagnostics.maskedConfigPreview.orEmpty().contains("\"type\":\"direct\""))
     }
 }

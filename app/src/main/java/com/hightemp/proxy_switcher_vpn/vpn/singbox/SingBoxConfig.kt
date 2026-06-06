@@ -56,7 +56,7 @@ data class SingBoxHttpsDnsServer(
     val server: String,
     val serverPort: Int = 443,
     val path: String = "/dns-query",
-    val detour: String,
+    val detour: String?,
     val tls: SingBoxTlsConfig = SingBoxTlsConfig(enabled = true)
 ) : SingBoxDnsServer {
     override fun toJsonObject(): JsonObject {
@@ -67,7 +67,7 @@ data class SingBoxHttpsDnsServer(
             put("server_port", serverPort)
             put("path", path)
             put("tls", tls.toJsonObject())
-            put("detour", detour)
+            detour?.let { put("detour", it) }
         }
     }
 }
@@ -120,6 +120,17 @@ sealed interface SingBoxOutbound {
     val tag: String
 
     fun toJsonObject(maskSecrets: Boolean): JsonObject
+}
+
+data class SingBoxDirectOutbound(
+    override val tag: String = DEFAULT_DIRECT_OUTBOUND_TAG
+) : SingBoxOutbound {
+    override fun toJsonObject(maskSecrets: Boolean): JsonObject {
+        return buildJsonObject {
+            put("type", "direct")
+            put("tag", tag)
+        }
+    }
 }
 
 data class SingBoxSocksOutbound(

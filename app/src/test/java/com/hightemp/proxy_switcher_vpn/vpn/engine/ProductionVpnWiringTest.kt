@@ -64,6 +64,17 @@ class ProductionVpnWiringTest {
         assertFalse(monitor.contains("registerDefaultNetworkCallback"))
     }
 
+    @Test
+    fun proxyVpnServiceSupportsRuntimeRouteSwitchAction() {
+        val service = appDir.resolve(
+            "src/main/java/com/hightemp/proxy_switcher_vpn/vpn/ProxyVpnService.kt"
+        ).readText()
+
+        assertTrue(service.contains("ACTION_SWITCH_ROUTE"))
+        assertTrue(service.contains("switchRoute(intent)"))
+        assertTrue(service.contains("EXTRA_PROXY_ID_DIRECT"))
+    }
+
     private fun findAppDir(): File {
         val userDir = requireNotNull(System.getProperty("user.dir"))
         return generateSequence(File(userDir).absoluteFile) {

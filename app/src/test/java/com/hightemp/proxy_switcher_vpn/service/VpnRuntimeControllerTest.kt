@@ -9,6 +9,7 @@ import com.hightemp.proxy_switcher_vpn.proxy.ProxyTestResult
 import com.hightemp.proxy_switcher_vpn.utils.AppLogger
 import com.hightemp.proxy_switcher_vpn.vpn.engine.FakeVpnEngine
 import com.hightemp.proxy_switcher_vpn.vpn.engine.VpnEngineStatus
+import com.hightemp.proxy_switcher_vpn.vpn.routing.VpnRouteSelection
 import java.net.InetAddress
 import java.net.InetSocketAddress
 import kotlinx.coroutines.test.runTest
@@ -44,7 +45,7 @@ class VpnRuntimeControllerTest {
             proxyNetworkResolver = FakeProxyNetworkResolver()
         )
 
-        val result = controller.start(proxy())
+        val result = controller.start(proxyRoute())
 
         assertTrue(result is VpnRuntimeControllerResult.Failure)
         assertEquals(VpnEngineStatus.STOPPED, engine.state.value.status)
@@ -71,7 +72,7 @@ class VpnRuntimeControllerTest {
             proxyNetworkResolver = FakeProxyNetworkResolver()
         )
 
-        val result = controller.start(proxy())
+        val result = controller.start(proxyRoute())
 
         assertTrue(result is VpnRuntimeControllerResult.Failure)
         assertEquals(VpnEngineStatus.STOPPED, engine.state.value.status)
@@ -102,7 +103,7 @@ class VpnRuntimeControllerTest {
             proxyNetworkResolver = resolver
         )
 
-        val result = controller.start(proxy(type = ProxyType.HTTPS))
+        val result = controller.start(proxyRoute(type = ProxyType.HTTPS))
 
         assertEquals(VpnRuntimeControllerResult.Success, result)
         val generatedConfig = engine.lastStartRequest?.generatedConfig.orEmpty()
@@ -124,7 +125,7 @@ class VpnRuntimeControllerTest {
             proxyNetworkResolver = FakeProxyNetworkResolver(throwsOnResolve = true)
         )
 
-        val result = controller.start(proxy())
+        val result = controller.start(proxyRoute())
 
         assertTrue(result is VpnRuntimeControllerResult.Failure)
         assertEquals(VpnEngineStatus.STOPPED, engine.state.value.status)
@@ -135,9 +136,34 @@ class VpnRuntimeControllerTest {
         assertEquals(null, engine.lastStartRequest)
     }
 
+    @Test
+    fun directStartSkipsProxyProbeAndUsesDirectConfig() = runTest {
+        val engine = FakeVpnEngine()
+        val tester = FakeReachabilityTester(
+            ProxyTestResult(success = false, message = "Proxy probe should not run.")
+        )
+        val controller = VpnRuntimeController(
+            engine = engine,
+            proxyTester = tester,
+            proxyNetworkResolver = FakeProxyNetworkResolver(throwsOnResolve = true)
+        )
+
+        val result = controller.start(VpnRouteSelection.Direct)
+
+        assertEquals(VpnRuntimeControllerResult.Success, result)
+        val generatedConfig = engine.lastStartRequest?.generatedConfig.orEmpty()
+        assertTrue(generatedConfig.contains("\"type\":\"direct\""))
+        assertFalse(generatedConfig.contains("\"detour\":\"proxy\""))
+        assertEquals(0, tester.calls)
+    }
+
 
     private fun proxy(): ProxyEntity {
         return proxy(type = ProxyType.SOCKS5)
+    }
+
+    private fun proxyRoute(type: ProxyType = ProxyType.SOCKS5): VpnRouteSelection {
+        return VpnRouteSelection.Proxy(proxy(type = type))
     }
 
     private fun proxy(type: ProxyType): ProxyEntity {
@@ -155,12 +181,18 @@ class VpnRuntimeControllerTest {
     private class FakeReachabilityTester(
         private val result: ProxyTestResult
     ) : ProxyReachabilityTester {
+        var calls = 0
+            private set
+
         override suspend fun test(
             proxy: ProxyEntity,
             targetHost: String,
             targetPort: Int,
             timeoutMillis: Int
-        ): ProxyTestResult = result
+        ): ProxyTestResult {
+            calls += 1
+            return result
+        }
     }
 
     private class FakeProxyNetworkResolver(

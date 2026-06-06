@@ -17,7 +17,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.hightemp.proxy_switcher_vpn.data.local.ProxyEntity
 import com.hightemp.proxy_switcher_vpn.service.VpnRuntimeState
 import com.hightemp.proxy_switcher_vpn.ui.screens.AddEditProxyScreen
 import com.hightemp.proxy_switcher_vpn.ui.screens.HomeScreen
@@ -55,7 +54,6 @@ class MainActivity : ComponentActivity() {
                 val runtimeState by VpnRuntimeState.state.collectAsState()
                 val proxyList by viewModel.proxyList.collectAsState()
                 val proxyTestResults by viewModel.proxyTestResults.collectAsState()
-                val selectedProxy by viewModel.selectedProxy.collectAsState()
                 val stats by viewModel.stats.collectAsState()
                 val diagnostics by viewModel.diagnostics.collectAsState()
                 val canStartVpn by viewModel.canStartVpn.collectAsState()
@@ -69,12 +67,26 @@ class MainActivity : ComponentActivity() {
                             settings = settings,
                             runtimeState = runtimeState,
                             stats = stats,
-                            selectedProxyLabel = selectedProxy.displayLabel(),
+                            proxies = proxyList,
+                            selectedProxyId = settings.selectedProxyId,
                             diagnosticsSummary = "IPv4 only; DNS proxy-safe; UDP/443 blocked.",
                             lastError = uiState.lastError ?: runtimeState.lastError,
                             canStartVpn = canStartVpn,
                             onStartVpn = ::requestVpnPermission,
                             onStopVpn = ::stopProxyVpnService,
+                            onDirectSelected = {
+                                viewModel.onDirectSelected()
+                                if (runtimeState.isForegroundServiceActive) {
+                                    switchProxyVpnRoute(proxyId = null)
+                                }
+                            },
+                            onProxySelected = { proxy ->
+                                viewModel.onProxySelected(proxy)
+                                if (runtimeState.isForegroundServiceActive) {
+                                    switchProxyVpnRoute(proxyId = proxy.id)
+                                }
+                            },
+                            onAddProxy = { navController.navigate("add_proxy") },
                             onManageProxies = { navController.navigate("proxy_list") },
                             onViewLogs = { navController.navigate("logs") },
                             onViewDiagnostics = { navController.navigate("diagnostics") },
@@ -100,14 +112,19 @@ class MainActivity : ComponentActivity() {
                     composable("proxy_list") {
                         ProxyListScreen(
                             proxies = proxyList,
-                            selectedProxyId = selectedProxy?.id,
+                            selectedProxyId = settings.selectedProxyId,
                             proxyTestResults = proxyTestResults,
                             onBack = { navController.popBackStack() },
                             onAddProxy = { navController.navigate("add_proxy") },
                             onEditProxy = { proxy ->
                                 navController.navigate("edit_proxy/${proxy.id}")
                             },
-                            onSelectProxy = viewModel::onProxySelected,
+                            onSelectProxy = { proxy ->
+                                viewModel.onProxySelected(proxy)
+                                if (runtimeState.isForegroundServiceActive) {
+                                    switchProxyVpnRoute(proxyId = proxy.id)
+                                }
+                            },
                             onDeleteProxy = viewModel::onProxyDeleted,
                             onTestProxy = viewModel::onProxyTestRequested,
                             onExportProxies = viewModel::exportProxiesToText,
@@ -179,8 +196,14 @@ class MainActivity : ComponentActivity() {
         startService(intent)
     }
 
-    private fun ProxyEntity?.displayLabel(): String? {
-        if (this == null) return null
-        return "${label ?: host}:$port ($type)"
+    private fun switchProxyVpnRoute(proxyId: Long?) {
+        val intent = Intent(this, ProxyVpnService::class.java).apply {
+            action = ProxyVpnService.ACTION_SWITCH_ROUTE
+            putExtra(
+                ProxyVpnService.EXTRA_PROXY_ID,
+                proxyId ?: ProxyVpnService.EXTRA_PROXY_ID_DIRECT
+            )
+        }
+        ContextCompat.startForegroundService(this, intent)
     }
 }

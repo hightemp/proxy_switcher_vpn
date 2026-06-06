@@ -295,6 +295,40 @@ class SingBoxConfigGeneratorTest {
     }
 
     @Test
+    fun generatedDirectConfigUsesExplicitDirectOutbound() {
+        val generated = generator.generateDirect()
+
+        val outbounds = root(generated.json)
+            .getValue("outbounds")
+            .jsonArray
+            .map { it.jsonObject }
+        val outbound = outbounds.single()
+        val route = route(generated.json)
+
+        assertEquals("direct", outbound["type"]?.jsonPrimitive?.content)
+        assertEquals(DEFAULT_DIRECT_OUTBOUND_TAG, outbound["tag"]?.jsonPrimitive?.content)
+        assertEquals(DEFAULT_DIRECT_OUTBOUND_TAG, route["final"]?.jsonPrimitive?.content)
+        assertEquals(true, route["auto_detect_interface"]?.jsonPrimitive?.boolean)
+        assertFalse(generated.json.contains("\"tag\":\"$DEFAULT_PROXY_OUTBOUND_TAG\""))
+    }
+
+    @Test
+    fun generatedDirectConfigRoutesDnsThroughExplicitDirectOutbound() {
+        val generated = generator.generateDirect()
+
+        val server = dns(generated.json)
+            .getValue("servers")
+            .jsonArray
+            .first()
+            .jsonObject
+
+        assertEquals("https", server["type"]?.jsonPrimitive?.content)
+        assertNull(server["detour"])
+        assertFalse(generated.json.contains("\"type\":\"local\""))
+        assertFalse(generated.json.contains("\"detour\":\"$DEFAULT_PROXY_OUTBOUND_TAG\""))
+    }
+
+    @Test
     fun generatedDnsConfigUsesDohThroughSelectedProxy() {
         val generated = generator.generate(proxy(type = ProxyType.HTTP))
 

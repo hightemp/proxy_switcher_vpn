@@ -1,10 +1,10 @@
 package com.hightemp.proxy_switcher_vpn.vpn.engine
 
-import com.hightemp.proxy_switcher_vpn.data.local.ProxyEntity
+import com.hightemp.proxy_switcher_vpn.vpn.routing.VpnRouteSelection
 import kotlinx.coroutines.flow.StateFlow
 
 data class VpnEngineStartRequest(
-    val selectedProxy: ProxyEntity,
+    val routeSelection: VpnRouteSelection,
     val generatedConfig: String
 )
 
