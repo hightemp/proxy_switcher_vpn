@@ -1635,6 +1635,30 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
   - TASK-000
 - Estimated risk: low
 
+### TASK-209: Add Short README
+
+- Status: done
+- Goal: Add a short, clear project README for developers and testers.
+- Context files to inspect:
+  - `PRD.md` overview, product requirements, MVP limits, and release sections.
+  - `Makefile`
+  - `VERSION`
+- Files likely to change:
+  - `README.md`
+  - `TASKS.md`
+- Acceptance criteria:
+  - README explains what the app does in plain language.
+  - README lists core capabilities and MVP limitations.
+  - README includes basic build, install, and release commands.
+- Test/smoke commands:
+  - Markdown/source inspection only.
+- Implementation notes:
+  - Added a concise English README with app purpose, features, limitations,
+    debug build path, install command, and release/version notes.
+- Dependencies:
+  - TASK-208
+- Estimated risk: low
+
 ## Phase 20: Post-MVP Improvements
 
 ### TASK-200: Evaluate Full UDP Proxying
