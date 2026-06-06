@@ -12,7 +12,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
@@ -65,7 +64,6 @@ fun HomeScreen(
     onStopVpn: () -> Unit,
     onDirectSelected: () -> Unit,
     onProxySelected: (ProxyEntity) -> Unit,
-    onAddProxy: () -> Unit,
     onManageProxies: () -> Unit,
     onViewLogs: () -> Unit,
     onViewDiagnostics: () -> Unit,
@@ -115,10 +113,37 @@ fun HomeScreen(
                     proxies = proxies,
                     selectedProxyId = selectedProxyId,
                     onDirectSelected = onDirectSelected,
-                    onProxySelected = onProxySelected,
-                    onAddProxy = onAddProxy,
-                    onManageProxies = onManageProxies
+                    onProxySelected = onProxySelected
                 )
+            }
+
+            val isVpnActive = runtimeState.isForegroundServiceActive
+            Button(
+                onClick = {
+                    if (isVpnActive) {
+                        onStopVpn()
+                    } else {
+                        onStartVpn()
+                    }
+                },
+                enabled = if (isVpnActive) {
+                    true
+                } else {
+                    canStartVpn &&
+                        uiState.permissionStatus != VpnPermissionStatus.REQUESTING
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                colors = if (isVpnActive) {
+                    ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    )
+                } else {
+                    ButtonDefaults.buttonColors()
+                }
+            ) {
+                Text(if (isVpnActive) "STOP VPN" else "START VPN")
             }
 
             HomeInfoCard(title = "VPN state") {
@@ -158,35 +183,6 @@ fun HomeScreen(
                 }
             }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Button(
-                    onClick = onStartVpn,
-                    enabled = canStartVpn &&
-                        uiState.permissionStatus != VpnPermissionStatus.REQUESTING &&
-                        !runtimeState.isForegroundServiceActive,
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(56.dp)
-                ) {
-                    Text("START VPN")
-                }
-                Button(
-                    onClick = onStopVpn,
-                    enabled = runtimeState.isForegroundServiceActive,
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(56.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error
-                    )
-                ) {
-                    Text("STOP VPN")
-                }
-            }
-
             PrivacyCard(
                 settings = settings,
                 onPrivacyDisclosureAccepted = onPrivacyDisclosureAccepted,
@@ -202,9 +198,7 @@ private fun ProxyRouteSelector(
     proxies: List<ProxyEntity>,
     selectedProxyId: Long?,
     onDirectSelected: () -> Unit,
-    onProxySelected: (ProxyEntity) -> Unit,
-    onAddProxy: () -> Unit,
-    onManageProxies: () -> Unit
+    onProxySelected: (ProxyEntity) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
     val selectedProxy = selectedProxyId?.let { selectedId ->
@@ -216,63 +210,51 @@ private fun ProxyRouteSelector(
         selectedProxy?.displayLabel() ?: "Selected proxy unavailable"
     }
 
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = !expanded },
+        modifier = Modifier.fillMaxWidth()
     ) {
-        ExposedDropdownMenuBox(
+        OutlinedTextField(
+            value = selectedLabel,
+            onValueChange = {},
+            readOnly = true,
+            trailingIcon = {
+                ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+            },
+            modifier = Modifier
+                .menuAnchor()
+                .fillMaxWidth()
+        )
+        ExposedDropdownMenu(
             expanded = expanded,
-            onExpandedChange = { expanded = !expanded },
-            modifier = Modifier.weight(1f)
+            onDismissRequest = { expanded = false }
         ) {
-            OutlinedTextField(
-                value = selectedLabel,
-                onValueChange = {},
-                readOnly = true,
-                trailingIcon = {
-                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
-                },
-                modifier = Modifier
-                    .menuAnchor()
-                    .fillMaxWidth()
+            DropdownMenuItem(
+                text = { Text(DIRECT_ROUTE_LABEL) },
+                onClick = {
+                    expanded = false
+                    onDirectSelected()
+                }
             )
-            ExposedDropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false }
-            ) {
+            proxies.forEach { proxy ->
                 DropdownMenuItem(
-                    text = { Text(DIRECT_ROUTE_LABEL) },
+                    text = {
+                        Text(
+                            if (proxy.isEnabled) {
+                                proxy.displayLabel()
+                            } else {
+                                "${proxy.displayLabel()} - disabled"
+                            }
+                        )
+                    },
+                    enabled = proxy.isEnabled,
                     onClick = {
                         expanded = false
-                        onDirectSelected()
+                        onProxySelected(proxy)
                     }
                 )
-                proxies.forEach { proxy ->
-                    DropdownMenuItem(
-                        text = {
-                            Text(
-                                if (proxy.isEnabled) {
-                                    proxy.displayLabel()
-                                } else {
-                                    "${proxy.displayLabel()} - disabled"
-                                }
-                            )
-                        },
-                        enabled = proxy.isEnabled,
-                        onClick = {
-                            expanded = false
-                            onProxySelected(proxy)
-                        }
-                    )
-                }
             }
-        }
-        IconButton(onClick = onAddProxy) {
-            Icon(Icons.Default.Add, contentDescription = "Add proxy")
-        }
-        IconButton(onClick = onManageProxies) {
-            Icon(Icons.Default.Settings, contentDescription = "Manage proxies")
         }
     }
 }
@@ -407,7 +389,6 @@ private fun HomeScreenPreview() {
             onStopVpn = {},
             onDirectSelected = {},
             onProxySelected = {},
-            onAddProxy = {},
             onManageProxies = {},
             onViewLogs = {},
             onViewDiagnostics = {},

@@ -1535,7 +1535,7 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
   - focused unit tests for ViewModel, config generation, diagnostics, and runtime.
 - Acceptance criteria:
   - Home shows a dropdown with Direct first and then saved enabled proxies.
-  - Home exposes nearby add/manage proxy buttons.
+  - Home route selector layout is refined by TASK-207.
   - Direct is an explicit mode, not a fallback after upstream proxy failure.
   - Starting VPN in Direct creates a sing-box config with a direct outbound and
     DoH routed through that explicit direct outbound.
@@ -1563,6 +1563,39 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
 - Dependencies:
   - TASK-205
 - Estimated risk: medium
+
+### TASK-207: Refine Home Route Control Layout
+
+- Status: done
+- Goal: Make the Home route selector standalone and replace the separate
+  START/STOP controls with one stateful action button directly below it.
+- Context files to inspect:
+  - `PRD.md` Home UI section.
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/ui/screens/HomeScreen.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/MainActivity.kt`
+- Files likely to change:
+  - `PRD.md`
+  - `TASKS.md`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/ui/screens/HomeScreen.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/MainActivity.kt`
+- Acceptance criteria:
+  - Home route selector has no add/manage buttons beside it.
+  - Proxy management remains accessible outside the selector.
+  - A single full-width START/STOP VPN button appears directly below the
+    route selector and switches text/action by runtime state.
+  - Direct/proxy selection and running-VPN route switching behavior from
+    TASK-206 remains unchanged.
+- Test/smoke commands:
+  - `./gradlew test`
+  - `./gradlew assembleDebug`
+- Implementation notes:
+  - Removed adjacent route-selector icon buttons from Home.
+  - Kept the top app bar manage-proxies action.
+  - Collapsed the two lower START/STOP buttons into one stateful button under
+    the selected-route card.
+- Dependencies:
+  - TASK-206
+- Estimated risk: low
 
 ## Phase 20: Post-MVP Improvements
 

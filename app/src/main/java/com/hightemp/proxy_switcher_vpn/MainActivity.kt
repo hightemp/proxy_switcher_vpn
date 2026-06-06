@@ -86,7 +86,6 @@ class MainActivity : ComponentActivity() {
                                     switchProxyVpnRoute(proxyId = proxy.id)
                                 }
                             },
-                            onAddProxy = { navController.navigate("add_proxy") },
                             onManageProxies = { navController.navigate("proxy_list") },
                             onViewLogs = { navController.navigate("logs") },
                             onViewDiagnostics = { navController.navigate("diagnostics") },

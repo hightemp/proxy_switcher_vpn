@@ -339,8 +339,8 @@ Expected screens:
 
 1. Home screen
    - selected route dropdown/card with Direct and saved proxies.
-   - add/manage proxy buttons next to the selector.
-   - START/STOP VPN button.
+   - proxy management action outside the route dropdown.
+   - single START/STOP VPN button directly below the route dropdown.
    - current VPN status.
    - current selected route.
    - bytes in/out.
