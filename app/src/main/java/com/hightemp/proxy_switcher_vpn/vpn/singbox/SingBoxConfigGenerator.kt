@@ -80,6 +80,7 @@ class SingBoxConfigGenerator(
                 finalTag = DEFAULT_PROXY_OUTBOUND_TAG,
                 autoDetectInterface = !proxyEndpoint.server.isLoopbackAddressLiteral(),
                 rules = listOf(
+                    SingBoxSniffRouteRule(),
                     SingBoxDnsHijackRouteRule(),
                     tunConfig.toPrivateDnsRejectRule()
                 ) + udpPolicy.toRouteRules()

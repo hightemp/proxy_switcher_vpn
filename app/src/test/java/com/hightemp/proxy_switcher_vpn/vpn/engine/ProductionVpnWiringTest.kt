@@ -51,6 +51,19 @@ class ProductionVpnWiringTest {
         assertFalse(manifest.contains(".service.VpnForegroundService"))
     }
 
+    @Test
+    fun defaultNetworkMonitorUsesNonVpnNetworkForLibboxOutbound() {
+        val manifest = appDir.resolve("src/main/AndroidManifest.xml").readText()
+        val monitor = appDir.resolve(
+            "src/main/java/com/hightemp/proxy_switcher_vpn/vpn/platform/DefaultNetworkMonitor.kt"
+        ).readText()
+
+        assertTrue(manifest.contains("android.permission.CHANGE_NETWORK_STATE"))
+        assertTrue(monitor.contains("NetworkCapabilities.NET_CAPABILITY_NOT_VPN"))
+        assertTrue(monitor.contains("requestNetwork(request, networkCallback, handler)"))
+        assertFalse(monitor.contains("registerDefaultNetworkCallback"))
+    }
+
     private fun findAppDir(): File {
         val userDir = requireNotNull(System.getProperty("user.dir"))
         return generateSequence(File(userDir).absoluteFile) {

@@ -353,15 +353,17 @@ class SingBoxConfigGeneratorTest {
     fun generatedRouteHijacksTunDnsToDnsModule() {
         val generated = generator.generate(proxy(type = ProxyType.HTTP))
 
-        val rule = route(generated.json)
+        val rules = route(generated.json)
             .getValue("rules")
             .jsonArray
-            .first()
-            .jsonObject
+            .map { it.jsonObject }
+        val sniffRule = rules[0]
+        val dnsHijackRule = rules[1]
 
-        assertEquals(TUN_INBOUND_TAG, rule["inbound"]?.jsonPrimitive?.content)
-        assertEquals(53, rule["port"]?.jsonPrimitive?.int)
-        assertEquals("hijack-dns", rule["action"]?.jsonPrimitive?.content)
+        assertEquals("sniff", sniffRule["action"]?.jsonPrimitive?.content)
+        assertEquals("dns", dnsHijackRule["protocol"]?.jsonPrimitive?.content)
+        assertEquals("hijack-dns", dnsHijackRule["action"]?.jsonPrimitive?.content)
+        assertNull(dnsHijackRule["outbound"])
     }
 
     @Test
@@ -370,7 +372,7 @@ class SingBoxConfigGeneratorTest {
 
         val rule = route(generated.json)
             .getValue("rules")
-            .jsonArray[1]
+            .jsonArray[2]
             .jsonObject
 
         assertEquals("tcp", rule["network"]?.jsonPrimitive?.content)

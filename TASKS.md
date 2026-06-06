@@ -1456,6 +1456,47 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
   - TASK-186
 - Estimated risk: high
 
+## Phase 19.5: Connected Device Runtime Fixes
+
+### TASK-205: Fix Chrome DNS Timeout Through VPN
+
+- Status: in_progress
+- Goal: Fix the connected-device DNS timeout where Chrome shows
+  `DNS_PROBE_FINISHED_NO_INTERNET` for `2ip.ru` after VPN start.
+- Context files to inspect:
+  - `PRD.md` DNS and UDP sections.
+  - `docs/spikes/SPIKE-001-sing-box-android.md`
+  - sing-box TUN inbound and route rule action docs.
+  - Android `VpnService.Builder` DNS/route docs.
+- Files likely to change:
+  - `TASKS.md`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/vpn/singbox/SingBoxConfig.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/vpn/singbox/SingBoxConfigGenerator.kt`
+  - `app/src/test/java/com/hightemp/proxy_switcher_vpn/vpn/singbox/SingBoxConfigGeneratorTest.kt`
+- Implementation notes:
+  - Connected-device reproduction on Samsung SM-A165F / Android 15 showed
+    Chrome DNS requests on the VPN network timing out while the VPN TUN and
+    DNS server address `172.19.0.2` were configured.
+  - sing-box TUN docs state that setting `dns_address` disables the derived
+    auto-hijack behavior and requires an explicit `hijack-dns` route rule.
+  - sing-box route docs show `protocol` matching is based on sniffed protocol,
+    and proxy client examples place an `action: "sniff"` rule before
+    `protocol: "dns", action: "hijack-dns"`.
+- Acceptance criteria:
+  - Generated route rules sniff traffic before DNS hijack.
+  - Generated DNS hijack rule targets sniffed `protocol: "dns"`.
+  - Android Private DNS TCP/853 reject and UDP/443 drop rules remain present.
+  - Unit tests cover the new route rule order.
+  - Debug APK is installed on the connected device and Chrome can load `2ip.ru`
+    while VPN is running.
+- Test/smoke commands:
+  - `./gradlew test`
+  - `./gradlew assembleDebug`
+  - connected-device Chrome check for `https://2ip.ru`
+- Dependencies:
+  - TASK-186
+- Estimated risk: medium
+
 ## Phase 20: Post-MVP Improvements
 
 ### TASK-200: Evaluate Full UDP Proxying

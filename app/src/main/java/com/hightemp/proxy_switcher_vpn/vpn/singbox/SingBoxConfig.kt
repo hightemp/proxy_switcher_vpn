@@ -202,14 +202,23 @@ sealed interface SingBoxRouteRule {
     fun toJsonObject(): JsonObject
 }
 
-data class SingBoxDnsHijackRouteRule(
-    val inboundTag: String = TUN_INBOUND_TAG,
-    val port: Int = 53
+data class SingBoxSniffRouteRule(
+    val timeout: String? = null
 ) : SingBoxRouteRule {
     override fun toJsonObject(): JsonObject {
         return buildJsonObject {
-            put("inbound", inboundTag)
-            put("port", port)
+            put("action", "sniff")
+            timeout?.let { put("timeout", it) }
+        }
+    }
+}
+
+data class SingBoxDnsHijackRouteRule(
+    val protocol: String = "dns"
+) : SingBoxRouteRule {
+    override fun toJsonObject(): JsonObject {
+        return buildJsonObject {
+            put("protocol", protocol)
             put("action", "hijack-dns")
         }
     }
