@@ -232,10 +232,14 @@ Proxy protocol mapping for sing-box config:
 
 Failure behavior:
 
-- If the selected upstream proxy fails during start, stop VPN and show the error.
-- If the selected upstream proxy becomes unavailable during runtime, stop VPN for MVP unless a future task implements explicit reconnect with fail-closed behavior.
+- If the selected upstream proxy fails during start or route switch, use bounded
+  retry attempts before stopping VPN and showing the final error.
+- If the selected upstream proxy becomes unavailable during runtime, log
+  consecutive monitor failures, attempt reconnect with backoff, and stop VPN
+  fail-closed if the retry budget is exhausted.
 - Do not route proxied TCP traffic directly as fallback.
-- Reconnect attempts can be logged, but automatic reconnect is post-MVP unless simple and safe.
+- Log retry attempts, backoff, reconnect success, and final fail-closed reasons
+  with proxy credentials masked.
 
 ## 12. DNS Architecture
 
@@ -452,7 +456,8 @@ Exact per-app traffic statistics are not part of MVP.
 - Proxy passwords are sensitive and must be masked in UI summaries, logs, and config previews.
 - Do not store proxy passwords in plaintext if the project has or adds a safer local storage pattern.
 - Domain and destination address logging is sensitive. Make it user-visible and controllable.
-- VPN state should fail closed for TCP when upstream proxy fails.
+- VPN state should fail closed for TCP when upstream proxy remains unavailable
+  after bounded retry/reconnect attempts.
 - DNS must not leak directly by default.
 - IPv6 unsupported state must be explicit.
 - UDP/443 must be blocked by default in MVP.
@@ -539,7 +544,8 @@ Integration/manual tests:
 - HTTPS proxy outbound.
 - DNS through proxy.
 - UDP/443 block.
-- Upstream proxy failure stops VPN.
+- Upstream proxy failure retries/reconnects, then stops VPN fail-closed if the
+  retry budget is exhausted.
 - IPv6 unsupported behavior does not leak.
 - Logs and diagnostics update.
 
@@ -598,7 +604,7 @@ Included:
 - DNS through selected proxy/proxy-safe route.
 - UDP/443 blocked by default.
 - Logs, statistics, and diagnostics.
-- Fail-closed behavior on upstream failure.
+- Bounded retry/reconnect with fail-closed behavior on upstream failure.
 
 Excluded:
 
@@ -607,7 +613,7 @@ Excluded:
 - Per-app routing.
 - Exact per-app stats.
 - IPv6 support.
-- Automatic reconnect unless trivial and fail-closed.
+- Unbounded reconnect loops or silent direct fallback.
 - Advanced rule-based routing.
 
 ## 27. Post-MVP Roadmap
@@ -615,7 +621,7 @@ Excluded:
 - Full UDP proxying if safe and supported.
 - IPv6 routing and leak tests.
 - Split tunneling and per-app include/exclude.
-- Automatic reconnect with backoff and fail-closed policy.
+- Configurable reconnect policy and health-check UI.
 - Per-app traffic statistics if core/platform support allows.
 - Proxy health checks and latency display.
 - Advanced DNS server selection.

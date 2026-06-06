@@ -24,14 +24,19 @@ and an embedded sing-box core.
 - add, edit, delete, and test proxies;
 - import and export proxy lists in a format compatible with `proxy_switcher`;
 - switch proxy while VPN is running without manual stop/start;
-- logs, VPN diagnostics, traffic counters, and masked config preview.
+- bounded retry/reconnect when the selected proxy or VPN engine has transient
+  connection problems;
+- logs, VPN diagnostics, traffic counters, masked config preview, and Android
+  logcat output for debugging.
 
 ## MVP Limits
 
 - IPv4 only;
 - IPv6 is explicitly unsupported;
 - UDP/443 is blocked by default to avoid QUIC/HTTP3 bypass;
-- if the selected upstream proxy fails, VPN stops fail-closed;
+- if the selected upstream proxy remains unavailable after retries, VPN stops
+  fail-closed;
+- Direct mode is explicit and is never used as a silent fallback;
 - proxy passwords must be masked in UI, logs, and diagnostics.
 
 ## Build
@@ -52,6 +57,19 @@ Install on a connected device:
 ```bash
 make install
 ```
+
+## Debug Logs
+
+The app writes sanitized runtime logs to the in-app Logs screen and Android
+logcat:
+
+```bash
+adb logcat -s ProxySwitcherVPN
+```
+
+Logs include route selection, proxy tests, upstream monitor results, reconnect
+attempts, backoff, TUN setup, engine lifecycle, and final fail-closed reasons.
+Proxy passwords are masked.
 
 ## Release
 

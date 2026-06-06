@@ -28,7 +28,8 @@ adb shell pm clear com.hightemp.proxy_switcher_vpn
 - A way to observe host proxy traffic and Android logs:
 
 ```sh
-adb logcat | rg "sing-box|Proxy Switcher VPN|VPN|dns|udp|reject|protect"
+adb logcat -s ProxySwitcherVPN
+adb logcat | rg "sing-box|libbox|dns|udp|reject|protect"
 ```
 
 ## Baseline App Checks
@@ -195,7 +196,7 @@ Expected results:
 - No IPv6 route leaks around the VPN.
 - If Android reports an IPv6 default route, it is unreachable through the MVP VPN path and treated as a failure to fix before release.
 
-## Upstream Failure Fail-Closed
+## Upstream Failure Retry And Fail-Closed
 
 1. Select a proxy entry that points to an unavailable host/port, or stop the selected upstream proxy.
 2. Tap START VPN.
@@ -203,9 +204,14 @@ Expected results:
 
 Expected results:
 
-- Start failure stops the VPN/service.
-- Runtime state moves to error/stopped with a visible last error.
-- Logs contain a fail-closed failure.
+- Start failure logs retry attempts and backoff before final failure.
+- A single failed runtime monitor probe does not immediately stop VPN.
+- After consecutive runtime monitor failures, reconnect starts automatically.
+- If the upstream recovers during the retry budget, VPN returns to `RUNNING`.
+- If retries are exhausted, runtime state moves to error/stopped with a visible
+  last error.
+- Logs contain monitor failures, reconnect attempts, backoff, and the final
+  fail-closed reason.
 - No direct TCP internet fallback occurs.
 - Credentials are masked in logs and diagnostics.
 

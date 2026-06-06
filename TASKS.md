@@ -1541,7 +1541,8 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
     DoH routed through that explicit direct outbound.
   - Selecting another proxy or Direct while VPN is running applies the new route
     without requiring a manual stop/start.
-  - Selecting a failing upstream proxy while switching still stops fail-closed.
+  - Selecting a failing upstream proxy while switching retries and then stops
+    fail-closed if the retry budget is exhausted.
 - Test/smoke commands:
   - `./gradlew test`
   - `./gradlew assembleDebug`
@@ -1716,6 +1717,43 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
   - TASK-160
   - TASK-185
 - Estimated risk: medium
+
+### TASK-211: Update Runtime Logging And Reconnect Documentation
+
+- Status: done
+- Goal: Align user and project documentation with the new detailed runtime
+  logging and bounded retry/reconnect behavior.
+- Context files to inspect:
+  - `AGENTS.md`
+  - `PRD.md`
+  - `TASKS.md` TASK-210.
+  - `README.md`
+  - `docs/qa/manual-vpn-checklist.md`
+- Files likely to change:
+  - `README.md`
+  - `PRD.md`
+  - `AGENTS.md`
+  - `docs/qa/manual-vpn-checklist.md`
+  - `TASKS.md`
+- Acceptance criteria:
+  - README explains debug log collection with the stable `ProxySwitcherVPN`
+    logcat tag.
+  - README and PRD no longer say transient upstream failures always stop VPN
+    immediately.
+  - Source-of-truth docs state bounded retry/reconnect before final fail-closed
+    stop and no silent Direct fallback.
+  - Manual QA checklist covers retry, reconnect, recovery, and retry exhaustion.
+- Test/smoke commands:
+  - Markdown/source inspection only.
+- Implementation notes:
+  - Updated README feature/limit/debug-log sections.
+  - Updated PRD failure behavior, privacy/security, test expectations, MVP
+    scope, and post-MVP roadmap.
+  - Updated AGENTS runtime failure guidance.
+  - Updated manual QA logcat command and upstream failure scenario.
+- Dependencies:
+  - TASK-210
+- Estimated risk: low
 
 ## Phase 20: Post-MVP Improvements
 

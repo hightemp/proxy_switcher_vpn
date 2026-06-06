@@ -143,7 +143,9 @@ Useful reference files:
 - UDP/443 is blocked by default for MVP.
 - Other non-DNS UDP is blocked unless safe protected bypass is validated.
 - IPv6 is unsupported/disabled for MVP.
-- Do not silently fall back to direct TCP internet when upstream proxy fails. Stop VPN and surface the error.
+- Do not silently fall back to direct TCP internet when upstream proxy fails.
+  Use bounded retry/reconnect where implemented; if the retry budget is
+  exhausted, stop VPN and surface the error.
 
 ## 9. Security/Privacy Rules
 
@@ -175,7 +177,7 @@ Useful reference files:
   - SOCKS5/HTTP/HTTPS upstreams.
   - DNS leak checks.
   - UDP/443/QUIC block checks.
-  - upstream failure fail-closed behavior.
+  - upstream failure reconnect and fail-closed exhaustion behavior.
 - Do not claim exact per-app traffic statistics in MVP.
 
 ## 11. Git/Commit Rules
@@ -224,5 +226,6 @@ A task is done only when:
 - Treating Android `TrafficStats` as exact VPN-wide stats.
 - Logging domains/destinations without user-visible privacy control.
 - Logging or previewing proxy passwords.
-- Silently falling back to direct TCP internet after proxy failure.
+- Silently falling back to direct TCP internet after proxy failure or retry
+  exhaustion.
 - Broadly reading or copying the reference project.
