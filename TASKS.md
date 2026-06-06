@@ -1597,6 +1597,44 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
   - TASK-206
 - Estimated risk: low
 
+### TASK-208: Add VPN Logo Launcher Icon
+
+- Status: done
+- Goal: Use the provided root PNG as the Android launcher icon.
+- Context files to inspect:
+  - `PRD.md` Product Requirements section.
+  - `app/src/main/AndroidManifest.xml`
+  - `app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml`
+  - `app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml`
+  - existing launcher resources under `app/src/main/res/mipmap-*`.
+- Files likely to change:
+  - `PRD.md`
+  - `TASKS.md`
+  - `app/src/main/res/drawable/ic_launcher_background.xml`
+  - `app/src/main/res/drawable/ic_launcher_foreground.xml`
+  - `app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml`
+  - `app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml`
+  - `app/src/main/res/mipmap-*/ic_launcher.webp`
+  - `app/src/main/res/mipmap-*/ic_launcher_round.webp`
+  - `app/src/main/res/mipmap-*/ic_launcher_background.png`
+- Acceptance criteria:
+  - The launcher icon uses `proxy_switcher_vpn_logox1254.png`.
+  - Legacy density launcher icons are regenerated.
+  - Android 8+ adaptive launcher icons resolve to the new logo instead of the
+    default template icon.
+- Test/smoke commands:
+  - `./gradlew assembleDebug`
+- Implementation notes:
+  - Generated density-specific legacy webp icons and adaptive background PNGs.
+  - Removed the unused default template launcher background resource.
+  - Kept `android:icon` and `android:roundIcon` manifest references unchanged.
+  - Replaced the old adaptive foreground vector with a transparent layer so the
+    bitmap logo is not covered by the default template foreground.
+  - Regenerated launcher assets from the updated root PNG on 2026-06-06.
+- Dependencies:
+  - TASK-000
+- Estimated risk: low
+
 ## Phase 20: Post-MVP Improvements
 
 ### TASK-200: Evaluate Full UDP Proxying

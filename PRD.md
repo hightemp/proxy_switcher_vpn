@@ -85,6 +85,7 @@ New project should keep these conventions, but replace system proxy management w
 - The app shows current VPN state, selected proxy, counters, uptime, and last error.
 - The app logs VPN lifecycle, selected proxy, upstream proxy success/failure, DNS events, blocked/bypassed UDP, reconnect attempts, counters, and last error.
 - The app provides diagnostics for permission, foreground service, sing-box core, TUN interface, DNS mode, IPv4 route, IPv6 unsupported state, UDP handling, selected proxy, counters, last error, and generated config preview with masked secrets.
+- The app uses the provided VPN logo PNG as its Android launcher icon.
 
 ## 7. Functional Requirements
 
