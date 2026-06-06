@@ -26,14 +26,17 @@ class VpnRuntimeController @Inject constructor(
 ) {
     private val configGenerator = SingBoxConfigGenerator()
 
-    suspend fun start(routeSelection: VpnRouteSelection): VpnRuntimeControllerResult {
+    suspend fun start(
+        routeSelection: VpnRouteSelection,
+        stopEngineOnFailure: Boolean = true
+    ): VpnRuntimeControllerResult {
         AppLogger.info(
             message = "VPN start requested for ${routeSelection.displayLabel}.",
             type = LogType.VPN
         )
 
         if (routeSelection == VpnRouteSelection.Direct) {
-            return startDirect()
+            return startDirect(stopEngineOnFailure = stopEngineOnFailure)
         }
 
         val selectedProxy = (routeSelection as VpnRouteSelection.Proxy).proxy
@@ -42,13 +45,15 @@ class VpnRuntimeController @Inject constructor(
         }.getOrElse {
             return failClosed(
                 message = "Selected upstream proxy failed: Proxy test failed.",
-                selectedProxy = selectedProxy
+                selectedProxy = selectedProxy,
+                stopEngineOnFailure = stopEngineOnFailure
             )
         }
         if (!probe.success) {
             return failClosed(
                 message = "Selected upstream proxy failed: ${probe.message}",
-                selectedProxy = selectedProxy
+                selectedProxy = selectedProxy,
+                stopEngineOnFailure = stopEngineOnFailure
             )
         }
 
@@ -75,7 +80,8 @@ class VpnRuntimeController @Inject constructor(
             }.getOrElse {
                 return failClosed(
                     message = "Selected upstream proxy failed: Proxy host bootstrap resolution failed.",
-                    selectedProxy = selectedProxy
+                    selectedProxy = selectedProxy,
+                    stopEngineOnFailure = stopEngineOnFailure
                 )
             }
 
@@ -87,7 +93,8 @@ class VpnRuntimeController @Inject constructor(
         }.getOrElse {
             return failClosed(
                 message = "Failed to generate VPN config.",
-                selectedProxy = selectedProxy
+                selectedProxy = selectedProxy,
+                stopEngineOnFailure = stopEngineOnFailure
             )
         }
 
@@ -101,7 +108,8 @@ class VpnRuntimeController @Inject constructor(
         }.getOrElse {
             return failClosed(
                 message = "VPN engine failed to start.",
-                selectedProxy = selectedProxy
+                selectedProxy = selectedProxy,
+                stopEngineOnFailure = stopEngineOnFailure
             )
         }
 
@@ -116,19 +124,23 @@ class VpnRuntimeController @Inject constructor(
             is VpnEngineCommandResult.Failure -> {
                 failClosed(
                     message = startResult.message,
-                    selectedProxy = selectedProxy
+                    selectedProxy = selectedProxy,
+                    stopEngineOnFailure = stopEngineOnFailure
                 )
             }
         }
     }
 
-    private suspend fun startDirect(): VpnRuntimeControllerResult {
+    private suspend fun startDirect(
+        stopEngineOnFailure: Boolean
+    ): VpnRuntimeControllerResult {
         val generatedConfig = runCatching {
             configGenerator.generateDirect()
         }.getOrElse {
             return failClosed(
                 message = "Failed to generate direct VPN config.",
-                routeSelection = VpnRouteSelection.Direct
+                routeSelection = VpnRouteSelection.Direct,
+                stopEngineOnFailure = stopEngineOnFailure
             )
         }
 
@@ -142,7 +154,8 @@ class VpnRuntimeController @Inject constructor(
         }.getOrElse {
             return failClosed(
                 message = "Direct VPN engine failed to start.",
-                routeSelection = VpnRouteSelection.Direct
+                routeSelection = VpnRouteSelection.Direct,
+                stopEngineOnFailure = stopEngineOnFailure
             )
         }
 
@@ -157,7 +170,8 @@ class VpnRuntimeController @Inject constructor(
             is VpnEngineCommandResult.Failure -> {
                 failClosed(
                     message = startResult.message,
-                    routeSelection = VpnRouteSelection.Direct
+                    routeSelection = VpnRouteSelection.Direct,
+                    stopEngineOnFailure = stopEngineOnFailure
                 )
             }
         }
@@ -184,24 +198,35 @@ class VpnRuntimeController @Inject constructor(
 
     private suspend fun failClosed(
         message: String,
-        selectedProxy: ProxyEntity
+        selectedProxy: ProxyEntity,
+        stopEngineOnFailure: Boolean
     ): VpnRuntimeControllerResult.Failure {
         return failClosed(
             message = message,
-            routeSelection = VpnRouteSelection.Proxy(selectedProxy)
+            routeSelection = VpnRouteSelection.Proxy(selectedProxy),
+            stopEngineOnFailure = stopEngineOnFailure
         )
     }
 
     private suspend fun failClosed(
         message: String,
-        routeSelection: VpnRouteSelection
+        routeSelection: VpnRouteSelection,
+        stopEngineOnFailure: Boolean
     ): VpnRuntimeControllerResult.Failure {
-        engine.stop()
-        AppLogger.error(
-            message = "VPN stopped fail-closed: $message",
-            type = LogType.PROXY,
-            sensitiveValues = routeSelection.sensitiveValues()
-        )
+        if (stopEngineOnFailure) {
+            engine.stop()
+            AppLogger.error(
+                message = "VPN stopped fail-closed: $message",
+                type = LogType.PROXY,
+                sensitiveValues = routeSelection.sensitiveValues()
+            )
+        } else {
+            AppLogger.warning(
+                message = "VPN start/reconnect attempt failed: $message",
+                type = LogType.PROXY,
+                sensitiveValues = routeSelection.sensitiveValues()
+            )
+        }
         return VpnRuntimeControllerResult.Failure(message)
     }
 }

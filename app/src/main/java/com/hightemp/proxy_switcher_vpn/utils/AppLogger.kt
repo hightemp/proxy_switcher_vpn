@@ -1,5 +1,6 @@
 package com.hightemp.proxy_switcher_vpn.utils
 
+import android.util.Log
 import com.hightemp.proxy_switcher_vpn.vpn.engine.VpnEngineLogLevel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -53,12 +54,14 @@ object AppLogger {
         type: LogType = LogType.GENERAL,
         sensitiveValues: Collection<String> = emptyList()
     ) {
+        val maskedMessage = maskSensitiveValues(message, sensitiveValues)
         val entry = LogEntry(
             timestampMillis = timestampMillis,
             level = level,
             type = type,
-            message = maskSensitiveValues(message, sensitiveValues)
+            message = maskedMessage
         )
+        writeToAndroidLog(level = level, type = type, message = maskedMessage)
         _logs.update { current ->
             (current + entry).takeLast(MAX_LOG_ENTRIES)
         }
@@ -86,9 +89,26 @@ object AppLogger {
             .filter { it.isNotBlank() }
             .fold(message) { masked, secret ->
                 masked.replace(secret, MASKED_SECRET)
+        }
+    }
+
+    private fun writeToAndroidLog(
+        level: VpnEngineLogLevel,
+        type: LogType,
+        message: String
+    ) {
+        val line = "[$type] $message"
+        runCatching {
+            when (level) {
+                VpnEngineLogLevel.DEBUG -> Log.d(ANDROID_LOG_TAG, line)
+                VpnEngineLogLevel.INFO -> Log.i(ANDROID_LOG_TAG, line)
+                VpnEngineLogLevel.WARNING -> Log.w(ANDROID_LOG_TAG, line)
+                VpnEngineLogLevel.ERROR -> Log.e(ANDROID_LOG_TAG, line)
             }
+        }
     }
 
     private const val MAX_LOG_ENTRIES = 1000
     private const val MASKED_SECRET = "***"
+    private const val ANDROID_LOG_TAG = "ProxySwitcherVPN"
 }

@@ -1662,6 +1662,61 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
   - TASK-208
 - Estimated risk: low
 
+### TASK-210: Add Runtime Debug Logging And Reconnect
+
+- Status: done
+- Goal: Make runtime failures diagnosable from device logs and keep VPN alive
+  through transient upstream proxy or engine failures by retrying/reconnecting
+  before final fail-closed stop.
+- Device log findings:
+  - Inspected `adb logcat -d -v time` on device `R52W70AW7WA` while the app was
+    running.
+  - The captured tail had Samsung Knox/VpnManagerService noise and YouTube
+    Cronet timeout/connect errors, but almost no app-specific runtime events.
+  - `AppLogger` was UI-only, so future debugging needed Android logcat output.
+- Context files to inspect:
+  - `PRD.md` product requirements, VPN lifecycle, and sing-box core sections.
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/utils/AppLogger.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/proxy/ProxyTester.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/service/VpnRuntimeController.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/vpn/ProxyVpnService.kt`
+  - focused runtime/logger tests.
+- Files likely to change:
+  - `PRD.md`
+  - `TASKS.md`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/utils/AppLogger.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/proxy/ProxyTester.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/service/VpnReconnectPolicy.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/service/VpnRuntimeController.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/vpn/ProxyVpnService.kt`
+  - focused tests for reconnect policy and runtime failure mode.
+- Acceptance criteria:
+  - AppLogger entries are also visible in Android logcat with a stable tag.
+  - Proxy tests log start, success/failure, route label, timeout, target, and
+    sanitized failure reason.
+  - Upstream monitor logs success, consecutive failures, recovery, reconnect
+    attempts, backoff, and final fail-closed reason.
+  - A single failed monitor probe no longer immediately stops VPN.
+  - Initial start, route switch, runtime upstream failure, and engine runtime
+    failure use bounded retry/reconnect attempts.
+  - Final behavior remains fail-closed after retry exhaustion; no silent direct
+    fallback is introduced.
+- Test/smoke commands:
+  - `./gradlew test`
+  - `./gradlew assembleDebug`
+  - Device smoke: install APK and verify `ProxySwitcherVPN` appears in logcat.
+- Implementation notes:
+  - Added `VpnReconnectPolicy` with 3 monitor failures before reconnect and up
+    to 5 reconnect attempts with capped exponential backoff.
+  - Added `ProxySwitcherVPN` Android logcat output from `AppLogger`.
+  - Added detailed proxy-test and upstream-monitor diagnostics with secret
+    masking.
+  - Added reconnect handling for engine runtime stop callbacks.
+- Dependencies:
+  - TASK-160
+  - TASK-185
+- Estimated risk: medium
+
 ## Phase 20: Post-MVP Improvements
 
 ### TASK-200: Evaluate Full UDP Proxying

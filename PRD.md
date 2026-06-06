@@ -77,6 +77,9 @@ New project should keep these conventions, but replace system proxy management w
   fallback when a selected upstream proxy fails.
 - If VPN is running and the user selects Direct or another proxy, the app
   applies the new route without requiring a manual stop/start.
+- Transient upstream proxy or VPN engine failures should emit detailed
+  diagnostics and use bounded retry/reconnect attempts before the final
+  fail-closed stop.
 - The user can import and export the saved proxy list using the JSON format from
   the reference `proxy_switcher` app, so proxy exports from that app can be read.
 - The user can start VPN only after Android VPN permission is granted through `VpnService.prepare()`.
@@ -118,7 +121,8 @@ New project should keep these conventions, but replace system proxy management w
 - Configure IPv4 for MVP.
 - Avoid IPv6 route capture unless IPv6 is fully supported later.
 - Stop VPN on user request.
-- Stop VPN on selected upstream proxy failure.
+- Retry/reconnect on transient selected upstream proxy failure, then stop VPN
+  fail-closed if the retry budget is exhausted.
 - Publish lifecycle state to UI through stable observable state.
 
 ### sing-box Core
@@ -127,7 +131,8 @@ New project should keep these conventions, but replace system proxy management w
 - Start and stop sing-box through an engine abstraction.
 - Connect the Android VPN/TUN setup to sing-box TUN inbound.
 - Collect core logs/events/statistics if available.
-- Fail closed for TCP when the selected upstream proxy is unavailable.
+- Fail closed for TCP when the selected upstream proxy remains unavailable
+  after bounded retry/reconnect attempts.
 
 ### DNS
 

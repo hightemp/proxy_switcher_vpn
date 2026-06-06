@@ -3,6 +3,8 @@ package com.hightemp.proxy_switcher_vpn.proxy
 import android.util.Base64
 import com.hightemp.proxy_switcher_vpn.data.local.ProxyEntity
 import com.hightemp.proxy_switcher_vpn.data.local.ProxyType
+import com.hightemp.proxy_switcher_vpn.utils.AppLogger
+import com.hightemp.proxy_switcher_vpn.utils.LogType
 import com.hightemp.proxy_switcher_vpn.vpn.platform.ActiveVpnServiceBridge
 import java.io.BufferedInputStream
 import java.io.BufferedOutputStream
@@ -59,10 +61,23 @@ class ProxyTester @Inject constructor(
     ): ProxyTestResult = withContext(Dispatchers.IO) {
         val validationError = validate(proxy, targetHost, targetPort, timeoutMillis)
         if (validationError != null) {
+            AppLogger.warning(
+                message = "Proxy test skipped for ${proxy.debugLabel()}: $validationError",
+                type = LogType.PROXY,
+                sensitiveValues = proxy.sensitiveValues()
+            )
             return@withContext ProxyTestResult(success = false, message = validationError)
         }
 
-        runCatching {
+        AppLogger.debug(
+            message = "Proxy test started for ${proxy.debugLabel()}; " +
+                "target=$targetHost:$targetPort; timeout=${timeoutMillis}ms; " +
+                "vpnActive=${activeVpnServiceBridge.isActive()}.",
+            type = LogType.PROXY,
+            sensitiveValues = proxy.sensitiveValues()
+        )
+
+        val result = runCatching {
             when (proxy.type) {
                 ProxyType.SOCKS5 -> testSocks5(proxy, targetHost, targetPort, timeoutMillis)
                 ProxyType.HTTP -> testHttpConnect(proxy, targetHost, targetPort, timeoutMillis)
@@ -71,6 +86,24 @@ class ProxyTester @Inject constructor(
         }.getOrElse { throwable ->
             throwable.toSanitizedFailure()
         }
+
+        if (result.success) {
+            AppLogger.debug(
+                message = "Proxy test succeeded for ${proxy.debugLabel()}; " +
+                    "resolvedProxyHost=${result.resolvedProxyHost ?: "unresolved"}; " +
+                    "message=${result.message}",
+                type = LogType.PROXY,
+                sensitiveValues = proxy.sensitiveValues()
+            )
+        } else {
+            AppLogger.warning(
+                message = "Proxy test failed for ${proxy.debugLabel()}: ${result.message}",
+                type = LogType.PROXY,
+                sensitiveValues = proxy.sensitiveValues()
+            )
+        }
+
+        result
     }
 
     private fun validate(
@@ -360,6 +393,15 @@ class ProxyTester @Inject constructor(
             else -> "Proxy test failed."
         }
         return ProxyTestResult(success = false, message = message)
+    }
+
+    private fun ProxyEntity.debugLabel(): String {
+        return "$type ${label ?: host}:$port"
+    }
+
+    private fun ProxyEntity.sensitiveValues(): List<String> {
+        return listOfNotNull(username, password)
+            .filter { it.isNotBlank() }
     }
 
     private fun ProxyTestResult.withResolvedProxyHost(resolvedProxyHost: String): ProxyTestResult {

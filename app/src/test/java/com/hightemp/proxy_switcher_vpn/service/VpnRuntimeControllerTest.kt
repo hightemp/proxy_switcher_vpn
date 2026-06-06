@@ -61,6 +61,33 @@ class VpnRuntimeControllerTest {
     }
 
     @Test
+    fun proxyProbeFailureCanBeReportedWithoutStoppingEngineDuringReconnect() = runTest {
+        val engine = FakeVpnEngine()
+        val controller = VpnRuntimeController(
+            engine = engine,
+            proxyTester = FakeReachabilityTester(
+                ProxyTestResult(
+                    success = false,
+                    message = "Could not connect to proxy."
+                )
+            ),
+            proxyNetworkResolver = FakeProxyNetworkResolver()
+        )
+
+        val result = controller.start(
+            routeSelection = proxyRoute(),
+            stopEngineOnFailure = false
+        )
+
+        assertTrue(result is VpnRuntimeControllerResult.Failure)
+        assertEquals(0, engine.stopCalls)
+        val logText = AppLogger.logs.value.joinToString(separator = "\n") { it.message }
+        assertTrue(logText.contains("VPN start/reconnect attempt failed"))
+        assertFalse(logText.contains("VPN stopped fail-closed"))
+        assertFalse(logText.contains("secret-password"))
+    }
+
+    @Test
     fun engineStartFailureStopsEngineFailClosedAndLogsFailure() = runTest {
         val engine = FakeVpnEngine()
         engine.failNextStart("Upstream proxy refused connection.")

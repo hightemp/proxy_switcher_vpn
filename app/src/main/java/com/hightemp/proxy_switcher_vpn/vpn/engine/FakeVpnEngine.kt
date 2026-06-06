@@ -21,6 +21,8 @@ class FakeVpnEngine @Inject constructor() : VpnEngine {
     private var nextStartFailure: String? = null
     var lastStartRequest: VpnEngineStartRequest? = null
         private set
+    var stopCalls: Int = 0
+        private set
 
     fun failNextStart(message: String) {
         nextStartFailure = message
@@ -65,6 +67,7 @@ class FakeVpnEngine @Inject constructor() : VpnEngine {
     }
 
     override suspend fun stop(): VpnEngineCommandResult {
+        stopCalls += 1
         val currentProxy = _state.value.selectedProxy
         _state.value = VpnEngineState(
             status = VpnEngineStatus.STOPPING,
