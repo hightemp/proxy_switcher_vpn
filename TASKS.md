@@ -1460,7 +1460,7 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
 
 ### TASK-205: Fix Chrome DNS Timeout Through VPN
 
-- Status: in_progress
+- Status: done
 - Goal: Fix the connected-device DNS timeout where Chrome shows
   `DNS_PROBE_FINISHED_NO_INTERNET` for `2ip.ru` after VPN start.
 - Context files to inspect:
@@ -1470,8 +1470,11 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
   - Android `VpnService.Builder` DNS/route docs.
 - Files likely to change:
   - `TASKS.md`
+  - `app/src/main/AndroidManifest.xml`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/vpn/platform/DefaultNetworkMonitor.kt`
   - `app/src/main/java/com/hightemp/proxy_switcher_vpn/vpn/singbox/SingBoxConfig.kt`
   - `app/src/main/java/com/hightemp/proxy_switcher_vpn/vpn/singbox/SingBoxConfigGenerator.kt`
+  - `app/src/test/java/com/hightemp/proxy_switcher_vpn/vpn/engine/ProductionVpnWiringTest.kt`
   - `app/src/test/java/com/hightemp/proxy_switcher_vpn/vpn/singbox/SingBoxConfigGeneratorTest.kt`
 - Implementation notes:
   - Connected-device reproduction on Samsung SM-A165F / Android 15 showed
@@ -1482,6 +1485,13 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
   - sing-box route docs show `protocol` matching is based on sniffed protocol,
     and proxy client examples place an `action: "sniff"` rule before
     `protocol: "dns", action: "hijack-dns"`.
+  - Android P+ can report the VPN network through default-network callbacks;
+    the sing-box default interface listener now requests a non-VPN internet
+    network and uses `CHANGE_NETWORK_STATE`.
+  - Connected-device verification on Samsung SM-A165F / Android 15 with Chrome
+    loaded `https://2ip.ru` while VPN was running. The page reported Android
+    15 / Chrome 147, and Fornex Hosting S.L. in Frankfurt
+    (Germany), matching the selected upstream proxy path.
 - Acceptance criteria:
   - Generated route rules sniff traffic before DNS hijack.
   - Generated DNS hijack rule targets sniffed `protocol: "dns"`.
@@ -1493,6 +1503,7 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
   - `./gradlew test`
   - `./gradlew assembleDebug`
   - connected-device Chrome check for `https://2ip.ru`
+  - `adb shell dumpsys connectivity`
 - Dependencies:
   - TASK-186
 - Estimated risk: medium
