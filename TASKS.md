@@ -1650,11 +1650,14 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
   - README explains what the app does in plain language.
   - README lists core capabilities and MVP limitations.
   - README includes basic build, install, and release commands.
+  - README includes the app icon and repository badges in the reference style.
 - Test/smoke commands:
   - Markdown/source inspection only.
 - Implementation notes:
   - Added a concise English README with app purpose, features, limitations,
     debug build path, install command, and release/version notes.
+  - Added centered logo image and release/downloads/CI/platform/tooling badges
+    matching the reference README style.
 - Dependencies:
   - TASK-208
 - Estimated risk: low
