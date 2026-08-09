@@ -83,7 +83,7 @@ class ProxyVpnService : VpnService(), ActiveVpnService {
                 if (VpnRuntimeState.state.value.isRunning) {
                     startVpn()
                 } else {
-                    stopSelf()
+                    restoreVpnIfEnabled()
                 }
             }
         }
@@ -91,7 +91,8 @@ class ProxyVpnService : VpnService(), ActiveVpnService {
     }
 
     override fun onTaskRemoved(rootIntent: Intent?) {
-        stopVpn()
+        // The VPN keeps running as a foreground service after the task is
+        // swiped away from recents.
         super.onTaskRemoved(rootIntent)
     }
 
@@ -105,6 +106,7 @@ class ProxyVpnService : VpnService(), ActiveVpnService {
             closeTun()
             activeVpnServiceBridge.detach(this@ProxyVpnService)
             val message = "VPN permission was revoked."
+            setVpnEnabledFlag(false)
             VpnRuntimeState.markStopped(message)
             sendStatus(message)
             stopForeground(STOP_FOREGROUND_REMOVE)
@@ -269,6 +271,7 @@ class ProxyVpnService : VpnService(), ActiveVpnService {
             createNotification("VPN service starting.")
         )
         startJob = serviceScope.launch {
+            setVpnEnabledFlag(true)
             val routeSelection = loadRouteSelection()
             if (!routeSelection.isValidForStart()) {
                 failClosedAndStop("Select Direct or a valid enabled proxy before starting VPN.")
@@ -341,6 +344,7 @@ class ProxyVpnService : VpnService(), ActiveVpnService {
         when (snapshot.status) {
             VpnServiceStatus.STOPPED,
             VpnServiceStatus.ERROR -> {
+                serviceScope.launch { setVpnEnabledFlag(false) }
                 sendStatus(snapshot.statusMessage ?: "VPN service stopped.")
                 stopSelf()
                 return
@@ -356,6 +360,7 @@ class ProxyVpnService : VpnService(), ActiveVpnService {
 
         stopJob = serviceScope.launch {
             VpnRuntimeState.markStopping("Stopping VPN service.")
+            setVpnEnabledFlag(false)
             runtimeController.stop()
             closeTun()
             activeRouteSelection = null
@@ -365,6 +370,38 @@ class ProxyVpnService : VpnService(), ActiveVpnService {
             stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf()
         }
+    }
+
+    /**
+     * Resumes the VPN after the system restarted this sticky service, for
+     * example when the app process was killed while the VPN was active.
+     */
+    private fun restoreVpnIfEnabled() {
+        if (startJob?.isActive == true || stopJob?.isActive == true) return
+
+        startForeground(
+            NOTIFICATION_ID,
+            createNotification("Restoring VPN service.")
+        )
+        serviceScope.launch {
+            val vpnEnabled = runCatching {
+                settingsRepository.settings.first().vpnEnabled
+            }.getOrDefault(false)
+            if (!vpnEnabled) {
+                stopForeground(STOP_FOREGROUND_REMOVE)
+                stopSelf()
+                return@launch
+            }
+            AppLogger.info(
+                message = "Restoring VPN after service restart.",
+                type = LogType.VPN
+            )
+            startVpn()
+        }
+    }
+
+    private suspend fun setVpnEnabledFlag(enabled: Boolean) {
+        runCatching { settingsRepository.setVpnEnabled(enabled) }
     }
 
     private suspend fun loadRouteSelection(intent: Intent? = null): VpnRouteSelection? {
@@ -403,6 +440,7 @@ class ProxyVpnService : VpnService(), ActiveVpnService {
             message = "VPN service stopped fail-closed: $message",
             type = LogType.VPN
         )
+        serviceScope.launch { setVpnEnabledFlag(false) }
         VpnRuntimeState.markFailedStopped(message)
         sendStatus(message)
         stopForeground(STOP_FOREGROUND_REMOVE)

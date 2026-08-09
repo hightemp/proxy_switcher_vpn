@@ -31,9 +31,16 @@ class SettingsRepository @Inject constructor(
                 domainDestinationLoggingEnabled =
                     (preferences[DOMAIN_DESTINATION_LOGGING_ENABLED] ?: false) &&
                         privacyDisclosureAccepted,
-                privacyDisclosureAccepted = privacyDisclosureAccepted
+                privacyDisclosureAccepted = privacyDisclosureAccepted,
+                vpnEnabled = preferences[VPN_ENABLED] ?: false
             )
         }
+
+    suspend fun setVpnEnabled(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[VPN_ENABLED] = enabled
+        }
+    }
 
     suspend fun setSelectedProxyId(proxyId: Long?) {
         dataStore.edit { preferences ->
@@ -69,5 +76,6 @@ class SettingsRepository @Inject constructor(
             booleanPreferencesKey("domain_destination_logging_enabled")
         val PRIVACY_DISCLOSURE_ACCEPTED =
             booleanPreferencesKey("privacy_disclosure_accepted")
+        val VPN_ENABLED = booleanPreferencesKey("vpn_enabled")
     }
 }
