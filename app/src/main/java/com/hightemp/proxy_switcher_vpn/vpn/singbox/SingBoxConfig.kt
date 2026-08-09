@@ -22,13 +22,30 @@ data class SingBoxConfig(
     val dns: SingBoxDnsConfig,
     val inbounds: List<SingBoxInbound>,
     val outbounds: List<SingBoxOutbound>,
-    val route: SingBoxRouteConfig
+    val route: SingBoxRouteConfig,
+    val experimental: SingBoxExperimentalConfig = SingBoxExperimentalConfig()
 )
 
 data class SingBoxLogConfig(
     val level: String = "debug",
     val timestamp: Boolean = true
 )
+
+/**
+ * Enables the in-process Clash API traffic manager without exposing any listener.
+ * libbox only reports traffic totals when this component exists.
+ */
+data class SingBoxExperimentalConfig(
+    val clashApiEnabled: Boolean = true
+) {
+    fun toJsonObject(): JsonObject {
+        return buildJsonObject {
+            if (clashApiEnabled) {
+                put("clash_api", buildJsonObject { })
+            }
+        }
+    }
+}
 
 data class SingBoxDnsConfig(
     val servers: List<SingBoxDnsServer>,
@@ -268,6 +285,7 @@ class SingBoxConfigSerializer(
             put("inbounds", JsonArray(inbounds.map { it.toJsonObject() }))
             put("outbounds", JsonArray(outbounds.map { it.toJsonObject(maskSecrets) }))
             put("route", route.toJsonObject())
+            put("experimental", experimental.toJsonObject())
         }
     }
 

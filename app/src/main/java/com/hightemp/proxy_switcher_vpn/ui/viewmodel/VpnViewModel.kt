@@ -59,9 +59,9 @@ class VpnViewModel @Inject constructor(
     private val proxyRepository: ProxyRepository,
     private val settingsRepository: SettingsRepository,
     private val proxyTester: ProxyReachabilityTester,
+    private val statsStore: VpnStatsStore,
     diagnosticsRepository: VpnDiagnosticsRepository
 ) : ViewModel() {
-    private val statsStore = VpnStatsStore()
     private val _uiState = MutableStateFlow(VpnPermissionUiState())
     private val _proxyTestResults = MutableStateFlow<Map<Long, ProxyTestUiState>>(emptyMap())
     val uiState: StateFlow<VpnPermissionUiState> = _uiState.asStateFlow()

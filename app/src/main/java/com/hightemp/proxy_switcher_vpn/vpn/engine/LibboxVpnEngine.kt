@@ -9,6 +9,7 @@ import com.hightemp.proxy_switcher_vpn.vpn.platform.DefaultNetworkMonitor
 import com.hightemp.proxy_switcher_vpn.vpn.routing.VpnRouteSelection
 import com.hightemp.proxy_switcher_vpn.vpn.routing.proxyOrNull
 import com.hightemp.proxy_switcher_vpn.vpn.routing.sensitiveValues
+import com.hightemp.proxy_switcher_vpn.vpn.stats.VpnStatsStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.nekohasekai.libbox.CommandServer
 import io.nekohasekai.libbox.OverrideOptions
@@ -28,7 +29,9 @@ class LibboxVpnEngine @Inject constructor(
     @ApplicationContext private val context: Context,
     private val platformInterface: AndroidLibboxPlatformInterface,
     private val activeVpnServiceBridge: ActiveVpnServiceBridge,
-    private val defaultNetworkMonitor: DefaultNetworkMonitor
+    private val defaultNetworkMonitor: DefaultNetworkMonitor,
+    private val statsStore: VpnStatsStore,
+    private val statusClient: LibboxStatusClient
 ) : VpnEngine {
     private val lifecycleLock = Mutex()
 
@@ -87,6 +90,8 @@ class LibboxVpnEngine @Inject constructor(
                         status = VpnEngineStatus.RUNNING,
                         selectedProxy = selectedProxy
                     )
+                    statsStore.startSession()
+                    statusClient.start()
                     appendLog(VpnEngineLogLevel.INFO, "sing-box VPN engine running.")
                     AppLogger.info(
                         message = "sing-box VPN engine running.",
@@ -193,6 +198,8 @@ class LibboxVpnEngine @Inject constructor(
     }
 
     private fun closeCommandServerLocked(): Throwable? {
+        statusClient.stop()
+        statsStore.stopSession()
         val server = commandServer
         commandServer = null
         var closeFailure: Throwable? = null

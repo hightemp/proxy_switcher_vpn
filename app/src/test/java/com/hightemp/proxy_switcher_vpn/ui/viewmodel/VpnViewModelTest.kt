@@ -13,6 +13,7 @@ import com.hightemp.proxy_switcher_vpn.proxy.ProxyTestResult
 import com.hightemp.proxy_switcher_vpn.service.VpnRuntimeState
 import com.hightemp.proxy_switcher_vpn.service.VpnServiceStatus
 import com.hightemp.proxy_switcher_vpn.vpn.diagnostics.VpnDiagnosticsRepository
+import com.hightemp.proxy_switcher_vpn.vpn.stats.VpnStatsStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -166,6 +167,7 @@ class VpnViewModelTest {
             proxyRepository = ProxyRepository(proxyDao),
             settingsRepository = SettingsRepository(FakePreferencesDataStore()),
             proxyTester = FakeReachabilityTester(),
+            statsStore = VpnStatsStore(),
             diagnosticsRepository = VpnDiagnosticsRepository()
         )
     }

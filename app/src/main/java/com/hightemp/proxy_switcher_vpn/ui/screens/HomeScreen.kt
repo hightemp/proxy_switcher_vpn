@@ -1,48 +1,56 @@
 package com.hightemp.proxy_switcher_vpn.ui.screens
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.hightemp.proxy_switcher_vpn.data.local.ProxyEntity
 import com.hightemp.proxy_switcher_vpn.data.local.ProxyType
 import com.hightemp.proxy_switcher_vpn.data.settings.AppSettings
 import com.hightemp.proxy_switcher_vpn.service.VpnRuntimeSnapshot
+import com.hightemp.proxy_switcher_vpn.service.VpnServiceStatus
 import com.hightemp.proxy_switcher_vpn.ui.theme.Proxy_switcher_vpnTheme
 import com.hightemp.proxy_switcher_vpn.ui.viewmodel.VpnPermissionStatus
 import com.hightemp.proxy_switcher_vpn.ui.viewmodel.VpnPermissionUiState
@@ -71,11 +79,29 @@ fun HomeScreen(
     onDomainDestinationLoggingEnabled: (Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val snackbarHostState = remember { SnackbarHostState() }
+    var privacyDialogVisible by remember { mutableStateOf(false) }
+
+    val statusMessage = runtimeState.statusMessage ?: uiState.message
+    LaunchedEffect(statusMessage) {
+        if (statusMessage.isNotBlank()) {
+            snackbarHostState.showSnackbar(statusMessage)
+        }
+    }
+    LaunchedEffect(lastError) {
+        if (!lastError.isNullOrBlank()) {
+            snackbarHostState.showSnackbar(lastError)
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Proxy Switcher VPN") },
                 actions = {
+                    IconButton(onClick = { privacyDialogVisible = true }) {
+                        Icon(Icons.Default.Lock, contentDescription = "Privacy settings")
+                    }
                     IconButton(onClick = onViewLogs) {
                         Icon(Icons.AutoMirrored.Filled.List, contentDescription = "View logs")
                     }
@@ -88,53 +114,33 @@ fun HomeScreen(
                 }
             )
         },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         modifier = modifier.fillMaxSize()
     ) { innerPadding ->
         Column(
             modifier = Modifier
                 .padding(innerPadding)
-                .padding(16.dp)
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .padding(horizontal = 16.dp)
+                .fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text(
-                text = runtimeState.status.name,
-                style = MaterialTheme.typography.displaySmall,
-                color = if (runtimeState.isRunning) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.error
-                }
+            StatusLine(
+                runtimeState = runtimeState,
+                permissionStatus = uiState.permissionStatus
             )
-
-            HomeInfoCard(title = "Selected route") {
-                ProxyRouteSelector(
-                    proxies = proxies,
-                    selectedProxyId = selectedProxyId,
-                    onDirectSelected = onDirectSelected,
-                    onProxySelected = onProxySelected
-                )
-            }
+            TrafficLine(stats = stats)
 
             val isVpnActive = runtimeState.isForegroundServiceActive
             Button(
-                onClick = {
-                    if (isVpnActive) {
-                        onStopVpn()
-                    } else {
-                        onStartVpn()
-                    }
-                },
+                onClick = { if (isVpnActive) onStopVpn() else onStartVpn() },
                 enabled = if (isVpnActive) {
                     true
                 } else {
-                    canStartVpn &&
-                        uiState.permissionStatus != VpnPermissionStatus.REQUESTING
+                    canStartVpn && uiState.permissionStatus != VpnPermissionStatus.REQUESTING
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp),
+                    .height(52.dp),
                 colors = if (isVpnActive) {
                     ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.error
@@ -146,113 +152,177 @@ fun HomeScreen(
                 Text(if (isVpnActive) "STOP VPN" else "START VPN")
             }
 
-            HomeInfoCard(title = "VPN state") {
-                Text("Permission: ${uiState.permissionStatus.name}")
-                Spacer(modifier = Modifier.height(4.dp))
-                Text("Service: ${runtimeState.status.name}")
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(runtimeState.statusMessage ?: uiState.message)
-            }
-
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                CounterCard(
-                    title = "Bytes in",
-                    value = formatBytes(stats.bytesIn),
+                Text(
+                    text = "Route",
+                    style = MaterialTheme.typography.titleSmall,
                     modifier = Modifier.weight(1f)
                 )
-                CounterCard(
-                    title = "Bytes out",
-                    value = formatBytes(stats.bytesOut),
-                    modifier = Modifier.weight(1f)
-                )
+                TextButton(onClick = onManageProxies) {
+                    Text("Manage")
+                }
             }
 
-            HomeInfoCard(title = "Diagnostics") {
-                Text(diagnosticsSummary)
-            }
-
-            if (!lastError.isNullOrBlank()) {
-                HomeInfoCard(title = "Last error") {
-                    Text(
-                        text = lastError,
-                        color = MaterialTheme.colorScheme.error
+            LazyColumn(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                item {
+                    RouteRow(
+                        title = DIRECT_ROUTE_LABEL,
+                        subtitle = "No upstream proxy",
+                        selected = selectedProxyId == null,
+                        enabled = true,
+                        onClick = onDirectSelected
+                    )
+                }
+                items(proxies, key = { proxy -> proxy.id }) { proxy ->
+                    RouteRow(
+                        title = proxy.label?.takeIf { it.isNotBlank() } ?: proxy.host,
+                        subtitle = "${proxy.type} ${proxy.host}:${proxy.port}" +
+                            if (proxy.isEnabled) "" else " - disabled",
+                        selected = selectedProxyId == proxy.id,
+                        enabled = proxy.isEnabled,
+                        onClick = { onProxySelected(proxy) }
                     )
                 }
             }
 
-            PrivacyCard(
-                settings = settings,
-                onPrivacyDisclosureAccepted = onPrivacyDisclosureAccepted,
-                onDomainDestinationLoggingEnabled = onDomainDestinationLoggingEnabled
+            Text(
+                text = diagnosticsSummary,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onViewDiagnostics)
+                    .padding(vertical = 8.dp)
             )
         }
     }
+
+    if (privacyDialogVisible) {
+        PrivacyDialog(
+            settings = settings,
+            onDismiss = { privacyDialogVisible = false },
+            onPrivacyDisclosureAccepted = onPrivacyDisclosureAccepted,
+            onDomainDestinationLoggingEnabled = onDomainDestinationLoggingEnabled
+        )
+    }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ProxyRouteSelector(
-    proxies: List<ProxyEntity>,
-    selectedProxyId: Long?,
-    onDirectSelected: () -> Unit,
-    onProxySelected: (ProxyEntity) -> Unit
+private fun StatusLine(
+    runtimeState: VpnRuntimeSnapshot,
+    permissionStatus: VpnPermissionStatus
 ) {
-    var expanded by remember { mutableStateOf(false) }
-    val selectedProxy = selectedProxyId?.let { selectedId ->
-        proxies.firstOrNull { proxy -> proxy.id == selectedId }
+    val statusColor = when (runtimeState.status) {
+        VpnServiceStatus.RUNNING -> MaterialTheme.colorScheme.primary
+        VpnServiceStatus.STARTING,
+        VpnServiceStatus.STOPPING -> MaterialTheme.colorScheme.tertiary
+        VpnServiceStatus.ERROR -> MaterialTheme.colorScheme.error
+        VpnServiceStatus.STOPPED -> MaterialTheme.colorScheme.outline
     }
-    val selectedLabel = if (selectedProxyId == null) {
-        DIRECT_ROUTE_LABEL
-    } else {
-        selectedProxy?.displayLabel() ?: "Selected proxy unavailable"
-    }
-
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = !expanded },
-        modifier = Modifier.fillMaxWidth()
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        OutlinedTextField(
-            value = selectedLabel,
-            onValueChange = {},
-            readOnly = true,
-            trailingIcon = {
-                ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
-            },
-            modifier = Modifier
-                .menuAnchor()
-                .fillMaxWidth()
+        Surface(
+            color = statusColor,
+            shape = CircleShape,
+            modifier = Modifier.size(10.dp)
+        ) {}
+        Text(
+            text = runtimeState.status.name,
+            style = MaterialTheme.typography.titleMedium,
+            color = statusColor,
+            modifier = Modifier.weight(1f)
         )
-        ExposedDropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false }
-        ) {
-            DropdownMenuItem(
-                text = { Text(DIRECT_ROUTE_LABEL) },
-                onClick = {
-                    expanded = false
-                    onDirectSelected()
-                }
+        Text(
+            text = "permission: ${permissionStatus.name.lowercase()}",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+private fun TrafficLine(stats: VpnStats) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = "\u2193 ${formatBytes(stats.bytesIn)}",
+            style = MaterialTheme.typography.bodyMedium
+        )
+        Text(
+            text = "\u2191 ${formatBytes(stats.bytesOut)}",
+            style = MaterialTheme.typography.bodyMedium
+        )
+        Text(
+            text = if (stats.activeConnectionsAvailable) {
+                "conn ${stats.activeConnections}"
+            } else {
+                "conn n/a"
+            },
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+@Composable
+private fun RouteRow(
+    title: String,
+    subtitle: String?,
+    selected: Boolean,
+    enabled: Boolean,
+    onClick: () -> Unit
+) {
+    val containerColor = if (selected) {
+        MaterialTheme.colorScheme.secondaryContainer
+    } else {
+        Color.Transparent
+    }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(containerColor, MaterialTheme.shapes.medium)
+            .clickable(enabled = enabled, onClick = onClick)
+            .padding(horizontal = 8.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        RadioButton(
+            selected = selected,
+            onClick = onClick,
+            enabled = enabled
+        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
-            proxies.forEach { proxy ->
-                DropdownMenuItem(
-                    text = {
-                        Text(
-                            if (proxy.isEnabled) {
-                                proxy.displayLabel()
-                            } else {
-                                "${proxy.displayLabel()} - disabled"
-                            }
-                        )
-                    },
-                    enabled = proxy.isEnabled,
-                    onClick = {
-                        expanded = false
-                        onProxySelected(proxy)
-                    }
+            if (!subtitle.isNullOrBlank()) {
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
         }
@@ -260,91 +330,52 @@ private fun ProxyRouteSelector(
 }
 
 @Composable
-private fun HomeInfoCard(
-    title: String,
-    content: @Composable () -> Unit
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            content()
-        }
-    }
-}
-
-@Composable
-private fun CounterCard(
-    title: String,
-    value: String,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyMedium
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = value,
-                style = MaterialTheme.typography.titleLarge
-            )
-        }
-    }
-}
-
-@Composable
-private fun PrivacyCard(
+private fun PrivacyDialog(
     settings: AppSettings,
+    onDismiss: () -> Unit,
     onPrivacyDisclosureAccepted: (Boolean) -> Unit,
     onDomainDestinationLoggingEnabled: (Boolean) -> Unit
 ) {
-    HomeInfoCard(title = "Privacy") {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Disclosure accepted",
-                modifier = Modifier.weight(1f)
-            )
-            Switch(
-                checked = settings.privacyDisclosureAccepted,
-                onCheckedChange = onPrivacyDisclosureAccepted
-            )
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Close")
+            }
+        },
+        title = { Text("Privacy") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Disclosure accepted",
+                        modifier = Modifier.weight(1f)
+                    )
+                    Switch(
+                        checked = settings.privacyDisclosureAccepted,
+                        onCheckedChange = onPrivacyDisclosureAccepted
+                    )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Detailed domain logging",
+                        modifier = Modifier.weight(1f)
+                    )
+                    Switch(
+                        checked = settings.domainDestinationLoggingEnabled,
+                        onCheckedChange = onDomainDestinationLoggingEnabled,
+                        enabled = settings.privacyDisclosureAccepted
+                    )
+                }
+            }
         }
-        Spacer(modifier = Modifier.height(8.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Detailed domain logging",
-                modifier = Modifier.weight(1f)
-            )
-            Switch(
-                checked = settings.domainDestinationLoggingEnabled,
-                onCheckedChange = onDomainDestinationLoggingEnabled,
-                enabled = settings.privacyDisclosureAccepted
-            )
-        }
-    }
+    )
 }
 
 private fun formatBytes(bytes: Long): String {
@@ -352,10 +383,6 @@ private fun formatBytes(bytes: Long): String {
     val kib = bytes / 1024.0
     if (kib < 1024.0) return "%.1f KiB".format(kib)
     return "%.1f MiB".format(kib / 1024.0)
-}
-
-private fun ProxyEntity.displayLabel(): String {
-    return "${label ?: host}:$port ($type)"
 }
 
 private const val DIRECT_ROUTE_LABEL = "Direct Connection"
