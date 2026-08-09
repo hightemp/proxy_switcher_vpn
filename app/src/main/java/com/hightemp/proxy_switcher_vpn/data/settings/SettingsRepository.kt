@@ -32,13 +32,20 @@ class SettingsRepository @Inject constructor(
                     (preferences[DOMAIN_DESTINATION_LOGGING_ENABLED] ?: false) &&
                         privacyDisclosureAccepted,
                 privacyDisclosureAccepted = privacyDisclosureAccepted,
-                vpnEnabled = preferences[VPN_ENABLED] ?: false
+                vpnEnabled = preferences[VPN_ENABLED] ?: false,
+                infiniteReconnectEnabled = preferences[INFINITE_RECONNECT_ENABLED] ?: true
             )
         }
 
     suspend fun setVpnEnabled(enabled: Boolean) {
         dataStore.edit { preferences ->
             preferences[VPN_ENABLED] = enabled
+        }
+    }
+
+    suspend fun setInfiniteReconnectEnabled(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[INFINITE_RECONNECT_ENABLED] = enabled
         }
     }
 
@@ -77,5 +84,7 @@ class SettingsRepository @Inject constructor(
         val PRIVACY_DISCLOSURE_ACCEPTED =
             booleanPreferencesKey("privacy_disclosure_accepted")
         val VPN_ENABLED = booleanPreferencesKey("vpn_enabled")
+        val INFINITE_RECONNECT_ENABLED =
+            booleanPreferencesKey("infinite_reconnect_enabled")
     }
 }

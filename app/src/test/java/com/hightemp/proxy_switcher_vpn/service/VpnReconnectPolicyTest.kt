@@ -1,7 +1,9 @@
 package com.hightemp.proxy_switcher_vpn.service
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertThrows
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class VpnReconnectPolicyTest {
@@ -19,6 +21,28 @@ class VpnReconnectPolicyTest {
         assertEquals(4_000L, policy.backoffForAttempt(3))
         assertEquals(5_000L, policy.backoffForAttempt(4))
         assertEquals(5_000L, policy.backoffForAttempt(5))
+    }
+
+    @Test
+    fun boundedPolicyStopsAfterMaxAttempts() {
+        val policy = VpnReconnectPolicy(maxReconnectAttempts = 2)
+
+        assertTrue(policy.hasAttempt(1))
+        assertTrue(policy.hasAttempt(2))
+        assertFalse(policy.hasAttempt(3))
+        assertEquals("2", policy.attemptBudgetLabel)
+    }
+
+    @Test
+    fun unlimitedPolicyAlwaysAllowsAnotherAttempt() {
+        val policy = VpnReconnectPolicy(
+            maxReconnectAttempts = 2,
+            unlimitedReconnectAttempts = true
+        )
+
+        assertTrue(policy.hasAttempt(3))
+        assertTrue(policy.hasAttempt(1_000))
+        assertEquals("unlimited", policy.attemptBudgetLabel)
     }
 
     @Test

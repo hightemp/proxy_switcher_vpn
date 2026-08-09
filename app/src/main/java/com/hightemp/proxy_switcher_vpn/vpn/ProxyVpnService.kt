@@ -60,7 +60,7 @@ class ProxyVpnService : VpnService(), ActiveVpnService {
     private var stopJob: Job? = null
     private var upstreamMonitorJob: Job? = null
     private var tunFileDescriptor: ParcelFileDescriptor? = null
-    private val reconnectPolicy = VpnReconnectPolicy()
+    private var reconnectPolicy = VpnReconnectPolicy()
     private var activeRouteSelection: VpnRouteSelection? = null
 
     override fun onCreate() {
@@ -286,7 +286,7 @@ class ProxyVpnService : VpnService(), ActiveVpnService {
             )
             if (!result.success) {
                 val message = "VPN could not start after ${
-                    reconnectPolicy.maxReconnectAttempts
+                    reconnectPolicy.attemptBudgetLabel
                 } attempts: ${result.lastFailure ?: "Unknown error."}"
                 runtimeController.stop()
                 failClosedAndStop(message)
@@ -329,7 +329,7 @@ class ProxyVpnService : VpnService(), ActiveVpnService {
             )
             if (!result.success) {
                 val message = "VPN route switch failed after ${
-                    reconnectPolicy.maxReconnectAttempts
+                    reconnectPolicy.attemptBudgetLabel
                 } attempts: ${result.lastFailure ?: "Unknown error."}"
                 runtimeController.stop()
                 failClosedAndStop(message)
@@ -456,7 +456,7 @@ class ProxyVpnService : VpnService(), ActiveVpnService {
                     "interval=${UPSTREAM_MONITOR_INTERVAL_MILLIS}ms, " +
                     "timeout=${UPSTREAM_MONITOR_TIMEOUT_MILLIS}ms, " +
                     "failureThreshold=${reconnectPolicy.monitorFailureThreshold}, " +
-                    "maxReconnectAttempts=${reconnectPolicy.maxReconnectAttempts}.",
+                    "maxReconnectAttempts=${reconnectPolicy.attemptBudgetLabel}.",
                 type = LogType.PROXY,
                 sensitiveValues = selectedProxy.sensitiveValues()
             )
@@ -542,7 +542,7 @@ class ProxyVpnService : VpnService(), ActiveVpnService {
 
                 val message = "Selected upstream proxy did not recover after " +
                     "$consecutiveFailures monitor failures and " +
-                    "${reconnectPolicy.maxReconnectAttempts} reconnect attempts: " +
+                    "${reconnectPolicy.attemptBudgetLabel} reconnect attempts: " +
                     (result.lastFailure ?: failureMessage)
                 AppLogger.error(
                     message = message,
@@ -563,17 +563,20 @@ class ProxyVpnService : VpnService(), ActiveVpnService {
         restartMonitorOnSuccess: Boolean
     ): RouteStartAttemptsResult {
         var lastFailure: String? = null
+        refreshReconnectPolicy()
+        val attemptBudget = reconnectPolicy.attemptBudgetLabel
         AppLogger.info(
             message = "VPN route start/reconnect sequence started for " +
                 "${routeSelection.displayLabel}; reason=$reason; " +
-                "maxAttempts=${reconnectPolicy.maxReconnectAttempts}.",
+                "maxAttempts=$attemptBudget.",
             type = LogType.VPN,
             sensitiveValues = routeSelection.sensitiveValues()
         )
 
-        for (attempt in 1..reconnectPolicy.maxReconnectAttempts) {
+        var attempt = 1
+        while (reconnectPolicy.hasAttempt(attempt)) {
             AppLogger.info(
-                message = "VPN route attempt $attempt/${reconnectPolicy.maxReconnectAttempts} " +
+                message = "VPN route attempt $attempt/$attemptBudget " +
                     "for ${routeSelection.displayLabel}; reason=$reason.",
                 type = LogType.VPN,
                 sensitiveValues = routeSelection.sensitiveValues()
@@ -582,7 +585,7 @@ class ProxyVpnService : VpnService(), ActiveVpnService {
                 if (attempt == 1) {
                     "Starting VPN route."
                 } else {
-                    "Retrying VPN route ($attempt/${reconnectPolicy.maxReconnectAttempts})."
+                    "Retrying VPN route ($attempt/$attemptBudget)."
                 }
             )
 
@@ -600,7 +603,7 @@ class ProxyVpnService : VpnService(), ActiveVpnService {
                     sendStatus(runningMessage)
                     AppLogger.info(
                         message = "VPN route active after attempt " +
-                            "$attempt/${reconnectPolicy.maxReconnectAttempts}: " +
+                            "$attempt/$attemptBudget: " +
                             routeSelection.displayLabel,
                         type = LogType.VPN,
                         sensitiveValues = routeSelection.sensitiveValues()
@@ -611,7 +614,7 @@ class ProxyVpnService : VpnService(), ActiveVpnService {
                     lastFailure = result.message
                     AppLogger.warning(
                         message = "VPN route attempt " +
-                            "$attempt/${reconnectPolicy.maxReconnectAttempts} failed: " +
+                            "$attempt/$attemptBudget failed: " +
                             result.message,
                         type = LogType.VPN,
                         sensitiveValues = routeSelection.sensitiveValues()
@@ -619,7 +622,7 @@ class ProxyVpnService : VpnService(), ActiveVpnService {
                 }
             }
 
-            if (attempt < reconnectPolicy.maxReconnectAttempts) {
+            if (reconnectPolicy.hasAttempt(attempt + 1)) {
                 val backoffMillis = reconnectPolicy.backoffForAttempt(attempt)
                 AppLogger.info(
                     message = "Waiting ${backoffMillis}ms before next VPN reconnect attempt.",
@@ -628,9 +631,17 @@ class ProxyVpnService : VpnService(), ActiveVpnService {
                 )
                 delay(backoffMillis)
             }
+            attempt += 1
         }
 
         return RouteStartAttemptsResult(success = false, lastFailure = lastFailure)
+    }
+
+    private suspend fun refreshReconnectPolicy() {
+        val unlimited = runCatching {
+            settingsRepository.settings.first().infiniteReconnectEnabled
+        }.getOrDefault(true)
+        reconnectPolicy = reconnectPolicy.copy(unlimitedReconnectAttempts = unlimited)
     }
 
     private fun notify(contentText: String) {

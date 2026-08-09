@@ -76,10 +76,11 @@ fun HomeScreen(
     onViewDiagnostics: () -> Unit,
     onPrivacyDisclosureAccepted: (Boolean) -> Unit,
     onDomainDestinationLoggingEnabled: (Boolean) -> Unit,
+    onInfiniteReconnectEnabled: (Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
-    var privacyDialogVisible by remember { mutableStateOf(false) }
+    var settingsDialogVisible by remember { mutableStateOf(false) }
 
     val statusMessage = runtimeState.statusMessage ?: uiState.message
     LaunchedEffect(statusMessage) {
@@ -98,8 +99,8 @@ fun HomeScreen(
             TopAppBar(
                 title = { Text("Proxy Switcher VPN") },
                 actions = {
-                    IconButton(onClick = { privacyDialogVisible = true }) {
-                        Icon(Icons.Default.Lock, contentDescription = "Privacy settings")
+                    IconButton(onClick = { settingsDialogVisible = true }) {
+                        Icon(Icons.Default.Lock, contentDescription = "Settings")
                     }
                     IconButton(onClick = onViewLogs) {
                         Icon(Icons.AutoMirrored.Filled.List, contentDescription = "View logs")
@@ -206,12 +207,13 @@ fun HomeScreen(
         }
     }
 
-    if (privacyDialogVisible) {
-        PrivacyDialog(
+    if (settingsDialogVisible) {
+        SettingsDialog(
             settings = settings,
-            onDismiss = { privacyDialogVisible = false },
+            onDismiss = { settingsDialogVisible = false },
             onPrivacyDisclosureAccepted = onPrivacyDisclosureAccepted,
-            onDomainDestinationLoggingEnabled = onDomainDestinationLoggingEnabled
+            onDomainDestinationLoggingEnabled = onDomainDestinationLoggingEnabled,
+            onInfiniteReconnectEnabled = onInfiniteReconnectEnabled
         )
     }
 }
@@ -340,11 +342,12 @@ private fun RouteRow(
 }
 
 @Composable
-private fun PrivacyDialog(
+private fun SettingsDialog(
     settings: AppSettings,
     onDismiss: () -> Unit,
     onPrivacyDisclosureAccepted: (Boolean) -> Unit,
-    onDomainDestinationLoggingEnabled: (Boolean) -> Unit
+    onDomainDestinationLoggingEnabled: (Boolean) -> Unit,
+    onInfiniteReconnectEnabled: (Boolean) -> Unit
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -353,9 +356,27 @@ private fun PrivacyDialog(
                 Text("Close")
             }
         },
-        title = { Text("Privacy") },
+        title = { Text("Settings") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(text = "Reconnect indefinitely")
+                        Text(
+                            text = "Keep retrying the selected proxy instead of " +
+                                "stopping the VPN after a few failures.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(
+                        checked = settings.infiniteReconnectEnabled,
+                        onCheckedChange = onInfiniteReconnectEnabled
+                    )
+                }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
@@ -430,7 +451,8 @@ private fun HomeScreenPreview() {
             onViewLogs = {},
             onViewDiagnostics = {},
             onPrivacyDisclosureAccepted = {},
-            onDomainDestinationLoggingEnabled = {}
+            onDomainDestinationLoggingEnabled = {},
+            onInfiniteReconnectEnabled = {}
         )
     }
 }

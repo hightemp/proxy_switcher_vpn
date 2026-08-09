@@ -4,5 +4,6 @@ data class AppSettings(
     val selectedProxyId: Long? = null,
     val domainDestinationLoggingEnabled: Boolean = false,
     val privacyDisclosureAccepted: Boolean = false,
-    val vpnEnabled: Boolean = false
+    val vpnEnabled: Boolean = false,
+    val infiniteReconnectEnabled: Boolean = true
 )

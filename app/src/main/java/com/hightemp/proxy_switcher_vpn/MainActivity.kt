@@ -92,7 +92,9 @@ class MainActivity : ComponentActivity() {
                             onPrivacyDisclosureAccepted =
                                 viewModel::onPrivacyDisclosureAccepted,
                             onDomainDestinationLoggingEnabled =
-                                viewModel::onDomainDestinationLoggingEnabled
+                                viewModel::onDomainDestinationLoggingEnabled,
+                            onInfiniteReconnectEnabled =
+                                viewModel::onInfiniteReconnectEnabled
                         )
                     }
                     composable("logs") {

@@ -315,6 +315,12 @@ class VpnViewModel @Inject constructor(
         }
     }
 
+    fun onInfiniteReconnectEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            settingsRepository.setInfiniteReconnectEnabled(enabled)
+        }
+    }
+
     private fun VpnPermissionStatus.toDiagnosticStatus(): VpnPermissionDiagnosticStatus {
         return when (this) {
             VpnPermissionStatus.UNKNOWN -> VpnPermissionDiagnosticStatus.UNKNOWN
