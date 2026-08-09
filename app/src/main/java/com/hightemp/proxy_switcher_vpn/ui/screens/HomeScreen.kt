@@ -13,9 +13,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.automirrored.filled.Article
+import androidx.compose.material.icons.filled.Dns
+import androidx.compose.material.icons.filled.NetworkCheck
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -99,17 +99,23 @@ fun HomeScreen(
             TopAppBar(
                 title = { Text("Proxy Switcher VPN") },
                 actions = {
-                    IconButton(onClick = { settingsDialogVisible = true }) {
-                        Icon(Icons.Default.Lock, contentDescription = "Settings")
+                    IconButton(onClick = onManageProxies) {
+                        Icon(Icons.Default.Dns, contentDescription = "Manage proxies")
                     }
                     IconButton(onClick = onViewLogs) {
-                        Icon(Icons.AutoMirrored.Filled.List, contentDescription = "View logs")
+                        Icon(
+                            Icons.AutoMirrored.Filled.Article,
+                            contentDescription = "View logs"
+                        )
                     }
                     IconButton(onClick = onViewDiagnostics) {
-                        Icon(Icons.Default.Info, contentDescription = "View diagnostics")
+                        Icon(
+                            Icons.Default.NetworkCheck,
+                            contentDescription = "View diagnostics"
+                        )
                     }
-                    IconButton(onClick = onManageProxies) {
-                        Icon(Icons.Default.Settings, contentDescription = "Manage proxies")
+                    IconButton(onClick = { settingsDialogVisible = true }) {
+                        Icon(Icons.Default.Settings, contentDescription = "Settings")
                     }
                 }
             )
