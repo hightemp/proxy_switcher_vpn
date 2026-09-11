@@ -1,15 +1,17 @@
-# Proxy Switcher VPN
-
 <p align="center">
-  <img src="proxy_switcher_vpn_logox1254.png" width="100" alt="Proxy Switcher VPN" />
+  <img src="proxy_switcher_vpn_logox1254.png" width="120" alt="Proxy Switcher VPN" />
 </p>
 
-[![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/hightemp/proxy_switcher_vpn)](https://github.com/hightemp/proxy_switcher_vpn/releases/latest)
-[![GitHub all releases](https://img.shields.io/github/downloads/hightemp/proxy_switcher_vpn/total)](https://github.com/hightemp/proxy_switcher_vpn/releases)
-[![Android CI](https://img.shields.io/github/actions/workflow/status/hightemp/proxy_switcher_vpn/android-ci.yml?branch=main&label=ci)](https://github.com/hightemp/proxy_switcher_vpn/actions/workflows/android-ci.yml)
-[![Android 7.0+](https://img.shields.io/badge/android-7.0%2B-3DDC84?logo=android&logoColor=white)](https://developer.android.com/about/versions/nougat)
-[![Kotlin](https://img.shields.io/badge/kotlin-2.0.0-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org/)
-![](https://asdertasd.site/counter/proxy_switcher_vpn)
+<h1 align="center">Proxy Switcher VPN</h1>
+
+<p align="center">
+  <a href="https://github.com/hightemp/proxy_switcher_vpn/releases/latest"><img src="https://img.shields.io/github/v/release/hightemp/proxy_switcher_vpn" alt="GitHub release (latest SemVer)" /></a>
+  <a href="https://github.com/hightemp/proxy_switcher_vpn/releases"><img src="https://img.shields.io/github/downloads/hightemp/proxy_switcher_vpn/total" alt="GitHub all releases" /></a>
+  <a href="https://github.com/hightemp/proxy_switcher_vpn/actions/workflows/android-ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/hightemp/proxy_switcher_vpn/android-ci.yml?branch=main&amp;label=ci" alt="Android CI" /></a>
+  <a href="https://developer.android.com/about/versions/nougat"><img src="https://img.shields.io/badge/android-7.0%2B-3DDC84?logo=android&amp;logoColor=white" alt="Android 7.0+" /></a>
+  <a href="https://kotlinlang.org/"><img src="https://img.shields.io/badge/kotlin-2.0.0-7F52FF?logo=kotlin&amp;logoColor=white" alt="Kotlin" /></a>
+  <img src="https://asdertasd.site/counter/proxy_switcher_vpn" alt="Statistics" />
+</p>
 
 Android app for running a local VPN that routes device traffic through the
 selected upstream proxy or through explicit Direct mode.
