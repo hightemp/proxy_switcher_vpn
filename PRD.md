@@ -585,6 +585,9 @@ Follow the reference release workflow style where applicable:
 VPN/sing-box additions:
 
 - CI must build or fetch reproducible sing-box artifacts for required ABIs.
+- The selected prebuilt libbox AAR is fetched from an immutable HTTPS URL;
+  version, source revision, byte size, and SHA-256 remain committed as build
+  metadata. The verified artifact is cached outside project build outputs.
 - CI must fail if required native artifacts are missing.
 - CI should retain native symbol files or crash diagnostics artifacts if available.
 - Binary releases must include license/notice material and equivalent access

@@ -11,14 +11,15 @@ APP_NAME := proxy_switcher_vpn
 GRADLE_FILE := app/build.gradle.kts
 TAG := v$(VERSION)
 
-.PHONY: help release tag update-version verify test check ci build-local build-debug build-release install install-release clean keystore adb-stop adb-vpn-status adb-logcat _commit _check-version _check-clean _check-keystore
+.PHONY: help release tag update-version fetch-libbox verify test check ci build-local build-debug build-release install install-release clean keystore adb-stop adb-vpn-status adb-logcat _commit _check-version _check-clean _check-keystore
 
 help:
 	@echo ""
 	@echo "  make release          Update Gradle version, commit, tag and push"
 	@echo "  make tag              Create and push git tag only"
 	@echo "  make update-version   Update versionCode/versionName in app/build.gradle.kts"
-	@echo "  make verify           Verify embedded libbox artifact"
+	@echo "  make fetch-libbox     Download the pinned libbox artifact into Gradle cache"
+	@echo "  make verify           Download if needed and verify the libbox artifact"
 	@echo "  make test             Run unit tests"
 	@echo "  make check            Run libbox verification and unit tests"
 	@echo "  make ci               Run local CI checks and debug APK build"
@@ -64,6 +65,9 @@ tag:
 
 verify:
 	./gradlew verifyLibboxArtifact
+
+fetch-libbox:
+	./gradlew downloadLibboxArtifact
 
 test:
 	./gradlew test

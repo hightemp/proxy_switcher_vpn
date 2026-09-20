@@ -2,6 +2,7 @@ package com.hightemp.proxy_switcher_vpn.vpn.engine
 
 import java.io.File
 import java.security.MessageDigest
+import java.util.Properties
 import java.util.zip.ZipFile
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -14,16 +15,23 @@ class ProductionVpnWiringTest {
 
     @Test
     fun libboxArtifactHashAndRequiredAbisArePresent() {
-        val aar = appDir.resolve("libs/libbox.aar")
-        val hashFile = appDir.resolve("libs/libbox.aar.sha256")
+        val aar = File(requireNotNull(System.getProperty("libbox.artifact.path")))
+        val projectDir = requireNotNull(appDir.parentFile)
+        val metadataFile = projectDir.resolve("gradle/libbox.properties")
+        val metadata = Properties().apply {
+            metadataFile.inputStream().use(::load)
+        }
 
-        assertTrue("libbox.aar must exist", aar.isFile)
-        assertTrue("libbox.aar.sha256 must exist", hashFile.isFile)
-        val expectedHash = hashFile.readText()
-            .trim()
-            .split(Regex("\\s+"))
-            .first()
-        assertEquals(expectedHash, aar.sha256Hex())
+        assertTrue("downloaded libbox.aar must exist", aar.isFile)
+        assertTrue("gradle/libbox.properties must exist", metadataFile.isFile)
+        assertFalse(
+            "libbox.aar must not be stored in the source tree",
+            appDir.resolve("libs/libbox.aar").exists()
+        )
+        assertTrue(requireNotNull(metadata.getProperty("artifactUrl")).startsWith("https://"))
+        assertTrue(requireNotNull(metadata.getProperty("sourceUrl")).startsWith("https://"))
+        assertEquals(requireNotNull(metadata.getProperty("size")).toLong(), aar.length())
+        assertEquals(requireNotNull(metadata.getProperty("sha256")), aar.sha256Hex())
 
         ZipFile(aar).use { zipFile ->
             assertNotNull(zipFile.getEntry("jni/arm64-v8a/libbox.so"))

@@ -9,6 +9,9 @@ the detailed, versioned audit and the remaining release obligations are in
 
 The distributed app embeds `libbox.aar`, built from sing-box `v1.13.13`, commit
 `83b73048ff772b919af18653b78ffeaa2d48b66e`.
+The AAR is downloaded and verified during the build as configured in
+`gradle/libbox.properties`; this delivery mechanism does not change its
+license.
 
 - Project: https://github.com/SagerNet/sing-box
 - License at the exact revision:

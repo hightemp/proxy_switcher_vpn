@@ -50,7 +50,7 @@ The audit covered:
   `app/build.gradle.kts`;
 - the resolved `releaseRuntimeClasspath` from Gradle in offline mode;
 - test-only dependencies separately from shipped runtime dependencies;
-- `app/libs/libbox.aar`, SHA-256
+- the libbox AAR pinned by `gradle/libbox.properties`, SHA-256
   `f8dbec0658177ef3310fec8c38d917d75e0db74a1565f88ef78a96df3e0a3905`;
 - the Go build information embedded in all four packaged `libbox.so` files,
   including every recorded module and version;
@@ -62,10 +62,12 @@ Reproduce the main checks with:
 ```bash
 ./gradlew --offline --console=plain \
   :app:dependencies --configuration releaseRuntimeClasspath
+./gradlew downloadLibboxArtifact
 ./gradlew verifyLibboxArtifact
 
+audit_libbox_path=$(./gradlew -q printLibboxArtifactPath)
 audit_tmp_dir=$(mktemp -d)
-unzip -q app/libs/libbox.aar 'jni/*/libbox.so' -d "$audit_tmp_dir"
+unzip -q "$audit_libbox_path" 'jni/*/libbox.so' -d "$audit_tmp_dir"
 for audit_libbox_so in "$audit_tmp_dir"/jni/*/libbox.so; do
   go version -m "$audit_libbox_so"
 done
@@ -88,7 +90,7 @@ git -C tmp/sing-box status --short
 | Guava ListenableFuture | AndroidX transitive runtime | Apache-2.0 |
 | `javax.inject` | Dagger transitive runtime | Apache-2.0 |
 | `com.google.code.findbugs:jsr305` | Hilt transitive annotations | Apache-2.0 |
-| `app/libs/libbox.aar` | Native VPN/proxy engine | GPL-3.0-or-later plus the dependencies below |
+| Pinned downloaded `libbox.aar` | Native VPN/proxy engine | GPL-3.0-or-later plus the dependencies below |
 
 AndroidX POM constraints show several requested versions in the dependency
 tree, but Gradle resolves one selected runtime version per module. License

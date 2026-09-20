@@ -103,6 +103,15 @@ Successful proof builds:
 
 The all-ABI AAR covers required MVP ABIs `arm64-v8a` and `x86_64`. `armeabi-v7a` is also buildable.
 
+Production dependency delivery was changed on 2026-09-20: the AAR is no
+longer stored in the current source tree. `gradle/libbox.properties` pins the
+exact source revision, immutable artifact URL, byte size, and SHA-256. Gradle
+downloads it on demand into the Gradle user cache, verifies the hash and
+required ABI entries, and can reuse the verified cache in offline mode. The
+artifact URL points to the immutable repository commit that originally added
+this exact audited AAR; its SHA-256 remains
+`f8dbec0658177ef3310fec8c38d917d75e0db74a1565f88ef78a96df3e0a3905`.
+
 ## Runtime Proof
 
 Runtime validation used a disposable, ignored Android prototype under:
@@ -174,7 +183,8 @@ SPIKE-001 is complete. Downstream full VPN/sing-box implementation tasks may pro
 
 Implementation tasks should carry forward these requirements from the runtime proof:
 
-- Build/fetch `libbox.aar` reproducibly and verify checksums before bundling it.
+- Fetch the pinned `libbox.aar` reproducibly and verify its byte size, SHA-256,
+  and required ABI entries before bundling it.
 - Implement the Android `PlatformInterface` as a production wrapper, not UI code.
 - Provide a real non-VPN default-interface monitor and call `updateDefaultInterface`.
 - Call `VpnService.protect(fd)` from `autoDetectInterfaceControl(fd)`.

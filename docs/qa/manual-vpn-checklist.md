@@ -12,7 +12,9 @@ Use this checklist for real device/emulator validation of Proxy Switcher VPN MVP
 ./gradlew verifyLibboxArtifact assembleDebug
 ```
 
-- The build includes `app/libs/libbox.aar`, and diagnostics identify the core as `sing-box/libbox`.
+- The build downloads the pinned libbox AAR using `gradle/libbox.properties`,
+  verifies its size, SHA-256, and required ABIs, and diagnostics identify the
+  core as `sing-box/libbox`.
 - A clean app data state, unless testing upgrade behavior:
 
 ```sh

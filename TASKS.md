@@ -1256,6 +1256,9 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
   - Added `verifyLibboxArtifact`, which verifies the recorded hash and required `jni/arm64-v8a/libbox.so` and `jni/x86_64/libbox.so` entries; `preBuild` and `check` depend on it.
   - Added explicit `./gradlew verifyLibboxArtifact` steps to debug CI and release workflows.
   - Smoke command `./gradlew verifyLibboxArtifact` passed locally.
+  - Delivery changed under TASK-213 on 2026-09-20: the same audited AAR is now
+    fetched from an immutable URL into the Gradle user cache and verified before
+    use; it is no longer stored in the current source tree.
 - Acceptance criteria:
   - App code can compile against `io.nekohasekai.libbox` classes.
   - libbox artifact hash is recorded and checked.
@@ -1806,6 +1809,74 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
 - Dependencies:
   - SPIKE-001
   - TASK-182
+- Estimated risk: medium
+
+### TASK-213: Download And Verify libbox During Build
+
+- Status: done
+- Goal: Remove the large libbox AAR from the current source tree and fetch the
+  exact audited artifact on demand with deterministic verification and caching.
+- Context files to inspect:
+  - `app/build.gradle.kts`
+  - `app/libs/libbox.aar`
+  - `app/libs/libbox.aar.sha256`
+  - `.github/workflows/android-ci.yml`
+  - `.github/workflows/release.yml`
+  - `Makefile`
+  - `docs/spikes/SPIKE-001-sing-box-android.md`
+  - `docs/legal/dependency-license-audit.md`
+- Files likely to create/change:
+  - `gradle/libbox.properties`
+  - `app/build.gradle.kts`
+  - `app/src/test/java/com/hightemp/proxy_switcher_vpn/vpn/engine/ProductionVpnWiringTest.kt`
+  - `app/libs/libbox.aar` (remove)
+  - `app/libs/libbox.aar.sha256` (remove)
+  - `.github/workflows/android-ci.yml`
+  - `.github/workflows/release.yml`
+  - `Makefile`
+  - `README.md`
+  - `PRD.md`
+  - `docs/spikes/SPIKE-001-sing-box-android.md`
+  - `docs/legal/dependency-license-audit.md`
+  - `docs/qa/manual-vpn-checklist.md`
+  - `TASKS.md`
+- Acceptance criteria:
+  - The AAR is fetched from an immutable HTTPS URL and pinned by byte size and
+    SHA-256 before it is used.
+  - The artifact is cached outside project build outputs, so `clean` does not
+    force another download.
+  - Required `arm64-v8a` and `x86_64` entries are verified before compilation,
+    tests, and release builds.
+  - A clean artifact cache can download and verify the AAR; a populated cache
+    works with Gradle offline mode.
+  - CI caches the verified artifact, and source/license metadata remains
+    versioned in the repository.
+- Test/smoke commands:
+  - clean-cache `downloadLibboxArtifact` and `verifyLibboxArtifact`
+  - cached `./gradlew --offline verifyLibboxArtifact`
+  - `./gradlew test`
+  - `./gradlew assembleDebug`
+  - `git diff --check`
+- Implementation notes:
+  - Added `gradle/libbox.properties` with sing-box `v1.13.13` source commit,
+    immutable artifact commit/URL, exact byte size, and SHA-256.
+  - Gradle downloads into a version-and-hash-specific user cache, uses a
+    temporary file plus atomic replacement, and rejects wrong size, hash, or
+    required ABI entries before compilation.
+  - `--offline` reuses a verified cache and fails with an actionable message
+    when it is absent. `libboxCacheDir`/`LIBBOX_CACHE_DIR` provides a bounded
+    cache override for testing or controlled build environments.
+  - Removed the AAR and old checksum file from the current tree. The immutable
+    artifact remains in the historical commit referenced by the metadata; Git
+    history was intentionally not rewritten.
+  - Added CI cache steps, `make fetch-libbox`, updated production wiring tests,
+    and aligned README, PRD, spike, QA, and license-audit documentation.
+  - A clean temporary cache downloaded and verified the artifact; cached
+    offline unit tests and debug assembly passed. The built APK's `arm64-v8a`
+    and `x86_64` libbox hashes exactly matched the downloaded AAR entries.
+- Dependencies:
+  - TASK-182
+  - TASK-212
 - Estimated risk: medium
 
 ## Phase 20: Post-MVP Improvements

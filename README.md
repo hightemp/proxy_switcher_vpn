@@ -37,6 +37,15 @@ make test
 make build-local
 ```
 
+The first build downloads the pinned sing-box/libbox AAR (about 97 MB) into
+the Gradle user cache. `gradle/libbox.properties` fixes its source revision,
+immutable artifact URL, byte size, and SHA-256. Every build verifies the hash
+and required native ABIs before compilation. To fetch it explicitly:
+
+```bash
+make fetch-libbox
+```
+
 Debug APK:
 
 ```text

@@ -25,6 +25,12 @@ jobs:
       - name: Make Gradle wrapper executable
         run: chmod +x ./gradlew
 
+      - name: Cache libbox artifact
+        uses: actions/cache@v4
+        with:
+          path: ~/.gradle/caches/proxy-switcher-vpn/libbox
+          key: ${{ runner.os }}-libbox-${{ hashFiles('gradle/libbox.properties') }}
+
       - name: Decode release keystore
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
