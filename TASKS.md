@@ -1659,6 +1659,8 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
     debug build path, install command, and release/version notes.
   - Added centered logo image and release/downloads/CI/platform/tooling badges
     matching the reference README style.
+  - Updated on 2026-09-11: centered the title below a 120 px logo and grouped
+    all badges and the counter in a centered row to match the reference README.
 - Dependencies:
   - TASK-208
 - Estimated risk: low
@@ -1754,6 +1756,57 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
 - Dependencies:
   - TASK-210
 - Estimated risk: low
+
+### TASK-212: Audit Dependency Licenses And License The Repository
+
+- Status: done
+- Goal: Record the licenses of shipped and development dependencies, choose a
+  repository license compatible with the embedded libbox artifact, and add the
+  required license documentation.
+- Context files to inspect:
+  - `PRD.md` sections 22 and 24.
+  - `gradle/libs.versions.toml`
+  - `app/build.gradle.kts`
+  - `app/libs/libbox.aar`
+  - `docs/spikes/SPIKE-001-sing-box-android.md`
+  - `tmp/sing-box/LICENSE` and the exact source revision used for libbox.
+- Files likely to create/change:
+  - `LICENSE`
+  - `THIRD_PARTY_NOTICES.md`
+  - `docs/legal/dependency-license-audit.md`
+  - `README.md`
+  - `PRD.md`
+  - `docs/spikes/SPIKE-001-sing-box-android.md`
+  - `TASKS.md`
+- Acceptance criteria:
+  - The repository has an explicit SPDX-compatible project license decision.
+  - Runtime, native, test, and build dependency license families are recorded.
+  - The exact sing-box/libbox revision and embedded Go module inventory are
+    auditable from the documented commands.
+  - Release obligations and any unresolved distribution blockers are stated
+    without claiming legal compliance beyond the evidence.
+- Test/smoke commands:
+  - `./gradlew --offline :app:dependencies --configuration releaseRuntimeClasspath`
+  - `./gradlew verifyLibboxArtifact`
+  - `go version -m` against an extracted `libbox.so`.
+  - `git diff --check`
+- Implementation notes:
+  - Selected `GPL-3.0-or-later` because the app bundles sing-box
+    `v1.13.13`/libbox under GPL-3.0-or-later; added the canonical GPLv3 text.
+  - Recorded packaged Gradle families, test/build-only dependencies, the exact
+    sing-box revision, and all four native binaries: 89 modules per ABI and 92
+    unique module/version coordinates across the AAR.
+  - Added third-party attribution and documented required corresponding-source,
+    notice, and non-association handling.
+  - Kept binary-release compliance explicitly blocked: the current native
+    dependency graph contains architecture-specific prebuilt Cronet archives
+    whose exact corresponding source and third-party notices are not present
+    in their Go modules. Rebuild without that path or publish the exact source
+    before the next APK release.
+- Dependencies:
+  - SPIKE-001
+  - TASK-182
+- Estimated risk: medium
 
 ## Phase 20: Post-MVP Improvements
 

@@ -58,10 +58,23 @@ Logs, statistics, and diagnostics:
 
 License:
 
-- `tmp/sing-box/LICENSE` is GPLv3-or-later.
+- The bundled AAR was built from sing-box `v1.13.13`, commit
+  `83b73048ff772b919af18653b78ffeaa2d48b66e`; the prepared checkout is clean.
+- `tmp/sing-box/LICENSE` is GPLv3-or-later with an additional upstream
+  naming/non-association term.
 - `tmp/sing-box-for-android/LICENSE` is GPLv3-or-later.
 - `tmp/sing-box-for-android/third_party/termux-app/LICENSE.md` is GPLv3 only, with exceptions for some subcomponents.
-- Any release that embeds or derives from sing-box/libbox must be planned as GPL-compatible with corresponding source/build-script obligations. Do not plan a closed-source release around this integration.
+- The application license decision is `GPL-3.0-or-later`; see `LICENSE`,
+  `THIRD_PARTY_NOTICES.md`, and
+  `docs/legal/dependency-license-audit.md` for the versioned inventory.
+- Any release that embeds or derives from sing-box/libbox must provide exact
+  corresponding source/build scripts and third-party notices. Do not plan a
+  closed-source release around this integration.
+- The current build tags include `with_naive_outbound`, which brings a prebuilt
+  Cronet static archive for each ABI into libbox. Corresponding source is not
+  present in those Go modules, so a new APK release is blocked until that
+  source/notices gap is resolved or libbox is rebuilt without the unused
+  Cronet path and audited again.
 
 ## Build Proof
 

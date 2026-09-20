@@ -507,19 +507,33 @@ The spike must validate:
 - Log/statistics access.
 - License implications.
 
-## 22. GPL/License Risk
+## 22. License And Distribution
 
-sing-box licensing must be validated before implementation proceeds.
+The repository is licensed under `GPL-3.0-or-later`. This matches the license
+of the bundled sing-box/libbox core and avoids a closed-source or
+permissive-license claim that would conflict with the selected architecture.
 
-Risks to document and resolve:
+The versioned dependency audit is recorded in
+`docs/legal/dependency-license-audit.md`; third-party attribution is indexed in
+`THIRD_PARTY_NOTICES.md`.
 
-- Whether the selected sing-box artifacts/source have GPLv3-or-later obligations.
-- Whether app distribution must comply with reciprocal source obligations.
-- Whether linked libraries, embedded binaries, or reused Android client code change obligations.
-- Whether CI must publish corresponding source/build scripts for native artifacts.
-- Whether another core is needed if licensing is incompatible with distribution goals.
+Distribution requirements:
 
-No release plan should assume sing-box is legally acceptable until the spike confirms it.
+- Preserve the sing-box license, copyright, and additional
+  naming/non-association term.
+- Provide equivalent access to exact corresponding source and build scripts
+  for the APK, libbox, and covered native dependencies.
+- Ship applicable GPL, Apache, MPL, MIT, BSD, ISC, CC0, Unlicense, and NOTICE
+  material with binary distributions.
+- Re-run the audit whenever Gradle dependencies, the libbox hash, the sing-box
+  revision, or native build tags change.
+- Do not publish a libbox-based APK as closed-source software.
+
+The current AAR still has a release blocker: its compiled dependency inventory
+includes architecture-specific prebuilt Cronet static archives without
+corresponding Chromium/Cronet source in those Go modules. Before another binary
+release, publish the exact source/build/notices for those archives or rebuild
+libbox without the unused Cronet path and repeat the audit.
 
 ## 23. Testing Strategy
 
@@ -573,6 +587,10 @@ VPN/sing-box additions:
 - CI must build or fetch reproducible sing-box artifacts for required ABIs.
 - CI must fail if required native artifacts are missing.
 - CI should retain native symbol files or crash diagnostics artifacts if available.
+- Binary releases must include license/notice material and equivalent access
+  to the exact corresponding source used for the APK and native artifacts.
+- Release publication is blocked until the Cronet corresponding-source gap
+  recorded in `docs/legal/dependency-license-audit.md` is resolved.
 - Release notes should disclose VPN behavior, IPv4-only MVP, UDP limitations, and domain logging privacy controls.
 
 ## 25. Known Risks
@@ -580,7 +598,10 @@ VPN/sing-box additions:
 - sing-box Android embedding may be more complex than expected.
 - `VpnService.protect()` integration may differ by embedding approach.
 - Native library or binary distribution may increase APK size.
-- GPLv3-or-later obligations may affect app distribution.
+- GPLv3-or-later distribution requires exact corresponding source, build
+  scripts, and third-party notices alongside binary releases.
+- The current libbox AAR includes prebuilt Cronet archives whose corresponding
+  source and third-party notices are not yet proven complete.
 - Exact stats may require log parsing or core API access.
 - DNS leaks are likely if DNS config is incomplete.
 - IPv6 leaks are possible if unsupported behavior is not explicit.
