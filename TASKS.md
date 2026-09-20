@@ -1879,6 +1879,57 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
   - TASK-212
 - Estimated risk: medium
 
+### TASK-214: Add Privacy-Safe App Screenshots To README
+
+- Status: done
+- Goal: Capture representative application screens with non-sensitive demo
+  data and add a compact screenshot gallery to the README.
+- Context files to inspect:
+  - `README.md`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/MainActivity.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/ui/screens/HomeScreen.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/ui/screens/ProxyListScreen.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/ui/screens/AddEditProxyScreen.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/ui/screens/LogsScreen.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/ui/screens/VpnDiagnosticsScreen.kt`
+- Files likely to create/change:
+  - `docs/screenshots/home.png`
+  - `docs/screenshots/proxies.png`
+  - `docs/screenshots/add-proxy.png`
+  - `docs/screenshots/logs.png`
+  - `docs/screenshots/diagnostics.png`
+  - `README.md`
+  - `TASKS.md`
+- Acceptance criteria:
+  - Screenshots come from the real debug application, not mockups.
+  - Only reserved/example demo proxy data is visible; no personal device,
+    account, endpoint, credential, notification, or destination data appears.
+  - Each image is visually inspected for readable and complete UI content.
+  - README renders a labeled, reasonably sized gallery without overwhelming
+    the project overview.
+- Test/smoke commands:
+  - `file docs/screenshots/*.png`
+  - visual inspection of every PNG
+  - README source inspection
+  - `git diff --check`
+- Implementation notes:
+  - Captured five 1080x2400 screenshots from the real debug app on a read-only
+    Android API 35 emulator; the connected-phone path was not used because no
+    ADB phone was available.
+  - Added only safe demo profiles using RFC 5737 TEST-NET addresses
+    `192.0.2.10` and `198.51.100.20`, without usernames or passwords.
+  - Started Direct VPN to capture real RUNNING state, libbox/TUN diagnostics,
+    counters, and filtered lifecycle logs, then stopped VPN before shutting
+    down the emulator.
+  - Visually inspected every image. No personal notifications, accounts,
+    endpoints, credentials, or destinations were present, so blurring was not
+    necessary.
+  - Added a two-column README gallery and verified GitHub's GFM renderer emits
+    all five image elements with the expected paths and alt text.
+- Dependencies:
+  - TASK-209
+- Estimated risk: low
+
 ## Phase 20: Post-MVP Improvements
 
 ### TASK-200: Evaluate Full UDP Proxying

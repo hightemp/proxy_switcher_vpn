@@ -20,6 +20,36 @@ selected upstream proxy or through explicit Direct mode.
 The app does not change Android system proxy settings. It uses `VpnService`
 and an embedded sing-box core.
 
+## Screenshots
+
+Captured from the real debug app on Android API 35. Proxy profiles use only
+reserved TEST-NET addresses and contain no credentials.
+
+<table>
+  <tr>
+    <th>Home — VPN running</th>
+    <th>Proxy profiles</th>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/home.png" width="320" alt="Home screen with the VPN running" /></td>
+    <td align="center"><img src="docs/screenshots/proxies.png" width="320" alt="Proxy profiles with safe demo data" /></td>
+  </tr>
+  <tr>
+    <th>Add proxy</th>
+    <th>VPN diagnostics</th>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/add-proxy.png" width="320" alt="Add proxy form with reserved demo address" /></td>
+    <td align="center"><img src="docs/screenshots/diagnostics.png" width="320" alt="VPN runtime and traffic policy diagnostics" /></td>
+  </tr>
+  <tr>
+    <th colspan="2">Filtered VPN logs</th>
+  </tr>
+  <tr>
+    <td colspan="2" align="center"><img src="docs/screenshots/logs.png" width="320" alt="Filtered VPN lifecycle logs" /></td>
+  </tr>
+</table>
+
 ## Limits
 
 - IPv4 only;
