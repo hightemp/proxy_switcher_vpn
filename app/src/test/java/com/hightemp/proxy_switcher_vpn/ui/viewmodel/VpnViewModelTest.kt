@@ -8,6 +8,7 @@ import com.hightemp.proxy_switcher_vpn.data.local.ProxyEntity
 import com.hightemp.proxy_switcher_vpn.data.local.ProxyType
 import com.hightemp.proxy_switcher_vpn.data.repository.ProxyRepository
 import com.hightemp.proxy_switcher_vpn.data.settings.SettingsRepository
+import com.hightemp.proxy_switcher_vpn.proxy.ParsedProxyString
 import com.hightemp.proxy_switcher_vpn.proxy.ProxyReachabilityTester
 import com.hightemp.proxy_switcher_vpn.proxy.ProxyTestResult
 import com.hightemp.proxy_switcher_vpn.service.VpnRuntimeState
@@ -158,6 +159,21 @@ class VpnViewModelTest {
         assertEquals(0, importedCount)
         assertEquals(emptyList<ProxyEntity>(), proxyDao.snapshot())
         assertFalse(errorMessage.isNullOrBlank())
+    }
+
+    @Test
+    fun detectProxyProtocolReportsFirstWorkingType() = runTest {
+        val viewModel = newViewModel()
+        var detected: ProxyType? = null
+
+        viewModel.detectProxyProtocol(
+            ParsedProxyString(host = "proxy.example", port = 1080, type = null)
+        ) { type ->
+            detected = type
+        }
+        advanceUntilIdle()
+
+        assertEquals(ProxyType.HTTPS, detected)
     }
 
     private fun newViewModel(

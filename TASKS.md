@@ -1930,6 +1930,150 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
   - TASK-209
 - Estimated risk: low
 
+### TASK-215: Add Proxy String Parsing To Add/Edit Proxy
+
+- Status: done
+- Goal: Let the user paste one proxy record in any common text format on the
+  Add/Edit proxy screen, parse it into the form fields, and auto-detect the
+  protocol when the string does not specify one. Formats follow the
+  `~/Projects/proxy-vouch` import contract (`PRD.md` FR-02/FR-03), reduced to
+  what this app supports.
+- Context files to inspect:
+  - `PRD.md` Proxy CRUD section.
+  - `~/Projects/proxy-vouch/PRD.md` sections FR-02 and FR-03 (read-only).
+  - `~/Projects/proxy-vouch/crates/core/src/parser.rs` (read-only, targeted).
+  - `~/Projects/proxy-vouch/src/ImportFormatHelp.tsx` (read-only).
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/ui/screens/AddEditProxyScreen.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/ui/screens/ProxyFormValidator.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/proxy/ProxyTester.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/ui/viewmodel/VpnViewModel.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/data/local/ProxyEntity.kt`
+- Files likely to create/change:
+  - `PRD.md`
+  - `TASKS.md`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/proxy/ProxyStringParser.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/proxy/ProxyProtocolDetector.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/ui/screens/AddEditProxyScreen.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/ui/viewmodel/VpnViewModel.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/di/ProxyModule.kt`
+  - `app/src/test/java/com/hightemp/proxy_switcher_vpn/proxy/ProxyStringParserTest.kt`
+  - `app/src/test/java/com/hightemp/proxy_switcher_vpn/proxy/ProxyProtocolDetectorTest.kt`
+- Decisions (agreed with the user on 2026-10-19):
+  - Scope is Add/Edit only: one record per parse. The bulk JSON import from
+    TASK-203 stays unchanged; no multi-line text import in this task.
+  - UI: a "Proxy string" field plus a "Parse" button. Parsing fills
+    host/port/username/password/protocol; the user reviews and presses Save.
+    Nothing is saved automatically. Parse errors show under the field and do
+    not clear already entered form values.
+  - Missing protocol triggers network auto-detection right after parsing,
+    using `ProxyTester` probes in order HTTPS -> SOCKS5 -> HTTP (as in
+    proxy-vouch Auto). Show progress while probing. If no candidate succeeds,
+    leave the protocol unselected, show an error, and block Save until the
+    user picks a protocol manually. Never silently default to HTTP.
+  - `socks5h` maps to `SOCKS5` (DNS already goes through the proxy).
+    `socks4`/`socks4a` are recognized but rejected as unsupported. No new
+    `ProxyType` or Room migration.
+  - IPv6 proxy hosts (`[2001:db8::10]:1080`) are recognized syntactically but
+    rejected with an explicit "IPv6 upstream is not supported" error (MVP is
+    IPv4-only).
+  - CSV/TSV: only a single headerless row in fixed order
+    `host,port[,username,password][,protocol]` with `,`, `;`, or TAB
+    separators. No header detection or column mapping.
+  - Reverse order `username:password:host:port` (F-21) is required: proxyline
+    issues proxies in this format. Four colon-separated fields are resolved
+    by heuristic: a candidate order is valid when its host field is an IPv4
+    address or a dotted DNS name and its port field is an integer 1..65535.
+    If only one order is valid, use it. If both are valid (for example
+    `1.2.3.4:8080:john.doe:12345`), show an order toggle
+    (`host:port:user:pass` / `user:pass:host:port`) and block Save until the
+    user chooses. If neither is valid, show a format error.
+- Supported formats (proxy-vouch IDs):
+  - F-01 `host:port`
+  - F-02 `host:port:username:password`
+  - F-03 `username:password@host:port`
+  - F-04/F-05/F-14 `scheme://[username:password@]host:port[/]` for `http`,
+    `https`, `socks5`, `socks5h`
+  - F-06/F-07 `host:port[:username:password] protocol`
+  - F-08/F-09 `protocol host:port[:username:password]`
+  - F-10 `username:password@host:port protocol`
+  - F-17 percent-encoded credentials in URI userinfo (decoded exactly once;
+    no decoding outside URIs)
+  - F-18 space-separated `host port [username password] [protocol]`
+  - F-19/F-20 single headerless CSV/TSV row as described above
+  - F-21 `username:password:host:port` (proxyline), resolved by the
+    heuristic above; also accepted with a protocol token before or after
+    the record
+- Not supported in this task:
+  - F-22 custom column orders, CSV headers, column mapping.
+  - F-11/F-12/F-13 IPv6 hosts and F-15/F-16 SOCKS4/4a: recognized, then
+    rejected with a specific error.
+- Parsing rules (from proxy-vouch FR-03, adapted):
+  - Protocol names are case-insensitive. Explicit scheme and a separate
+    protocol token must agree; otherwise reject with a conflict error.
+  - Missing protocol means auto-detect, not HTTP. Port is required, 1..65535;
+    port number never implies a protocol.
+  - Host: IPv4 or DNS name, normalized to lowercase. Credentials keep case.
+  - URI path other than empty or `/`, query, and fragment are rejected.
+  - Compact formats do not allow raw `:`, `@`, or whitespace in credentials;
+    use a percent-encoded URI for those.
+  - Username is required when a password is present. Control characters are
+    rejected. Only outer whitespace is trimmed.
+- Security/privacy notes:
+  - The raw proxy string and parsed credentials must never be logged.
+    Parse/detect log messages use masked values (`sensitiveValues`).
+  - Auto-detection sends real connections to the entered proxy; this must be
+    visible to the user (progress text) and respect the existing
+    `ProxyTester` VPN-protect behavior.
+- Acceptance criteria:
+  - Every supported format above parses into the correct host, port,
+    username, password, and protocol.
+  - Unsupported/invalid inputs (SOCKS4/4a, IPv6, bad port, protocol conflict,
+    path/query, invalid percent-encoding, password without username) return
+    a specific, user-readable error.
+  - `user:pass:host:port` from proxyline parses automatically when
+    unambiguous; ambiguous four-field records show the order toggle and
+    block Save until a choice is made.
+  - Strings without a protocol run HTTPS -> SOCKS5 -> HTTP detection; success
+    selects the detected protocol, failure leaves it unselected and blocks
+    Save until manual selection.
+  - Existing manual Add/Edit flow and TASK-203 JSON import keep working.
+  - `PRD.md` documents the supported proxy string formats.
+  - Logs and UI messages never show the raw string or unmasked password.
+- Test/smoke commands:
+  - `./gradlew test`
+  - `./gradlew assembleDebug`
+  - Manual: paste each format example on Add proxy, press Parse, verify
+    fields; verify auto-detect against a local SOCKS5 and HTTP proxy.
+- Implementation notes:
+  - Completed on 2026-10-19 test-first: `ProxyStringParserTest` (33 cases),
+    `ProxyProtocolDetectorTest` (4 cases), and a `VpnViewModelTest` case were
+    written and seen failing before the implementation.
+  - Added pure `ProxyStringParser` returning `Success`, `Ambiguous`
+    (both field orders), or `Failure`. Errors never include the input or
+    credentials, and `ParsedProxyString.toString()` masks credentials.
+  - Added `ProxyProtocolDetector` probing HTTPS -> SOCKS5 -> HTTP through the
+    existing `ProxyReachabilityTester`, so probes keep its masked logging and
+    VPN-protect behavior. `VpnViewModel.detectProxyProtocol` builds it from
+    the injected tester, so no DI module change was needed.
+  - Add/Edit now has a "Proxy string" field with Parse, a field-order toggle
+    for ambiguous records, and a progress row while detecting. The string field
+    is cleared after a successful parse so the password stays only in the
+    masked field. Save is disabled while detecting and blocked while the order
+    or protocol is unselected. A manual protocol choice made during detection
+    is not overridden.
+  - The ambiguity example was corrected to `1.2.3.4:8080:john.doe:12345`:
+    under the agreed dotted-host rule, `admin` is not a host, so
+    `1.2.3.4:8080:admin:12345` resolves to host-first without a prompt.
+  - Single-label hosts such as `localhost` are accepted in all forms except
+    four-field colon records.
+  - `PRD.md` documents the supported strings.
+  - Smoke commands `./gradlew test` and `./gradlew assembleDebug` passed.
+    Manual device checks of Parse and live auto-detection were not run.
+- Dependencies:
+  - TASK-131
+  - TASK-132
+- Estimated risk: medium
+
 ## Phase 20: Post-MVP Improvements
 
 ### TASK-200: Evaluate Full UDP Proxying

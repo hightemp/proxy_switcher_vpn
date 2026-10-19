@@ -3,9 +3,12 @@ package com.hightemp.proxy_switcher_vpn.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.hightemp.proxy_switcher_vpn.data.local.ProxyEntity
+import com.hightemp.proxy_switcher_vpn.data.local.ProxyType
 import com.hightemp.proxy_switcher_vpn.data.repository.ProxyRepository
 import com.hightemp.proxy_switcher_vpn.data.settings.AppSettings
 import com.hightemp.proxy_switcher_vpn.data.settings.SettingsRepository
+import com.hightemp.proxy_switcher_vpn.proxy.ParsedProxyString
+import com.hightemp.proxy_switcher_vpn.proxy.ProxyProtocolDetector
 import com.hightemp.proxy_switcher_vpn.proxy.ProxyReachabilityTester
 import com.hightemp.proxy_switcher_vpn.service.VpnRuntimeState
 import com.hightemp.proxy_switcher_vpn.utils.ProxyTransfer
@@ -62,6 +65,7 @@ class VpnViewModel @Inject constructor(
     private val statsStore: VpnStatsStore,
     diagnosticsRepository: VpnDiagnosticsRepository
 ) : ViewModel() {
+    private val protocolDetector = ProxyProtocolDetector(proxyTester)
     private val _uiState = MutableStateFlow(VpnPermissionUiState())
     private val _proxyTestResults = MutableStateFlow<Map<Long, ProxyTestUiState>>(emptyMap())
     val uiState: StateFlow<VpnPermissionUiState> = _uiState.asStateFlow()
@@ -266,6 +270,15 @@ class VpnViewModel @Inject constructor(
                     )
                 )
             }
+        }
+    }
+
+    fun detectProxyProtocol(
+        proxy: ParsedProxyString,
+        onResult: (detectedType: ProxyType?) -> Unit
+    ) {
+        viewModelScope.launch {
+            onResult(protocolDetector.detect(proxy))
         }
     }
 

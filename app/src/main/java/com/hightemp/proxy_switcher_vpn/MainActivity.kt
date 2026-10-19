@@ -140,7 +140,8 @@ class MainActivity : ComponentActivity() {
                             onSave = { proxy ->
                                 viewModel.onProxySaved(proxy)
                                 navController.popBackStack()
-                            }
+                            },
+                            onDetectProtocol = viewModel::detectProxyProtocol
                         )
                     }
                     composable(
@@ -158,7 +159,8 @@ class MainActivity : ComponentActivity() {
                             onSave = { updatedProxy ->
                                 viewModel.onProxySaved(updatedProxy)
                                 navController.popBackStack()
-                            }
+                            },
+                            onDetectProtocol = viewModel::detectProxyProtocol
                         )
                     }
                 }

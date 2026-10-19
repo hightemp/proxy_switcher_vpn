@@ -112,6 +112,25 @@ New project should keep these conventions, but replace system proxy management w
 - Import/export proxy list as a JSON array compatible with the reference
   `proxy_switcher` app fields: `host`, `port`, `type`, optional `username`,
   optional `password`, optional `label`, and `isEnabled`.
+- Add/Edit proxy accepts one pasted proxy string and a Parse action that fills
+  the form fields; the user still reviews and saves manually. Supported forms:
+  - `host:port`, `host:port:username:password`, `username:password:host:port`
+    (proxyline), `username[:password]@host:port`.
+  - `scheme://[username[:password]@]host:port[/]` for `http`, `https`,
+    `socks5`, `socks5h`; URI credentials are percent-decoded once.
+  - A protocol name before or after the record, separated by whitespace.
+  - Space-separated `host port [username password] [protocol]`.
+  - One headerless CSV/TSV row `host,port[,username,password][,protocol]`
+    with `,`, `;`, or TAB separators.
+- Four colon-separated fields are resolved by heuristic: an order is valid when
+  its host is an IPv4 address or a dotted DNS name and its port is 1..65535.
+  When both orders are valid, the user must choose the order before saving.
+- `socks5h` maps to SOCKS5. SOCKS4/SOCKS4a, IPv6 hosts, URI paths/queries,
+  conflicting scheme/protocol names, and invalid ports are rejected with a
+  specific error.
+- When the string has no protocol, the app probes HTTPS, then SOCKS5, then
+  HTTP against the proxy. If none succeeds, the protocol stays unselected and
+  Save is blocked until the user picks one. It never defaults to HTTP.
 
 ### VPN Lifecycle
 
@@ -618,6 +637,7 @@ Included:
 
 - Proxy CRUD for SOCKS5, HTTP, HTTPS with optional auth.
 - Compatible proxy list import/export using the reference app JSON format.
+- Add/Edit proxy string parsing with protocol auto-detection.
 - Selected proxy persistence.
 - VPN permission flow.
 - Foreground VPN service.
