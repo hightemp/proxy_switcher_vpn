@@ -23,6 +23,11 @@ import com.hightemp.proxy_switcher_vpn.service.VpnRuntimeState
 import com.hightemp.proxy_switcher_vpn.service.VpnServiceStatus
 import com.hightemp.proxy_switcher_vpn.utils.AppLogger
 import com.hightemp.proxy_switcher_vpn.utils.LogType
+import com.hightemp.proxy_switcher_vpn.vpn.background.AlwaysOnVpnState
+import com.hightemp.proxy_switcher_vpn.vpn.background.AlwaysOnVpnStatus
+import com.hightemp.proxy_switcher_vpn.vpn.background.VpnKeepAlive
+import com.hightemp.proxy_switcher_vpn.vpn.background.VpnStopHistory
+import com.hightemp.proxy_switcher_vpn.vpn.background.VpnStopReason
 import com.hightemp.proxy_switcher_vpn.vpn.platform.ActiveVpnService
 import com.hightemp.proxy_switcher_vpn.vpn.platform.ActiveVpnServiceBridge
 import com.hightemp.proxy_switcher_vpn.vpn.routing.VpnRouteSelection
@@ -54,14 +59,18 @@ class ProxyVpnService : VpnService(), ActiveVpnService {
     @Inject lateinit var runtimeController: VpnRuntimeController
     @Inject lateinit var activeVpnServiceBridge: ActiveVpnServiceBridge
     @Inject lateinit var proxyReachabilityTester: ProxyReachabilityTester
+    @Inject lateinit var stopHistory: VpnStopHistory
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    // Not cancelled in onDestroy so the final stop record is still written.
+    private val historyScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var startJob: Job? = null
     private var stopJob: Job? = null
     private var upstreamMonitorJob: Job? = null
     private var tunFileDescriptor: ParcelFileDescriptor? = null
     private var reconnectPolicy = VpnReconnectPolicy()
     private var activeRouteSelection: VpnRouteSelection? = null
+    private var lastRouteSensitiveValues: List<String> = emptyList()
 
     override fun onCreate() {
         super.onCreate()
@@ -75,11 +84,19 @@ class ProxyVpnService : VpnService(), ActiveVpnService {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         activeVpnServiceBridge.attach(this)
-        when (intent?.action) {
-            ACTION_START -> startVpn()
-            ACTION_STOP -> stopVpn()
-            ACTION_SWITCH_ROUTE -> switchRoute(intent)
-            else -> {
+        publishAlwaysOnStatus()
+        when (VpnServiceCommand.fromAction(intent?.action)) {
+            VpnServiceCommand.START -> startVpn()
+            VpnServiceCommand.STOP -> stopVpn()
+            VpnServiceCommand.SWITCH_ROUTE -> if (intent != null) switchRoute(intent)
+            VpnServiceCommand.ALWAYS_ON_START -> {
+                AppLogger.info(
+                    message = "System Always-on VPN requested VPN start.",
+                    type = LogType.VPN
+                )
+                startVpn()
+            }
+            VpnServiceCommand.STICKY_RESTART -> {
                 if (VpnRuntimeState.state.value.isRunning) {
                     startVpn()
                 } else {
@@ -107,6 +124,8 @@ class ProxyVpnService : VpnService(), ActiveVpnService {
             activeVpnServiceBridge.detach(this@ProxyVpnService)
             val message = "VPN permission was revoked."
             setVpnEnabledFlag(false)
+            recordStop(VpnStopReason.PERMISSION_REVOKED, message)
+            VpnKeepAlive.cancel(this@ProxyVpnService)
             VpnRuntimeState.markStopped(message)
             sendStatus(message)
             stopForeground(STOP_FOREGROUND_REMOVE)
@@ -123,6 +142,7 @@ class ProxyVpnService : VpnService(), ActiveVpnService {
         activeVpnServiceBridge.detach(this)
         serviceScope.cancel()
         if (VpnRuntimeState.state.value.isForegroundServiceActive) {
+            recordStop(VpnStopReason.SERVICE_DESTROYED, "VPN service destroyed.")
             VpnRuntimeState.markStopped("VPN service destroyed.")
             sendStatus("VPN service destroyed.")
         }
@@ -266,6 +286,7 @@ class ProxyVpnService : VpnService(), ActiveVpnService {
         if (startJob?.isActive == true) return
 
         VpnRuntimeState.markStarting("Starting VPN service.")
+        VpnKeepAlive.schedule(this)
         startForeground(
             NOTIFICATION_ID,
             createNotification("VPN service starting.")
@@ -365,6 +386,8 @@ class ProxyVpnService : VpnService(), ActiveVpnService {
             closeTun()
             activeRouteSelection = null
             val stoppedMessage = "VPN service stopped."
+            recordStop(VpnStopReason.USER, stoppedMessage)
+            VpnKeepAlive.cancel(this@ProxyVpnService)
             VpnRuntimeState.markStopped(stoppedMessage)
             sendStatus(stoppedMessage)
             stopForeground(STOP_FOREGROUND_REMOVE)
@@ -398,6 +421,21 @@ class ProxyVpnService : VpnService(), ActiveVpnService {
             )
             startVpn()
         }
+    }
+
+    private fun recordStop(reason: VpnStopReason, message: String) {
+        val sensitiveValues = lastRouteSensitiveValues
+        historyScope.launch {
+            runCatching { stopHistory.record(reason, message, sensitiveValues) }
+        }
+    }
+
+    /** Always-on state is only readable from the running VpnService (API 29+). */
+    private fun publishAlwaysOnStatus() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return
+        AlwaysOnVpnState.update(
+            AlwaysOnVpnStatus(alwaysOn = isAlwaysOn, lockdown = isLockdownEnabled)
+        )
     }
 
     private suspend fun setVpnEnabledFlag(enabled: Boolean) {
@@ -441,6 +479,8 @@ class ProxyVpnService : VpnService(), ActiveVpnService {
             type = LogType.VPN
         )
         serviceScope.launch { setVpnEnabledFlag(false) }
+        recordStop(VpnStopReason.FAIL_CLOSED, message)
+        VpnKeepAlive.cancel(this)
         VpnRuntimeState.markFailedStopped(message)
         sendStatus(message)
         stopForeground(STOP_FOREGROUND_REMOVE)
@@ -563,6 +603,7 @@ class ProxyVpnService : VpnService(), ActiveVpnService {
         restartMonitorOnSuccess: Boolean
     ): RouteStartAttemptsResult {
         var lastFailure: String? = null
+        lastRouteSensitiveValues = routeSelection.sensitiveValues()
         refreshReconnectPolicy()
         val attemptBudget = reconnectPolicy.attemptBudgetLabel
         AppLogger.info(

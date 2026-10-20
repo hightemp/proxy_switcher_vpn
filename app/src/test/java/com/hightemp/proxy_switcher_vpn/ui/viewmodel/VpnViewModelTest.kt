@@ -13,6 +13,11 @@ import com.hightemp.proxy_switcher_vpn.proxy.ProxyReachabilityTester
 import com.hightemp.proxy_switcher_vpn.proxy.ProxyTestResult
 import com.hightemp.proxy_switcher_vpn.service.VpnRuntimeState
 import com.hightemp.proxy_switcher_vpn.service.VpnServiceStatus
+import com.hightemp.proxy_switcher_vpn.vpn.background.BackgroundRestrictionChecker
+import com.hightemp.proxy_switcher_vpn.vpn.background.BackgroundRestrictionStatus
+import com.hightemp.proxy_switcher_vpn.vpn.background.ProcessExitHistory
+import com.hightemp.proxy_switcher_vpn.vpn.background.ProcessExitRecord
+import com.hightemp.proxy_switcher_vpn.vpn.background.VpnStopHistory
 import com.hightemp.proxy_switcher_vpn.vpn.diagnostics.VpnDiagnosticsRepository
 import com.hightemp.proxy_switcher_vpn.vpn.stats.VpnStatsStore
 import kotlinx.coroutines.Dispatchers
@@ -176,16 +181,71 @@ class VpnViewModelTest {
         assertEquals(ProxyType.HTTPS, detected)
     }
 
+    @Test
+    fun refreshBackgroundHealthReadsRestrictionsAndLastExit() = runTest {
+        val checker = FakeRestrictionChecker(
+            BackgroundRestrictionStatus(batteryOptimizationIgnored = false)
+        )
+        val exits = FakeProcessExitHistory(
+            listOf(
+                ProcessExitRecord(
+                    timestampMillis = 100L,
+                    reason = ProcessExitRecord.REASON_SIGNALED,
+                    status = 9,
+                    importance = ProcessExitRecord.IMPORTANCE_FOREGROUND_SERVICE
+                )
+            )
+        )
+        val viewModel = newViewModel(restrictionChecker = checker, processExitHistory = exits)
+        val collector = launch { viewModel.diagnostics.collect {} }
+
+        viewModel.refreshBackgroundHealth()
+        advanceUntilIdle()
+
+        assertTrue(viewModel.backgroundRestrictions.value.needsAttention)
+        assertEquals("optimized", viewModel.diagnostics.value.batteryOptimization.value)
+        assertTrue(viewModel.diagnostics.value.lastProcessExit.value.contains("killed by system"))
+
+        checker.status = BackgroundRestrictionStatus(
+            batteryOptimizationIgnored = true,
+            backgroundRestricted = false
+        )
+        viewModel.refreshBackgroundHealth()
+        advanceUntilIdle()
+
+        assertFalse(viewModel.backgroundRestrictions.value.needsAttention)
+        assertEquals("unrestricted", viewModel.diagnostics.value.batteryOptimization.value)
+        collector.cancel()
+    }
+
     private fun newViewModel(
-        proxyDao: ProxyDao = FakeProxyDao()
+        proxyDao: ProxyDao = FakeProxyDao(),
+        restrictionChecker: BackgroundRestrictionChecker = FakeRestrictionChecker(),
+        processExitHistory: ProcessExitHistory = FakeProcessExitHistory()
     ): VpnViewModel {
+        val dataStore = FakePreferencesDataStore()
         return VpnViewModel(
             proxyRepository = ProxyRepository(proxyDao),
-            settingsRepository = SettingsRepository(FakePreferencesDataStore()),
+            settingsRepository = SettingsRepository(dataStore),
             proxyTester = FakeReachabilityTester(),
             statsStore = VpnStatsStore(),
-            diagnosticsRepository = VpnDiagnosticsRepository()
+            diagnosticsRepository = VpnDiagnosticsRepository(),
+            stopHistory = VpnStopHistory(dataStore),
+            restrictionChecker = restrictionChecker,
+            processExitHistory = processExitHistory
         )
+    }
+
+    private class FakeRestrictionChecker(
+        var status: BackgroundRestrictionStatus = BackgroundRestrictionStatus()
+    ) : BackgroundRestrictionChecker {
+        override fun current(): BackgroundRestrictionStatus = status
+    }
+
+    private class FakeProcessExitHistory(
+        private val records: List<ProcessExitRecord> = emptyList()
+    ) : ProcessExitHistory {
+        override fun recentExits(): List<ProcessExitRecord> = records
     }
 
     private class FakeReachabilityTester : ProxyReachabilityTester {

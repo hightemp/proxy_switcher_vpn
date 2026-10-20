@@ -71,6 +71,15 @@ fun VpnDiagnosticsScreen(
                 DiagnosticRow(diagnostics.foregroundService)
                 DiagnosticRow(diagnostics.singBoxCore)
                 DiagnosticRow(diagnostics.tunInterface)
+                DiagnosticRow(diagnostics.processMemory)
+            }
+
+            DiagnosticsSection(title = "Background") {
+                DiagnosticRow(diagnostics.batteryOptimization)
+                DiagnosticRow(diagnostics.backgroundRestriction)
+                DiagnosticRow(diagnostics.alwaysOnVpn)
+                DiagnosticRow(diagnostics.lastVpnStop)
+                DiagnosticRow(diagnostics.lastProcessExit)
             }
 
             DiagnosticsSection(title = "Traffic policy") {

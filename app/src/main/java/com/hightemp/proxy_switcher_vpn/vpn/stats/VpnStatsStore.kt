@@ -118,6 +118,8 @@ class VpnStatsStore(
                     current.bytesOut
                 },
                 activeConnections = activeConnections ?: current.activeConnections,
+                processMemoryBytes = event.processMemoryBytes ?: current.processMemoryBytes,
+                goroutines = event.goroutines ?: current.goroutines,
                 trafficStatsAvailable = event.trafficAvailable,
                 activeConnectionsAvailable = activeConnections != null
             )

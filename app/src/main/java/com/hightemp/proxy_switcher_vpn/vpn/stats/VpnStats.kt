@@ -16,6 +16,9 @@ data class VpnStats(
     val bypassedUdp: Long = 0L,
     val trafficStatsAvailable: Boolean = false,
     val activeConnectionsAvailable: Boolean = false,
+    /** Resident memory of the whole app process, as reported by libbox status. */
+    val processMemoryBytes: Long? = null,
+    val goroutines: Int? = null,
     val lastError: String? = null
 ) {
     val totalBytes: Long

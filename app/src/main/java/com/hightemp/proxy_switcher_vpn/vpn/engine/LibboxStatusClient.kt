@@ -130,7 +130,9 @@ class LibboxStatusClient @Inject constructor(
                     connectionsOut = message.connectionsOut,
                     trafficAvailable = message.trafficAvailable,
                     uplinkTotal = message.uplinkTotal,
-                    downlinkTotal = message.downlinkTotal
+                    downlinkTotal = message.downlinkTotal,
+                    processMemoryBytes = message.memory,
+                    goroutines = message.goroutines
                 )
             )
         }

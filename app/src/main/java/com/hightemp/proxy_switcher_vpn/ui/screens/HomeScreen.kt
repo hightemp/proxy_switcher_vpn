@@ -11,7 +11,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Article
 import androidx.compose.material.icons.filled.Dns
@@ -53,6 +55,8 @@ import com.hightemp.proxy_switcher_vpn.service.VpnServiceStatus
 import com.hightemp.proxy_switcher_vpn.ui.theme.Proxy_switcher_vpnTheme
 import com.hightemp.proxy_switcher_vpn.ui.viewmodel.VpnPermissionStatus
 import com.hightemp.proxy_switcher_vpn.ui.viewmodel.VpnPermissionUiState
+import com.hightemp.proxy_switcher_vpn.vpn.background.AlwaysOnVpnStatus
+import com.hightemp.proxy_switcher_vpn.vpn.background.BackgroundRestrictionStatus
 import com.hightemp.proxy_switcher_vpn.vpn.stats.VpnStats
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -77,7 +81,11 @@ fun HomeScreen(
     onPrivacyDisclosureAccepted: (Boolean) -> Unit,
     onDomainDestinationLoggingEnabled: (Boolean) -> Unit,
     onInfiniteReconnectEnabled: (Boolean) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    backgroundRestrictions: BackgroundRestrictionStatus = BackgroundRestrictionStatus(),
+    alwaysOnStatus: AlwaysOnVpnStatus = AlwaysOnVpnStatus(),
+    onFixBackgroundRestrictions: () -> Unit = {},
+    onOpenVpnSettings: () -> Unit = {}
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     var settingsDialogVisible by remember { mutableStateOf(false) }
@@ -135,6 +143,12 @@ fun HomeScreen(
                 permissionStatus = uiState.permissionStatus
             )
             TrafficLine(stats = stats)
+            if (backgroundRestrictions.needsAttention) {
+                BackgroundRestrictionWarning(
+                    status = backgroundRestrictions,
+                    onFix = onFixBackgroundRestrictions
+                )
+            }
 
             val isVpnActive = runtimeState.isForegroundServiceActive
             Button(
@@ -219,8 +233,49 @@ fun HomeScreen(
             onDismiss = { settingsDialogVisible = false },
             onPrivacyDisclosureAccepted = onPrivacyDisclosureAccepted,
             onDomainDestinationLoggingEnabled = onDomainDestinationLoggingEnabled,
-            onInfiniteReconnectEnabled = onInfiniteReconnectEnabled
+            onInfiniteReconnectEnabled = onInfiniteReconnectEnabled,
+            backgroundRestrictions = backgroundRestrictions,
+            alwaysOnStatus = alwaysOnStatus,
+            onFixBackgroundRestrictions = onFixBackgroundRestrictions,
+            onOpenVpnSettings = onOpenVpnSettings
         )
+    }
+}
+
+@Composable
+private fun BackgroundRestrictionWarning(
+    status: BackgroundRestrictionStatus,
+    onFix: () -> Unit
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.errorContainer,
+        shape = MaterialTheme.shapes.small,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.padding(start = 12.dp, top = 4.dp, bottom = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = if (status.backgroundRestricted == true) {
+                        "Background activity is restricted. Android can stop the VPN."
+                    } else {
+                        "Battery optimization can stop the VPN in the background."
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onErrorContainer
+                )
+                Text(
+                    text = "On Samsung, also remove the app from Sleeping apps.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onErrorContainer
+                )
+            }
+            TextButton(onClick = onFix) {
+                Text("Allow")
+            }
+        }
     }
 }
 
@@ -353,7 +408,11 @@ private fun SettingsDialog(
     onDismiss: () -> Unit,
     onPrivacyDisclosureAccepted: (Boolean) -> Unit,
     onDomainDestinationLoggingEnabled: (Boolean) -> Unit,
-    onInfiniteReconnectEnabled: (Boolean) -> Unit
+    onInfiniteReconnectEnabled: (Boolean) -> Unit,
+    backgroundRestrictions: BackgroundRestrictionStatus,
+    alwaysOnStatus: AlwaysOnVpnStatus,
+    onFixBackgroundRestrictions: () -> Unit,
+    onOpenVpnSettings: () -> Unit
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -364,7 +423,40 @@ private fun SettingsDialog(
         },
         title = { Text("Settings") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                SettingsActionRow(
+                    title = "Run in background",
+                    description = when {
+                        backgroundRestrictions.backgroundRestricted == true ->
+                            "Background activity is restricted."
+                        backgroundRestrictions.batteryOptimizationIgnored == false ->
+                            "Battery optimization is on; Android may stop the VPN."
+                        backgroundRestrictions.batteryOptimizationIgnored == true ->
+                            "Battery optimization is off for this app."
+                        else -> "Battery optimization status is unknown."
+                    },
+                    actionLabel = if (backgroundRestrictions.needsAttention) "Allow" else "Open",
+                    onAction = onFixBackgroundRestrictions
+                )
+                SettingsActionRow(
+                    title = "Always-on VPN",
+                    description = when (alwaysOnStatus.alwaysOn) {
+                        true -> if (alwaysOnStatus.lockdown == true) {
+                            "On, connections without VPN are blocked."
+                        } else {
+                            "On. Android restarts the VPN if it is stopped."
+                        }
+                        false -> "Off. Enable it in system VPN settings so Android " +
+                            "restarts the VPN after it is killed."
+                        null -> "Enable it in system VPN settings so Android restarts " +
+                            "the VPN after it is killed."
+                    },
+                    actionLabel = "Settings",
+                    onAction = onOpenVpnSettings
+                )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
@@ -413,6 +505,31 @@ private fun SettingsDialog(
             }
         }
     )
+}
+
+@Composable
+private fun SettingsActionRow(
+    title: String,
+    description: String,
+    actionLabel: String,
+    onAction: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(text = title)
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        TextButton(onClick = onAction) {
+            Text(actionLabel)
+        }
+    }
 }
 
 private fun formatBytes(bytes: Long): String {

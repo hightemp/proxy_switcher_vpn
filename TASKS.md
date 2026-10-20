@@ -2133,6 +2133,291 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
   - TASK-215
 - Estimated risk: low
 
+## Phase 19.6: Background Reliability
+
+Context: on the user's Samsung SM-A165F (Android 15) the VPN periodically
+disappears while other apps are in use. `dumpsys activity exit-info` shows 15
+`SIGNALED` (SIGKILL) process exits between 2026-08-13 and 2026-10-18 with
+importance 125 (foreground service), no crashes, the app not exempt from
+battery optimization, and Always-on VPN not configured. In-app logs are
+memory-only, so the stop reason is lost with the process.
+
+### TASK-217: Request Battery Optimization Exemption
+
+- Status: done
+- Goal: Let the user exempt the app from battery optimization and show when
+  background restrictions can stop the VPN.
+- Context files to inspect:
+  - `app/src/main/AndroidManifest.xml`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/ui/screens/HomeScreen.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/vpn/diagnostics/VpnDiagnostics.kt`
+  - `tmp/sing-box-for-android/.../ServiceSettingsScreen.kt` (read-only pattern).
+- Files likely to create/change:
+  - `app/src/main/AndroidManifest.xml`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/vpn/background/BackgroundHealth.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/vpn/diagnostics/VpnDiagnostics.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/vpn/diagnostics/VpnDiagnosticsRepository.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/ui/viewmodel/VpnViewModel.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/ui/screens/HomeScreen.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/ui/screens/VpnDiagnosticsScreen.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/MainActivity.kt`
+  - unit tests for the new diagnostics fields.
+- Decisions:
+  - Declare `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` and open
+    `ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` for this package, falling
+    back to `ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS`. The app is
+    distributed through GitHub releases; a VPN is an accepted use case.
+  - Also report `ActivityManager.isBackgroundRestricted()` (API 28+).
+  - State is re-read when the activity resumes.
+  - Home shows a warning with a fix action only when the app is optimized or
+    background-restricted; the hint mentions Samsung "Sleeping apps".
+- Acceptance criteria:
+  - Diagnostics show battery optimization and background restriction status.
+  - Home shows the warning and opens the system dialog.
+  - No VPN behavior changes.
+- Test/smoke commands:
+  - `./gradlew test`
+  - `./gradlew assembleDebug`
+  - Manual: warning visible, dialog opens, warning disappears after allowing.
+- Implementation notes:
+  - Completed on 2026-10-20 test-first (`BackgroundHealthTest`,
+    `VpnViewModelTest.refreshBackgroundHealthReadsRestrictionsAndLastExit`).
+  - Added `vpn/background/BackgroundHealth.kt` (restriction status,
+    Android checker, Always-on state holder) and `di/BackgroundModule.kt`.
+  - Home shows a warning with "Allow" only when optimized or restricted;
+    Settings has "Run in background" and "Always-on VPN" rows; Diagnostics
+    has a "Background" section. State refreshes in `MainActivity.onResume`.
+  - Emulator check (API 35): warning shown, "Allow" opened the system
+    "Let app always run in background?" dialog, after allowing the warning
+    disappeared and Diagnostics showed `unrestricted`.
+- Dependencies:
+  - TASK-151
+- Estimated risk: low
+
+### TASK-218: Persist The Last VPN Stop Reason And Process Exit Info
+
+- Status: done
+- Goal: Make it visible after the fact why the VPN stopped, including system
+  process kills.
+- Context files to inspect:
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/vpn/ProxyVpnService.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/data/settings/SettingsRepository.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/ProxySwitcherVpnApp.kt`
+- Files likely to create/change:
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/vpn/background/VpnStopHistory.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/vpn/background/ProcessExitHistory.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/vpn/ProxyVpnService.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/ProxySwitcherVpnApp.kt`
+  - diagnostics files from TASK-217.
+  - unit tests for stop history and exit-info formatting.
+- Decisions:
+  - Store only the last stop record (time, reason category, message) in the
+    existing app settings DataStore; messages are masked with the route's
+    credentials and length-limited before storage.
+  - Read `ActivityManager.getHistoricalProcessExitReasons` (API 30+) for the
+    latest previous process exit; on startup log it once (tracked by its
+    timestamp) and show it in Diagnostics.
+  - Do not persist full logs (separate item IMP-12).
+- Acceptance criteria:
+  - User stop, fail-closed stop, permission revoke, and service destroy are
+    recorded with distinct reasons.
+  - Diagnostics show the last VPN stop and the last process exit, including
+    "killed by system while VPN was in foreground".
+  - No proxy credentials in stored records.
+- Test/smoke commands:
+  - `./gradlew test`
+  - `./gradlew assembleDebug`
+  - Manual: stop VPN, kill the process with `adb shell am kill`/`kill -9`,
+    reopen, inspect Diagnostics.
+- Implementation notes:
+  - Completed on 2026-10-20 test-first (`VpnStopHistoryTest`,
+    `ProcessExitRecordTest`).
+  - `VpnStopHistory` stores the last stop in the settings DataStore,
+    masking the route credentials and limiting the message to 300 chars.
+    `ProxyVpnService` records USER, FAIL_CLOSED, PERMISSION_REVOKED and
+    SERVICE_DESTROYED stops.
+  - `ProcessExitHistory` reads `getHistoricalProcessExitReasons`;
+    `ProxySwitcherVpnApp` logs the latest unseen exit once on startup.
+  - Emulator check: after `am crash` the log showed "crash while the VPN
+    service was in foreground"; after `run-as ... kill -9` it showed
+    "killed by system (signal 9) while the VPN service was in foreground"
+    and Diagnostics showed the same.
+- Dependencies:
+  - TASK-160
+- Estimated risk: low
+
+### TASK-219: Support System Always-on VPN (IMP-08)
+
+- Status: done
+- Goal: Let Android restart the VPN after process kills and on boot through
+  the system Always-on VPN setting.
+- Context files to inspect:
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/vpn/ProxyVpnService.kt`
+  - Android `VpnService.SERVICE_INTERFACE`, `isAlwaysOn`, `isLockdownEnabled`.
+- Files likely to create/change:
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/vpn/ProxyVpnService.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/vpn/background/BackgroundHealth.kt`
+  - diagnostics/UI files from TASK-217.
+  - `PRD.md`, `README.md`.
+- Decisions:
+  - A start with action `android.net.VpnService` is a system Always-on start
+    and starts the last selected route even if the app's `vpnEnabled` flag
+    is off. A null-intent sticky restart keeps the existing
+    restore-if-enabled behavior.
+  - Always-on and lockdown state can only be read inside the running
+    service (API 29+); it is published to diagnostics as last seen.
+  - Settings show an action that opens system VPN settings.
+  - With Always-on, Android may restart the service after a fail-closed stop;
+    lockdown keeps traffic blocked meanwhile. This is documented, not
+    overridden.
+- Acceptance criteria:
+  - System Always-on start brings up the VPN with the selected route.
+  - Diagnostics show Always-on and lockdown status.
+  - README describes Always-on + lockdown as a kill switch.
+- Test/smoke commands:
+  - `./gradlew test`
+  - `./gradlew assembleDebug`
+  - Manual: enable Always-on, kill the process, confirm the VPN returns.
+- Implementation notes:
+  - Completed on 2026-10-20 test-first (`VpnServiceCommandTest`).
+  - `VpnServiceCommand` maps start actions; `android.net.VpnService` starts
+    the selected route. `ProxyVpnService` publishes `isAlwaysOn` /
+    `isLockdownEnabled` on every start command.
+  - Emulator check: with the VPN stopped in the app, enabling Always-on in
+    system VPN settings started the VPN ("System Always-on VPN requested
+    VPN start.") and Diagnostics showed `on`.
+  - Finding: after a SIGKILL of the app process (the user's
+    `exit-info` case), Android 15 neither restarted the sticky service nor
+    the Always-on VPN: `Vpn.interfaceRemoved` unbinds the service and no
+    restart is scheduled. Recovery is handled by TASK-222.
+- Dependencies:
+  - TASK-185
+- Estimated risk: medium
+
+### TASK-220: Reduce VPN Process Memory Footprint
+
+- Status: done
+- Goal: Lower the process memory that makes it a likely low-memory-killer
+  target (150-220 MB RSS observed).
+- Context files to inspect:
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/vpn/engine/LibboxSetup.kt`
+  - `tmp/sing-box/experimental/libbox/setup.go`,
+    `tmp/sing-box/service/oomkiller/` (read-only).
+- Files likely to create/change:
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/vpn/engine/LibboxSetup.kt`
+  - `TASKS.md`
+- Decisions:
+  - Measure `dumpsys meminfo` with the VPN running before and after.
+  - Use libbox setup options `oomKillerEnabled=true`,
+    `oomKillerDisabled=true` (report-only: never resets connections) and an
+    `oomMemoryLimit`, which sets the Go soft memory limit to 3/4 of it and
+    frees OS memory when the threshold is reached.
+  - Moving the VPN service to a separate process is only evaluated here; it
+    needs cross-process runtime state and logs.
+- Acceptance criteria:
+  - Before/after measurements recorded here.
+  - VPN still passes traffic through a proxy on the emulator.
+- Test/smoke commands:
+  - `./gradlew test`
+  - `./gradlew assembleDebug`
+  - `adb shell dumpsys meminfo com.hightemp.proxy_switcher_vpn`
+- Implementation notes:
+  - Completed on 2026-10-20 as a measured evaluation; no memory tuning was
+    kept.
+  - Emulator API 35, debug build, VPN through a local SOCKS5 proxy, four
+    sites opened in Chrome, then `dumpsys meminfo` after 20 s idle:
+    - baseline: TOTAL RSS 141.7 MB, PSS 154.8 MB, swap PSS 87.3 MB;
+      Unknown (anonymous, mostly Go runtime) 27.8 MB RSS + 56.6 MB swap.
+    - libbox `oomKillerEnabled=true`, `oomKillerDisabled=true`,
+      `oomMemoryLimit=64 MB`: RSS 110.5 / 88.6 MB in two runs, but swap
+      grew to 97-111 MB; Unknown RSS + swap stayed at about 83-85 MB.
+  - Reverted: the libbox OOM timer compares the whole process RSS
+    (`memory.Total()` reads `/proc/self/statm`, 120+ MB) with the limit, so
+    it would trigger `FreeOSMemory` continuously, and no real reduction was
+    measured.
+  - Kept: Diagnostics "Process memory (RSS)" with goroutine count from the
+    libbox status stream, so memory can be watched on the phone.
+  - Remaining options: R8 for release builds (IMP-03) and a separate
+    `:vpn` process (needs cross-process runtime state and logs).
+- Dependencies:
+  - TASK-186
+- Estimated risk: medium
+
+### TASK-221: Bind IP-literal Proxy Probes To The Non-VPN Network
+
+- Status: done
+- Goal: Keep upstream health probes outside the app's own tunnel when the
+  proxy host is an IP address.
+- Context files to inspect:
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/proxy/ProxyNetworkResolver.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/proxy/ProxyTester.kt`
+- Files likely to create/change:
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/proxy/ProxyNetworkResolver.kt`
+- Implementation notes:
+  - Found on 2026-10-20 during TASK-220 measurements: with proxy
+    `socks5://10.0.2.2:28461` every upstream monitor probe after TUN
+    creation timed out, so the VPN stayed in an endless reconnect loop.
+    Domain hosts were bound with `Network.bindSocket`, IP literals were
+    not, and `VpnService.protect()` on a not yet connected
+    `java.net.Socket` did not keep the probe out of the tunnel.
+  - With an active VPN, IP literals are now bound to the same non-VPN
+    network as resolved domain hosts (loopback stays unbound). Without a
+    non-VPN network the literal is used unbound, as before.
+  - Proxyline-style `user:pass:IP:port` proxies are affected, so this can
+    also explain VPN outages on the user's phone.
+  - Emulator check: 8 of 8 monitor probes succeeded after the fix, 0 of
+    all probes before it.
+- Acceptance criteria:
+  - Monitor probes for IP-literal proxies succeed while the VPN runs.
+- Test/smoke commands:
+  - `./gradlew test`
+  - Manual: start VPN with an IP-literal proxy and check Logs for
+    "Upstream monitor probe failed".
+- Dependencies:
+  - TASK-160
+- Estimated risk: medium
+
+### TASK-222: Restore The VPN After The System Kills The Process
+
+- Status: done
+- Goal: Bring the VPN back when Android SIGKILLs the app while it is
+  enabled, since neither `START_STICKY` nor Always-on does (TASK-219).
+- Context files to inspect:
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/vpn/ProxyVpnService.kt`
+- Files likely to create/change:
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/vpn/background/VpnKeepAlive.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/vpn/ProxyVpnService.kt`
+  - `app/src/main/AndroidManifest.xml`
+  - `app/src/test/java/com/hightemp/proxy_switcher_vpn/vpn/background/VpnKeepAlivePolicyTest.kt`
+- Decisions:
+  - While the VPN is enabled, an inexact `setAndAllowWhileIdle` alarm
+    (60 s, rate-limited by Doze) wakes `VpnKeepAliveReceiver`.
+  - The receiver restores only if `vpnEnabled` is still set, the service is
+    not active, and VPN permission is still granted; otherwise it cancels.
+    User stop, fail-closed stop and permission revoke clear `vpnEnabled`
+    and cancel the alarm, so fail-closed behavior is unchanged.
+  - Starting a foreground service from the background requires the battery
+    optimization exemption from TASK-217; a refused start is logged.
+- Implementation notes:
+  - Completed on 2026-10-20 test-first (`VpnKeepAlivePolicyTest`).
+  - Emulator check with the 3-minute test interval: process SIGKILLed at
+    09:47:35, VPN restored at 09:52:32 with the proxy route ("VPN was
+    enabled but its service was not running; restoring it."). The interval
+    was then reduced to 60 s; the shorter interval was not re-run on the
+    emulator.
+- Acceptance criteria:
+  - After a SIGKILL of the running VPN process, the VPN returns without
+    user action when the app may run in background.
+  - No restore after user stop or fail-closed stop.
+- Test/smoke commands:
+  - `./gradlew test`
+  - Manual: `adb shell run-as com.hightemp.proxy_switcher_vpn kill -9 <pid>`
+    on a debug build, wait 1-2 minutes.
+- Dependencies:
+  - TASK-217
+  - TASK-218
+- Estimated risk: medium
+
 ## Phase 20: Post-MVP Improvements
 
 ### TASK-200: Evaluate Full UDP Proxying

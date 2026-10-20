@@ -2,8 +2,10 @@ package com.hightemp.proxy_switcher_vpn
 
 import android.app.Activity
 import android.content.Intent
+import android.net.Uri
 import android.net.VpnService
 import android.os.Bundle
+import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -57,6 +59,8 @@ class MainActivity : ComponentActivity() {
                 val stats by viewModel.stats.collectAsState()
                 val diagnostics by viewModel.diagnostics.collectAsState()
                 val canStartVpn by viewModel.canStartVpn.collectAsState()
+                val backgroundRestrictions by viewModel.backgroundRestrictions.collectAsState()
+                val alwaysOnStatus by viewModel.alwaysOnStatus.collectAsState()
                 NavHost(
                     navController = navController,
                     startDestination = "home"
@@ -94,7 +98,11 @@ class MainActivity : ComponentActivity() {
                             onDomainDestinationLoggingEnabled =
                                 viewModel::onDomainDestinationLoggingEnabled,
                             onInfiniteReconnectEnabled =
-                                viewModel::onInfiniteReconnectEnabled
+                                viewModel::onInfiniteReconnectEnabled,
+                            backgroundRestrictions = backgroundRestrictions,
+                            alwaysOnStatus = alwaysOnStatus,
+                            onFixBackgroundRestrictions = ::openBackgroundSettings,
+                            onOpenVpnSettings = ::openVpnSettings
                         )
                     }
                     composable("logs") {
@@ -165,6 +173,51 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        viewModel.refreshBackgroundHealth()
+    }
+
+    /**
+     * Asks Android to exempt the app from battery optimization, or opens the
+     * app's settings when background activity is restricted there.
+     */
+    private fun openBackgroundSettings() {
+        val restrictions = viewModel.backgroundRestrictions.value
+        val appDetails = Intent(
+            Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+            Uri.parse("package:$packageName")
+        )
+        val intents = if (restrictions.batteryOptimizationIgnored == false) {
+            listOf(
+                Intent(
+                    Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+                    Uri.parse("package:$packageName")
+                ),
+                Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS),
+                appDetails
+            )
+        } else {
+            listOf(appDetails)
+        }
+        startFirstAvailable(intents)
+    }
+
+    private fun openVpnSettings() {
+        startFirstAvailable(
+            listOf(Intent(Settings.ACTION_VPN_SETTINGS), Intent(Settings.ACTION_SETTINGS))
+        )
+    }
+
+    private fun startFirstAvailable(intents: List<Intent>) {
+        val started = intents.any { intent ->
+            runCatching { startActivity(intent) }.isSuccess
+        }
+        if (!started) {
+            AppLogger.warning(message = "System settings screen is not available.")
         }
     }
 

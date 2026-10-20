@@ -12,6 +12,13 @@ import com.hightemp.proxy_switcher_vpn.proxy.ProxyProtocolDetector
 import com.hightemp.proxy_switcher_vpn.proxy.ProxyReachabilityTester
 import com.hightemp.proxy_switcher_vpn.service.VpnRuntimeState
 import com.hightemp.proxy_switcher_vpn.utils.ProxyTransfer
+import com.hightemp.proxy_switcher_vpn.vpn.background.AlwaysOnVpnState
+import com.hightemp.proxy_switcher_vpn.vpn.background.BackgroundHealth
+import com.hightemp.proxy_switcher_vpn.vpn.background.BackgroundRestrictionChecker
+import com.hightemp.proxy_switcher_vpn.vpn.background.BackgroundRestrictionStatus
+import com.hightemp.proxy_switcher_vpn.vpn.background.ProcessExitHistory
+import com.hightemp.proxy_switcher_vpn.vpn.background.ProcessExitRecord
+import com.hightemp.proxy_switcher_vpn.vpn.background.VpnStopHistory
 import com.hightemp.proxy_switcher_vpn.vpn.diagnostics.VpnDiagnostics
 import com.hightemp.proxy_switcher_vpn.vpn.diagnostics.VpnDiagnosticsRepository
 import com.hightemp.proxy_switcher_vpn.vpn.diagnostics.VpnPermissionDiagnosticStatus
@@ -63,7 +70,10 @@ class VpnViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository,
     private val proxyTester: ProxyReachabilityTester,
     private val statsStore: VpnStatsStore,
-    diagnosticsRepository: VpnDiagnosticsRepository
+    diagnosticsRepository: VpnDiagnosticsRepository,
+    stopHistory: VpnStopHistory,
+    private val restrictionChecker: BackgroundRestrictionChecker,
+    private val processExitHistory: ProcessExitHistory
 ) : ViewModel() {
     private val protocolDetector = ProxyProtocolDetector(proxyTester)
     private val _uiState = MutableStateFlow(VpnPermissionUiState())
@@ -114,18 +124,43 @@ class VpnViewModel @Inject constructor(
             initialValue = false
         )
     val stats: StateFlow<VpnStats> = statsStore.stats
+    private val _backgroundRestrictions = MutableStateFlow(BackgroundRestrictionStatus())
+    val backgroundRestrictions: StateFlow<BackgroundRestrictionStatus> =
+        _backgroundRestrictions.asStateFlow()
+    val alwaysOnStatus = AlwaysOnVpnState.status
+    private val lastProcessExit = MutableStateFlow<ProcessExitRecord?>(null)
+    private val backgroundHealth = combine(
+        _backgroundRestrictions,
+        AlwaysOnVpnState.status,
+        stopHistory.lastStop,
+        lastProcessExit
+    ) { restrictions, alwaysOn, lastStop, lastExit ->
+        BackgroundHealth(
+            restrictions = restrictions,
+            alwaysOn = alwaysOn,
+            lastStop = lastStop,
+            lastProcessExit = lastExit
+        )
+    }
     val diagnostics: StateFlow<VpnDiagnostics> = diagnosticsRepository.diagnostics(
         permissionStatus = _uiState.map { state ->
             state.permissionStatus.toDiagnosticStatus()
         },
         runtimeState = VpnRuntimeState.state,
         selectedRoute = selectedRoute,
-        stats = stats
+        stats = stats,
+        backgroundHealth = backgroundHealth
     ).stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = VpnDiagnostics()
     )
+
+    /** Re-reads power settings and exit history; called when the UI resumes. */
+    fun refreshBackgroundHealth() {
+        _backgroundRestrictions.value = restrictionChecker.current()
+        lastProcessExit.value = processExitHistory.recentExits().maxByOrNull { it.timestampMillis }
+    }
 
     fun onStartVpnClicked() {
         _uiState.update {

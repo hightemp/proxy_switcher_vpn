@@ -28,6 +28,8 @@ sealed interface VpnEvent {
         val connectionsOut: Int? = null,
         val trafficAvailable: Boolean = false,
         val uplinkTotal: Long? = null,
-        val downlinkTotal: Long? = null
+        val downlinkTotal: Long? = null,
+        val processMemoryBytes: Long? = null,
+        val goroutines: Int? = null
     ) : VpnEvent
 }

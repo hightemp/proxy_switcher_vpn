@@ -60,6 +60,21 @@ reserved TEST-NET addresses and contain no credentials.
 - Direct mode is explicit and is never used as a silent fallback;
 - proxy passwords must be masked in UI, logs, and diagnostics.
 
+## Keeping the VPN running
+
+Android, and Samsung One UI in particular, can kill the app process in the
+background. To keep the VPN up:
+
+- allow the app to run in background (Home shows an "Allow" warning while it
+  is battery-optimized); on Samsung also remove it from Sleeping apps;
+- optionally enable Always-on VPN in Android VPN settings (Settings dialog →
+  Always-on VPN). With "Block connections without VPN" this works as a kill
+  switch: no traffic leaves the device while the VPN is down.
+
+If the process is killed while the VPN is enabled, the app restores the VPN
+within a minute or two. Diagnostics shows the last VPN stop reason and the last
+app exit reason.
+
 ## Build
 
 ```bash

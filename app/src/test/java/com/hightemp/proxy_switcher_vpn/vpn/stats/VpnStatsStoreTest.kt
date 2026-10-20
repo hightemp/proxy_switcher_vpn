@@ -158,4 +158,31 @@ class VpnStatsStoreTest {
     ) {
         fun now(): Long = nowMillis
     }
+
+    @Test
+    fun statusEventRecordsProcessMemoryAndGoroutines() {
+        val store = VpnStatsStore()
+
+        store.applyEvent(
+            VpnEvent.Status(timestampMillis = 1L, processMemoryBytes = 42L * 1024 * 1024, goroutines = 37)
+        )
+        assertEquals(42L * 1024 * 1024, store.stats.value.processMemoryBytes)
+        assertEquals(37, store.stats.value.goroutines)
+
+        store.applyEvent(VpnEvent.Status(timestampMillis = 2L))
+        assertEquals(42L * 1024 * 1024, store.stats.value.processMemoryBytes)
+    }
+
+    @Test
+    fun processMemoryFieldFormatsMebibytes() {
+        val field = com.hightemp.proxy_switcher_vpn.vpn.diagnostics.VpnDiagnostics.processMemoryField(
+            VpnStats(processMemoryBytes = 42L * 1024 * 1024, goroutines = 37)
+        )
+
+        assertEquals("42.0 MiB, 37 goroutines", field.value)
+        assertEquals(
+            "n/a",
+            com.hightemp.proxy_switcher_vpn.vpn.diagnostics.VpnDiagnostics.processMemoryField(VpnStats()).value
+        )
+    }
 }

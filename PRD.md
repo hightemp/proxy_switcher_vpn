@@ -147,6 +147,18 @@ New project should keep these conventions, but replace system proxy management w
 - Retry/reconnect on transient selected upstream proxy failure, then stop VPN
   fail-closed if the retry budget is exhausted.
 - Publish lifecycle state to UI through stable observable state.
+- Background reliability:
+  - show battery optimization and background restriction status, and offer
+    the system exemption dialog when the app is optimized;
+  - start the selected route when Android starts the service for system
+    Always-on VPN, and show Always-on/lockdown status in diagnostics;
+  - while the VPN is enabled, a keepalive alarm restores it after the system
+    kills the app process; user stop, fail-closed stop and permission revoke
+    disable the VPN and cancel the alarm;
+  - persist the last VPN stop reason (masked) and show the last app process
+    exit reason in diagnostics.
+- Upstream health probes for IP-literal and domain proxy hosts are bound to
+  a non-VPN network while the VPN is active.
 
 ### sing-box Core
 
@@ -355,6 +367,7 @@ Use DataStore or the existing project storage style:
 - DNS mode.
 - UDP mode, initially fixed for MVP.
 - Last acknowledged privacy disclosure if added.
+- VPN enabled flag, last VPN stop record, last seen process exit time.
 
 ## 16. UI/UX Requirements
 

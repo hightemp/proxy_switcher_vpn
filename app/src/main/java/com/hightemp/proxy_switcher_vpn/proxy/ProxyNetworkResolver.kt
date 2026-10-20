@@ -42,14 +42,11 @@ class AndroidProxyNetworkResolver @Inject constructor(
         preferNonVpnNetwork: Boolean
     ): ProxySocketTarget {
         val literalAddress = host.toNumericAddressOrNull()
-        if (literalAddress != null) {
-            return ProxySocketTarget(InetSocketAddress(literalAddress, port))
-        }
-
         if (!preferNonVpnNetwork) {
-            val address = InetAddress.getAllByName(host)
-                .takeIf { it.isNotEmpty() }
-                ?.preferredAddress()
+            val address = literalAddress
+                ?: InetAddress.getAllByName(host)
+                    .takeIf { it.isNotEmpty() }
+                    ?.preferredAddress()
                 ?: throw UnknownHostException("Proxy host could not be resolved.")
             return ProxySocketTarget(InetSocketAddress(address, port))
         }
@@ -59,12 +56,22 @@ class AndroidProxyNetworkResolver @Inject constructor(
                 ?: return@firstOrNull false
             capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
                 !capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN)
-        } ?: throw UnknownHostException("No non-VPN network is available for proxy host resolution.")
+        }
+        if (network == null) {
+            if (literalAddress != null) {
+                return ProxySocketTarget(InetSocketAddress(literalAddress, port))
+            }
+            throw UnknownHostException("No non-VPN network is available for proxy host resolution.")
+        }
 
-        val address = network.getAllByName(host)
-            .takeIf { it.isNotEmpty() }
-            ?.preferredAddress()
+        val address = literalAddress
+            ?: network.getAllByName(host)
+                .takeIf { it.isNotEmpty() }
+                ?.preferredAddress()
             ?: throw UnknownHostException("Proxy host could not be resolved.")
+        // Bind IP literals too: VpnService.protect() on a not yet connected
+        // java.net.Socket does not reliably take effect, and an unbound probe
+        // would be routed into this app's own tunnel.
         return ProxySocketTarget(InetSocketAddress(address, port)) { socket ->
             if (!address.isLoopbackAddress && !address.isAnyLocalAddress) {
                 network.bindSocket(socket)

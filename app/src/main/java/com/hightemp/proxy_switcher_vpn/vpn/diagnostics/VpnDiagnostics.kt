@@ -2,10 +2,18 @@ package com.hightemp.proxy_switcher_vpn.vpn.diagnostics
 
 import com.hightemp.proxy_switcher_vpn.data.local.ProxyEntity
 import com.hightemp.proxy_switcher_vpn.service.VpnServiceStatus
+import com.hightemp.proxy_switcher_vpn.vpn.background.AlwaysOnVpnStatus
+import com.hightemp.proxy_switcher_vpn.vpn.background.BackgroundRestrictionStatus
+import com.hightemp.proxy_switcher_vpn.vpn.background.ProcessExitRecord
+import com.hightemp.proxy_switcher_vpn.vpn.background.VpnStopReason
+import com.hightemp.proxy_switcher_vpn.vpn.background.VpnStopRecord
+import com.hightemp.proxy_switcher_vpn.vpn.background.formatDiagnosticTime
 import com.hightemp.proxy_switcher_vpn.vpn.engine.VpnEngineCounters
 import com.hightemp.proxy_switcher_vpn.vpn.routing.VpnRouteSelection
 import com.hightemp.proxy_switcher_vpn.vpn.stats.VpnStats
 import com.hightemp.proxy_switcher_vpn.vpn.udp.UdpPolicy
+import java.util.Locale
+import java.util.TimeZone
 
 enum class StatsAvailability {
     AVAILABLE,
@@ -79,6 +87,12 @@ data class VpnDiagnostics(
         value = "none",
         severity = DiagnosticSeverity.WARNING
     ),
+    val batteryOptimization: DiagnosticField = batteryOptimizationField(BackgroundRestrictionStatus()),
+    val backgroundRestriction: DiagnosticField = backgroundRestrictionField(BackgroundRestrictionStatus()),
+    val alwaysOnVpn: DiagnosticField = alwaysOnField(AlwaysOnVpnStatus()),
+    val lastVpnStop: DiagnosticField = lastStopField(null),
+    val lastProcessExit: DiagnosticField = lastProcessExitField(null),
+    val processMemory: DiagnosticField = DiagnosticField("Process memory (RSS)", "n/a", DiagnosticSeverity.INFO),
     val udpPolicy: UdpPolicy = UdpPolicy.mvpDefault(),
     val counters: VpnEngineCounters = VpnEngineCounters(),
     val trafficStatsAvailability: StatsAvailability = StatsAvailability.NOT_SUPPORTED,
@@ -131,6 +145,7 @@ data class VpnDiagnostics(
                     StatsAvailability.NOT_SUPPORTED
                 },
                 lastError = stats.lastError,
+                processMemory = processMemoryField(stats),
                 maskedConfigPreview = maskedConfigPreview
             )
         }
@@ -231,6 +246,84 @@ data class VpnDiagnostics(
                     }
                 )
             }
+        }
+
+        fun processMemoryField(stats: VpnStats): DiagnosticField {
+            val memory = stats.processMemoryBytes
+                ?: return DiagnosticField("Process memory (RSS)", "n/a", DiagnosticSeverity.INFO)
+            val goroutines = stats.goroutines?.let { ", $it goroutines" }.orEmpty()
+            return DiagnosticField(
+                label = "Process memory (RSS)",
+                value = String.format(Locale.US, "%.1f MiB", memory / (1024.0 * 1024.0)) + goroutines,
+                severity = DiagnosticSeverity.INFO
+            )
+        }
+
+        fun batteryOptimizationField(status: BackgroundRestrictionStatus): DiagnosticField {
+            return when (status.batteryOptimizationIgnored) {
+                true -> DiagnosticField("Battery optimization", "unrestricted", DiagnosticSeverity.OK)
+                false -> DiagnosticField("Battery optimization", "optimized", DiagnosticSeverity.WARNING)
+                null -> DiagnosticField("Battery optimization", "unknown", DiagnosticSeverity.INFO)
+            }
+        }
+
+        fun backgroundRestrictionField(status: BackgroundRestrictionStatus): DiagnosticField {
+            return when (status.backgroundRestricted) {
+                true -> DiagnosticField("Background activity", "restricted", DiagnosticSeverity.ERROR)
+                false -> DiagnosticField("Background activity", "allowed", DiagnosticSeverity.OK)
+                null -> DiagnosticField("Background activity", "unknown", DiagnosticSeverity.INFO)
+            }
+        }
+
+        fun alwaysOnField(status: AlwaysOnVpnStatus): DiagnosticField {
+            val value = when (status.alwaysOn) {
+                true -> if (status.lockdown == true) "on, lockdown" else "on"
+                false -> "off"
+                null -> "unknown until VPN runs"
+            }
+            return DiagnosticField(
+                label = "Always-on VPN",
+                value = value,
+                severity = if (status.alwaysOn == true) DiagnosticSeverity.OK else DiagnosticSeverity.INFO
+            )
+        }
+
+        fun lastStopField(
+            record: VpnStopRecord?,
+            timeZone: TimeZone = TimeZone.getDefault()
+        ): DiagnosticField {
+            if (record == null) {
+                return DiagnosticField("Last VPN stop", "none", DiagnosticSeverity.INFO)
+            }
+            val message = record.message.takeIf { it.isNotBlank() }?.let { ": $it" }.orEmpty()
+            return DiagnosticField(
+                label = "Last VPN stop",
+                value = "${formatDiagnosticTime(record.timestampMillis, timeZone)} · " +
+                    record.reason.label + message,
+                severity = when (record.reason) {
+                    VpnStopReason.USER -> DiagnosticSeverity.INFO
+                    VpnStopReason.PERMISSION_REVOKED,
+                    VpnStopReason.SERVICE_DESTROYED -> DiagnosticSeverity.WARNING
+                    VpnStopReason.FAIL_CLOSED -> DiagnosticSeverity.ERROR
+                }
+            )
+        }
+
+        fun lastProcessExitField(
+            record: ProcessExitRecord?,
+            timeZone: TimeZone = TimeZone.getDefault()
+        ): DiagnosticField {
+            if (record == null) {
+                return DiagnosticField("Last app exit", "none", DiagnosticSeverity.INFO)
+            }
+            return DiagnosticField(
+                label = "Last app exit",
+                value = record.summary(timeZone),
+                severity = when {
+                    record.killedWhileServiceInForeground || record.isCrash -> DiagnosticSeverity.ERROR
+                    else -> DiagnosticSeverity.INFO
+                }
+            )
         }
 
         fun selectedRouteField(routeSelection: VpnRouteSelection?): DiagnosticField {

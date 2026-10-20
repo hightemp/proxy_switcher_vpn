@@ -1,12 +1,14 @@
 package com.hightemp.proxy_switcher_vpn.vpn.diagnostics
 
 import com.hightemp.proxy_switcher_vpn.service.VpnRuntimeSnapshot
+import com.hightemp.proxy_switcher_vpn.vpn.background.BackgroundHealth
 import com.hightemp.proxy_switcher_vpn.vpn.routing.VpnRouteSelection
 import com.hightemp.proxy_switcher_vpn.vpn.singbox.SingBoxConfigGenerator
 import com.hightemp.proxy_switcher_vpn.vpn.stats.VpnStats
 import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOf
 
 class VpnDiagnosticsRepository @Inject constructor() {
     private val configGenerator = SingBoxConfigGenerator()
@@ -15,19 +17,22 @@ class VpnDiagnosticsRepository @Inject constructor() {
         permissionStatus: Flow<VpnPermissionDiagnosticStatus>,
         runtimeState: Flow<VpnRuntimeSnapshot>,
         selectedRoute: Flow<VpnRouteSelection?>,
-        stats: Flow<VpnStats>
+        stats: Flow<VpnStats>,
+        backgroundHealth: Flow<BackgroundHealth> = flowOf(BackgroundHealth())
     ): Flow<VpnDiagnostics> {
         return combine(
             permissionStatus,
             runtimeState,
             selectedRoute,
-            stats
-        ) { permission, runtime, routeSelection, vpnStats ->
+            stats,
+            backgroundHealth
+        ) { permission, runtime, routeSelection, vpnStats, background ->
             buildDiagnostics(
                 permission = permission,
                 runtime = runtime,
                 routeSelection = routeSelection,
-                stats = vpnStats
+                stats = vpnStats,
+                backgroundHealth = background
             )
         }
     }
@@ -36,7 +41,8 @@ class VpnDiagnosticsRepository @Inject constructor() {
         permission: VpnPermissionDiagnosticStatus,
         runtime: VpnRuntimeSnapshot,
         routeSelection: VpnRouteSelection?,
-        stats: VpnStats
+        stats: VpnStats,
+        backgroundHealth: BackgroundHealth = BackgroundHealth()
     ): VpnDiagnostics {
         val generatedConfig = when (routeSelection) {
             VpnRouteSelection.Direct -> runCatching { configGenerator.generateDirect() }.getOrNull()
@@ -57,6 +63,15 @@ class VpnDiagnosticsRepository @Inject constructor() {
             singBoxCore = VpnDiagnostics.singBoxField(runtime.status),
             tunInterface = VpnDiagnostics.tunField(runtime.status),
             selectedProxy = VpnDiagnostics.selectedRouteField(routeSelection),
+            batteryOptimization = VpnDiagnostics.batteryOptimizationField(
+                backgroundHealth.restrictions
+            ),
+            backgroundRestriction = VpnDiagnostics.backgroundRestrictionField(
+                backgroundHealth.restrictions
+            ),
+            alwaysOnVpn = VpnDiagnostics.alwaysOnField(backgroundHealth.alwaysOn),
+            lastVpnStop = VpnDiagnostics.lastStopField(backgroundHealth.lastStop),
+            lastProcessExit = VpnDiagnostics.lastProcessExitField(backgroundHealth.lastProcessExit),
             udp = DiagnosticField(
                 label = "UDP",
                 value = udpPolicy.diagnosticSummary,
