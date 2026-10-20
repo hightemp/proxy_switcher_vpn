@@ -2536,6 +2536,32 @@ Decisions (agreed with the user on 2026-10-20):
   - TASK-224
 - Estimated risk: low
 
+### ✅ TASK-226: Show The Product Name As The App Label (IMP-05)
+
+- Status: done
+- Goal: Show "Proxy Switcher VPN" instead of `proxy_switcher_vpn` in the
+  launcher, the system VPN permission dialog, app settings and the VPN
+  session name.
+- Files likely to create/change:
+  - `app/src/main/res/values/strings.xml`
+  - `app/src/main/AndroidManifest.xml`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/vpn/ProxyVpnService.kt`
+- Implementation notes:
+  - Completed on 2026-10-20. `app_name` became "Proxy Switcher VPN"
+    (non-translatable) during TASK-223; `aapt2 dump badging` of the debug
+    APK reports `application-label:'Proxy Switcher VPN'`.
+  - The VPN session name now uses `R.string.app_name`; the duplicate
+    activity label (lint RedundantLabel) was removed, so the launcher uses
+    the application label.
+- Acceptance criteria:
+  - Launcher and system dialogs show "Proxy Switcher VPN".
+- Test/smoke commands:
+  - `./gradlew test assembleDebug`
+  - `aapt2 dump badging app/build/outputs/apk/debug/app-debug.apk`
+- Dependencies:
+  - TASK-223
+- Estimated risk: low
+
 ## Phase 20: Post-MVP Improvements
 
 ### TASK-200: Evaluate Full UDP Proxying

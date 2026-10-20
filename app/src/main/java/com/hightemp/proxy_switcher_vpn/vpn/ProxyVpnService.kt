@@ -172,7 +172,7 @@ class ProxyVpnService : VpnService(), ActiveVpnService {
         closeTun()
 
         val builder = Builder()
-            .setSession("Proxy Switcher VPN")
+            .setSession(getString(R.string.app_name))
             .setMtu(options.mtu.takeIf { it > 0 } ?: DEFAULT_MTU)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
