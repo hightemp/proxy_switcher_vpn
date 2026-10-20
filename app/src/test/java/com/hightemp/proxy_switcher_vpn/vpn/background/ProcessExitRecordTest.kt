@@ -1,5 +1,7 @@
 package com.hightemp.proxy_switcher_vpn.vpn.background
 
+import com.hightemp.proxy_switcher_vpn.R
+import com.hightemp.proxy_switcher_vpn.i18n.UserText
 import java.util.TimeZone
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -21,7 +23,7 @@ class ProcessExitRecordTest {
 
         assertTrue(record.killedWhileServiceInForeground)
         assertEquals(
-            "2025-10-18 11:47 · killed by system (signal 9) while the VPN service was in foreground",
+            UserText.of(R.string.exit_summary_foreground, "2025-10-18 11:47", UserText.of(R.string.exit_signaled, 9)),
             record.summary(utc)
         )
     }
@@ -36,7 +38,10 @@ class ProcessExitRecordTest {
         )
 
         assertTrue(record.killedWhileServiceInForeground)
-        assertTrue(record.summary(utc).contains("killed by low memory killer"))
+        assertEquals(
+            UserText.of(R.string.exit_summary_foreground, "1970-01-01 00:00", UserText.of(R.string.exit_low_memory)),
+            record.summary(utc)
+        )
     }
 
     @Test
@@ -49,7 +54,10 @@ class ProcessExitRecordTest {
         )
 
         assertFalse(record.killedWhileServiceInForeground)
-        assertEquals("1970-01-01 00:00 · killed by system (signal 9) in background", record.summary(utc))
+        assertEquals(
+            UserText.of(R.string.exit_summary_background, "1970-01-01 00:00", UserText.of(R.string.exit_signaled, 9)),
+            record.summary(utc)
+        )
     }
 
     @Test
@@ -69,8 +77,14 @@ class ProcessExitRecordTest {
 
         assertFalse(updated.killedWhileServiceInForeground)
         assertFalse(forceStopped.killedWhileServiceInForeground)
-        assertTrue(updated.summary(utc).contains("app updated"))
-        assertTrue(forceStopped.summary(utc).contains("stopped by user"))
+        assertEquals(
+            UserText.of(R.string.diag_time_and_text, "1970-01-01 00:00", UserText.of(R.string.exit_package_updated)),
+            updated.summary(utc)
+        )
+        assertEquals(
+            UserText.of(R.string.diag_time_and_text, "1970-01-01 00:00", UserText.of(R.string.exit_user)),
+            forceStopped.summary(utc)
+        )
     }
 
     @Test
@@ -83,7 +97,10 @@ class ProcessExitRecordTest {
         )
 
         assertTrue(record.isCrash)
-        assertTrue(record.summary(utc).contains("native crash"))
+        assertEquals(
+            UserText.of(R.string.exit_summary_foreground, "1970-01-01 00:00", UserText.of(R.string.exit_crash_native)),
+            record.summary(utc)
+        )
     }
 
     @Test

@@ -1,6 +1,8 @@
 package com.hightemp.proxy_switcher_vpn.vpn.diagnostics
 
+import com.hightemp.proxy_switcher_vpn.R
 import com.hightemp.proxy_switcher_vpn.data.local.ProxyEntity
+import com.hightemp.proxy_switcher_vpn.i18n.UserText
 import com.hightemp.proxy_switcher_vpn.service.VpnServiceStatus
 import com.hightemp.proxy_switcher_vpn.vpn.background.AlwaysOnVpnStatus
 import com.hightemp.proxy_switcher_vpn.vpn.background.BackgroundRestrictionStatus
@@ -36,55 +38,55 @@ enum class VpnPermissionDiagnosticStatus {
 }
 
 data class DiagnosticField(
-    val label: String,
-    val value: String,
+    val label: UserText,
+    val value: UserText,
     val severity: DiagnosticSeverity
 )
 
 data class VpnDiagnostics(
     val vpnPermission: DiagnosticField = DiagnosticField(
-        label = "VPN permission",
-        value = "unknown",
+        label = UserText.of(R.string.diag_vpn_permission),
+        value = UserText.raw("unknown"),
         severity = DiagnosticSeverity.WARNING
     ),
     val foregroundService: DiagnosticField = DiagnosticField(
-        label = "Foreground service",
-        value = "stopped",
+        label = UserText.of(R.string.diag_foreground_service),
+        value = UserText.raw("stopped"),
         severity = DiagnosticSeverity.INFO
     ),
     val singBoxCore: DiagnosticField = DiagnosticField(
-        label = "sing-box/libbox",
-        value = "libbox_stopped",
+        label = UserText.of(R.string.diag_singbox),
+        value = UserText.raw("libbox_stopped"),
         severity = DiagnosticSeverity.INFO
     ),
     val tunInterface: DiagnosticField = DiagnosticField(
-        label = "TUN",
-        value = "not_created",
+        label = UserText.of(R.string.diag_tun),
+        value = UserText.raw("not_created"),
         severity = DiagnosticSeverity.INFO
     ),
     val dns: DiagnosticField = DiagnosticField(
-        label = "DNS",
-        value = "proxy_safe_doh_private_dns_blocked",
+        label = UserText.of(R.string.diag_dns),
+        value = UserText.raw("proxy_safe_doh_private_dns_blocked"),
         severity = DiagnosticSeverity.OK
     ),
     val ipv4Route: DiagnosticField = DiagnosticField(
-        label = "IPv4",
-        value = "enabled",
+        label = UserText.of(R.string.diag_ipv4),
+        value = UserText.raw("enabled"),
         severity = DiagnosticSeverity.OK
     ),
     val ipv6: DiagnosticField = DiagnosticField(
-        label = "IPv6",
-        value = "unsupported_disabled",
+        label = UserText.of(R.string.diag_ipv6),
+        value = UserText.raw("unsupported_disabled"),
         severity = DiagnosticSeverity.WARNING
     ),
     val udp: DiagnosticField = DiagnosticField(
-        label = "UDP",
-        value = UdpPolicy.mvpDefault().diagnosticSummary,
+        label = UserText.of(R.string.diag_udp),
+        value = UserText.raw(UdpPolicy.mvpDefault().diagnosticSummary),
         severity = DiagnosticSeverity.WARNING
     ),
     val selectedProxy: DiagnosticField = DiagnosticField(
-        label = "Selected route",
-        value = "none",
+        label = UserText.of(R.string.diag_selected_route),
+        value = UserText.of(R.string.diag_none),
         severity = DiagnosticSeverity.WARNING
     ),
     val batteryOptimization: DiagnosticField = batteryOptimizationField(BackgroundRestrictionStatus()),
@@ -92,12 +94,16 @@ data class VpnDiagnostics(
     val alwaysOnVpn: DiagnosticField = alwaysOnField(AlwaysOnVpnStatus()),
     val lastVpnStop: DiagnosticField = lastStopField(null),
     val lastProcessExit: DiagnosticField = lastProcessExitField(null),
-    val processMemory: DiagnosticField = DiagnosticField("Process memory (RSS)", "n/a", DiagnosticSeverity.INFO),
+    val processMemory: DiagnosticField = DiagnosticField(
+        UserText.of(R.string.diag_process_memory),
+        UserText.of(R.string.diag_not_available),
+        DiagnosticSeverity.INFO
+    ),
     val udpPolicy: UdpPolicy = UdpPolicy.mvpDefault(),
     val counters: VpnEngineCounters = VpnEngineCounters(),
     val trafficStatsAvailability: StatsAvailability = StatsAvailability.NOT_SUPPORTED,
     val activeConnectionStatsAvailability: StatsAvailability = StatsAvailability.NOT_SUPPORTED,
-    val lastError: String? = null,
+    val lastError: UserText? = null,
     val maskedConfigPreview: String? = null
 ) {
     val udp443Status: String =
@@ -128,8 +134,8 @@ data class VpnDiagnostics(
         ): VpnDiagnostics {
             return VpnDiagnostics(
                 udp = DiagnosticField(
-                    label = "UDP",
-                    value = udpPolicy.diagnosticSummary,
+                    label = UserText.of(R.string.diag_udp),
+                    value = UserText.raw(udpPolicy.diagnosticSummary),
                     severity = DiagnosticSeverity.WARNING
                 ),
                 udpPolicy = udpPolicy,
@@ -144,7 +150,7 @@ data class VpnDiagnostics(
                 } else {
                     StatsAvailability.NOT_SUPPORTED
                 },
-                lastError = stats.lastError,
+                lastError = stats.lastError?.let(UserText::raw),
                 processMemory = processMemoryField(stats),
                 maskedConfigPreview = maskedConfigPreview
             )
@@ -153,28 +159,28 @@ data class VpnDiagnostics(
         fun permissionField(status: VpnPermissionDiagnosticStatus): DiagnosticField {
             return when (status) {
                 VpnPermissionDiagnosticStatus.GRANTED -> DiagnosticField(
-                    label = "VPN permission",
-                    value = "granted",
+                    label = UserText.of(R.string.diag_vpn_permission),
+                    value = UserText.raw("granted"),
                     severity = DiagnosticSeverity.OK
                 )
                 VpnPermissionDiagnosticStatus.REQUESTING -> DiagnosticField(
-                    label = "VPN permission",
-                    value = "requesting",
+                    label = UserText.of(R.string.diag_vpn_permission),
+                    value = UserText.raw("requesting"),
                     severity = DiagnosticSeverity.INFO
                 )
                 VpnPermissionDiagnosticStatus.REQUIRED -> DiagnosticField(
-                    label = "VPN permission",
-                    value = "required",
+                    label = UserText.of(R.string.diag_vpn_permission),
+                    value = UserText.raw("required"),
                     severity = DiagnosticSeverity.WARNING
                 )
                 VpnPermissionDiagnosticStatus.DENIED -> DiagnosticField(
-                    label = "VPN permission",
-                    value = "denied",
+                    label = UserText.of(R.string.diag_vpn_permission),
+                    value = UserText.raw("denied"),
                     severity = DiagnosticSeverity.ERROR
                 )
                 VpnPermissionDiagnosticStatus.UNKNOWN -> DiagnosticField(
-                    label = "VPN permission",
-                    value = "unknown",
+                    label = UserText.of(R.string.diag_vpn_permission),
+                    value = UserText.raw("unknown"),
                     severity = DiagnosticSeverity.WARNING
                 )
             }
@@ -182,8 +188,8 @@ data class VpnDiagnostics(
 
         fun foregroundServiceField(status: VpnServiceStatus): DiagnosticField {
             return DiagnosticField(
-                label = "Foreground service",
-                value = status.name.lowercase(),
+                label = UserText.of(R.string.diag_foreground_service),
+                value = UserText.raw(status.name.lowercase()),
                 severity = when (status) {
                     VpnServiceStatus.RUNNING -> DiagnosticSeverity.OK
                     VpnServiceStatus.STARTING,
@@ -196,8 +202,8 @@ data class VpnDiagnostics(
 
         fun singBoxField(status: VpnServiceStatus): DiagnosticField {
             return DiagnosticField(
-                label = "sing-box/libbox",
-                value = "libbox_${status.name.lowercase()}",
+                label = UserText.of(R.string.diag_singbox),
+                value = UserText.raw("libbox_${status.name.lowercase()}"),
                 severity = when (status) {
                     VpnServiceStatus.RUNNING -> DiagnosticSeverity.OK
                     VpnServiceStatus.STARTING,
@@ -210,14 +216,16 @@ data class VpnDiagnostics(
 
         fun tunField(status: VpnServiceStatus): DiagnosticField {
             return DiagnosticField(
-                label = "TUN",
-                value = when (status) {
-                    VpnServiceStatus.RUNNING -> "active"
-                    VpnServiceStatus.STARTING -> "creating"
-                    VpnServiceStatus.STOPPING -> "closing"
-                    VpnServiceStatus.STOPPED -> "not_created"
-                    VpnServiceStatus.ERROR -> "error"
-                },
+                label = UserText.of(R.string.diag_tun),
+                value = UserText.raw(
+                    when (status) {
+                        VpnServiceStatus.RUNNING -> "active"
+                        VpnServiceStatus.STARTING -> "creating"
+                        VpnServiceStatus.STOPPING -> "closing"
+                        VpnServiceStatus.STOPPED -> "not_created"
+                        VpnServiceStatus.ERROR -> "error"
+                    }
+                ),
                 severity = when (status) {
                     VpnServiceStatus.RUNNING -> DiagnosticSeverity.OK
                     VpnServiceStatus.STARTING,
@@ -231,14 +239,14 @@ data class VpnDiagnostics(
         fun selectedProxyField(proxy: ProxyEntity?): DiagnosticField {
             return if (proxy == null) {
                 DiagnosticField(
-                    label = "Selected route",
-                    value = "none",
+                    label = UserText.of(R.string.diag_selected_route),
+                    value = UserText.of(R.string.diag_none),
                     severity = DiagnosticSeverity.WARNING
                 )
             } else {
                 DiagnosticField(
-                    label = "Selected route",
-                    value = "${proxy.label ?: proxy.host}:${proxy.port} (${proxy.type})",
+                    label = UserText.of(R.string.diag_selected_route),
+                    value = UserText.raw("${proxy.label ?: proxy.host}:${proxy.port} (${proxy.type})"),
                     severity = if (proxy.isEnabled) {
                         DiagnosticSeverity.OK
                     } else {
@@ -249,57 +257,66 @@ data class VpnDiagnostics(
         }
 
         fun processMemoryField(stats: VpnStats): DiagnosticField {
+            val label = UserText.of(R.string.diag_process_memory)
             val memory = stats.processMemoryBytes
-                ?: return DiagnosticField("Process memory (RSS)", "n/a", DiagnosticSeverity.INFO)
-            val goroutines = stats.goroutines?.let { ", $it goroutines" }.orEmpty()
-            return DiagnosticField(
-                label = "Process memory (RSS)",
-                value = String.format(Locale.US, "%.1f MiB", memory / (1024.0 * 1024.0)) + goroutines,
-                severity = DiagnosticSeverity.INFO
-            )
+                ?: return DiagnosticField(label, UserText.of(R.string.diag_not_available), DiagnosticSeverity.INFO)
+            val mebibytes = String.format(Locale.US, "%.1f", memory / (1024.0 * 1024.0))
+            val value = stats.goroutines
+                ?.let { UserText.of(R.string.diag_process_memory_goroutines, mebibytes, it) }
+                ?: UserText.of(R.string.diag_process_memory_value, mebibytes)
+            return DiagnosticField(label, value, DiagnosticSeverity.INFO)
         }
 
         fun batteryOptimizationField(status: BackgroundRestrictionStatus): DiagnosticField {
+            val label = UserText.of(R.string.diag_battery_optimization)
             return when (status.batteryOptimizationIgnored) {
-                true -> DiagnosticField("Battery optimization", "unrestricted", DiagnosticSeverity.OK)
-                false -> DiagnosticField("Battery optimization", "optimized", DiagnosticSeverity.WARNING)
-                null -> DiagnosticField("Battery optimization", "unknown", DiagnosticSeverity.INFO)
+                true -> DiagnosticField(label, UserText.of(R.string.diag_unrestricted), DiagnosticSeverity.OK)
+                false -> DiagnosticField(label, UserText.of(R.string.diag_optimized), DiagnosticSeverity.WARNING)
+                null -> DiagnosticField(label, UserText.of(R.string.diag_unknown), DiagnosticSeverity.INFO)
             }
         }
 
         fun backgroundRestrictionField(status: BackgroundRestrictionStatus): DiagnosticField {
+            val label = UserText.of(R.string.diag_background_activity)
             return when (status.backgroundRestricted) {
-                true -> DiagnosticField("Background activity", "restricted", DiagnosticSeverity.ERROR)
-                false -> DiagnosticField("Background activity", "allowed", DiagnosticSeverity.OK)
-                null -> DiagnosticField("Background activity", "unknown", DiagnosticSeverity.INFO)
+                true -> DiagnosticField(label, UserText.of(R.string.diag_restricted), DiagnosticSeverity.ERROR)
+                false -> DiagnosticField(label, UserText.of(R.string.diag_allowed), DiagnosticSeverity.OK)
+                null -> DiagnosticField(label, UserText.of(R.string.diag_unknown), DiagnosticSeverity.INFO)
             }
         }
 
         fun alwaysOnField(status: AlwaysOnVpnStatus): DiagnosticField {
             val value = when (status.alwaysOn) {
-                true -> if (status.lockdown == true) "on, lockdown" else "on"
-                false -> "off"
-                null -> "unknown until VPN runs"
+                true -> if (status.lockdown == true) R.string.diag_always_on_lockdown else R.string.diag_on
+                false -> R.string.diag_off
+                null -> R.string.diag_always_on_unknown
             }
             return DiagnosticField(
-                label = "Always-on VPN",
-                value = value,
+                label = UserText.of(R.string.settings_always_on),
+                value = UserText.of(value),
                 severity = if (status.alwaysOn == true) DiagnosticSeverity.OK else DiagnosticSeverity.INFO
             )
         }
 
+        /** The stop message is stored in English for bug reports; the reason is translated. */
         fun lastStopField(
             record: VpnStopRecord?,
             timeZone: TimeZone = TimeZone.getDefault()
         ): DiagnosticField {
+            val label = UserText.of(R.string.diag_last_vpn_stop)
             if (record == null) {
-                return DiagnosticField("Last VPN stop", "none", DiagnosticSeverity.INFO)
+                return DiagnosticField(label, UserText.of(R.string.diag_none), DiagnosticSeverity.INFO)
             }
-            val message = record.message.takeIf { it.isNotBlank() }?.let { ": $it" }.orEmpty()
+            val time = formatDiagnosticTime(record.timestampMillis, timeZone)
+            val reason = UserText.of(record.reason.label)
+            val value = if (record.message.isBlank()) {
+                UserText.of(R.string.diag_time_and_text, time, reason)
+            } else {
+                UserText.of(R.string.diag_time_reason_message, time, reason, record.message)
+            }
             return DiagnosticField(
-                label = "Last VPN stop",
-                value = "${formatDiagnosticTime(record.timestampMillis, timeZone)} · " +
-                    record.reason.label + message,
+                label = label,
+                value = value,
                 severity = when (record.reason) {
                     VpnStopReason.USER -> DiagnosticSeverity.INFO
                     VpnStopReason.PERMISSION_REVOKED,
@@ -313,11 +330,12 @@ data class VpnDiagnostics(
             record: ProcessExitRecord?,
             timeZone: TimeZone = TimeZone.getDefault()
         ): DiagnosticField {
+            val label = UserText.of(R.string.diag_last_app_exit)
             if (record == null) {
-                return DiagnosticField("Last app exit", "none", DiagnosticSeverity.INFO)
+                return DiagnosticField(label, UserText.of(R.string.diag_none), DiagnosticSeverity.INFO)
             }
             return DiagnosticField(
-                label = "Last app exit",
+                label = label,
                 value = record.summary(timeZone),
                 severity = when {
                     record.killedWhileServiceInForeground || record.isCrash -> DiagnosticSeverity.ERROR
@@ -329,14 +347,14 @@ data class VpnDiagnostics(
         fun selectedRouteField(routeSelection: VpnRouteSelection?): DiagnosticField {
             return when (routeSelection) {
                 VpnRouteSelection.Direct -> DiagnosticField(
-                    label = "Selected route",
-                    value = "Direct Connection",
+                    label = UserText.of(R.string.diag_selected_route),
+                    value = UserText.of(R.string.route_direct),
                     severity = DiagnosticSeverity.OK
                 )
                 is VpnRouteSelection.Proxy -> selectedProxyField(routeSelection.proxy)
                 null -> DiagnosticField(
-                    label = "Selected route",
-                    value = "none",
+                    label = UserText.of(R.string.diag_selected_route),
+                    value = UserText.of(R.string.diag_none),
                     severity = DiagnosticSeverity.WARNING
                 )
             }

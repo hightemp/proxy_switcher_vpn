@@ -1,7 +1,9 @@
 package com.hightemp.proxy_switcher_vpn.utils
 
+import com.hightemp.proxy_switcher_vpn.R
 import com.hightemp.proxy_switcher_vpn.data.local.ProxyEntity
 import com.hightemp.proxy_switcher_vpn.data.local.ProxyType
+import com.hightemp.proxy_switcher_vpn.i18n.UserText
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -75,13 +77,13 @@ class ProxyTransferTest {
 
     @Test
     fun invalidOrEmptyInputReturnsUsefulError() {
-        assertEquals("Input is empty", ProxyTransfer.import("  ").errorMessage)
+        assertEquals(UserText.of(R.string.import_error_empty), ProxyTransfer.import("  ").errorMessage)
 
         val invalid = ProxyTransfer.import("""{"host":"not-an-array"}""")
-        assertEquals("Invalid format: expected JSON array", invalid.errorMessage)
+        assertEquals(UserText.of(R.string.import_error_not_array), invalid.errorMessage)
 
         val noValidRows = ProxyTransfer.import("""[{"host":"","port":0}]""")
-        assertEquals("No valid proxies found", noValidRows.errorMessage)
+        assertEquals(UserText.of(R.string.import_error_no_proxies), noValidRows.errorMessage)
     }
 
     @Test

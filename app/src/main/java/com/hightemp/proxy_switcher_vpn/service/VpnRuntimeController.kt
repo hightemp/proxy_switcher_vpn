@@ -1,6 +1,9 @@
 package com.hightemp.proxy_switcher_vpn.service
 
+import com.hightemp.proxy_switcher_vpn.R
 import com.hightemp.proxy_switcher_vpn.data.local.ProxyEntity
+import com.hightemp.proxy_switcher_vpn.i18n.UserText
+import com.hightemp.proxy_switcher_vpn.i18n.english
 import com.hightemp.proxy_switcher_vpn.proxy.ProxyNetworkResolver
 import com.hightemp.proxy_switcher_vpn.proxy.ProxyReachabilityTester
 import com.hightemp.proxy_switcher_vpn.utils.AppLogger
@@ -16,7 +19,7 @@ import javax.inject.Inject
 
 sealed interface VpnRuntimeControllerResult {
     data object Success : VpnRuntimeControllerResult
-    data class Failure(val message: String) : VpnRuntimeControllerResult
+    data class Failure(val message: UserText) : VpnRuntimeControllerResult
 }
 
 class VpnRuntimeController @Inject constructor(
@@ -44,14 +47,14 @@ class VpnRuntimeController @Inject constructor(
             proxyTester.test(selectedProxy)
         }.getOrElse {
             return failClosed(
-                message = "Selected upstream proxy failed: Proxy test failed.",
+                message = UserText.of(R.string.error_upstream_failed, UserText.of(R.string.proxy_test_failed)),
                 selectedProxy = selectedProxy,
                 stopEngineOnFailure = stopEngineOnFailure
             )
         }
         if (!probe.success) {
             return failClosed(
-                message = "Selected upstream proxy failed: ${probe.message}",
+                message = UserText.of(R.string.error_upstream_failed, probe.message),
                 selectedProxy = selectedProxy,
                 stopEngineOnFailure = stopEngineOnFailure
             )
@@ -79,7 +82,10 @@ class VpnRuntimeController @Inject constructor(
                 )
             }.getOrElse {
                 return failClosed(
-                    message = "Selected upstream proxy failed: Proxy host bootstrap resolution failed.",
+                    message = UserText.of(
+                        R.string.error_upstream_failed,
+                        UserText.of(R.string.error_proxy_bootstrap)
+                    ),
                     selectedProxy = selectedProxy,
                     stopEngineOnFailure = stopEngineOnFailure
                 )
@@ -92,7 +98,7 @@ class VpnRuntimeController @Inject constructor(
             )
         }.getOrElse {
             return failClosed(
-                message = "Failed to generate VPN config.",
+                message = UserText.of(R.string.error_config_generation),
                 selectedProxy = selectedProxy,
                 stopEngineOnFailure = stopEngineOnFailure
             )
@@ -107,7 +113,7 @@ class VpnRuntimeController @Inject constructor(
             )
         }.getOrElse {
             return failClosed(
-                message = "VPN engine failed to start.",
+                message = UserText.of(R.string.error_engine_start),
                 selectedProxy = selectedProxy,
                 stopEngineOnFailure = stopEngineOnFailure
             )
@@ -123,7 +129,7 @@ class VpnRuntimeController @Inject constructor(
             }
             is VpnEngineCommandResult.Failure -> {
                 failClosed(
-                    message = startResult.message,
+                    message = UserText.raw(startResult.message),
                     selectedProxy = selectedProxy,
                     stopEngineOnFailure = stopEngineOnFailure
                 )
@@ -138,7 +144,7 @@ class VpnRuntimeController @Inject constructor(
             configGenerator.generateDirect()
         }.getOrElse {
             return failClosed(
-                message = "Failed to generate direct VPN config.",
+                message = UserText.of(R.string.error_direct_config_generation),
                 routeSelection = VpnRouteSelection.Direct,
                 stopEngineOnFailure = stopEngineOnFailure
             )
@@ -153,7 +159,7 @@ class VpnRuntimeController @Inject constructor(
             )
         }.getOrElse {
             return failClosed(
-                message = "Direct VPN engine failed to start.",
+                message = UserText.of(R.string.error_direct_engine_start),
                 routeSelection = VpnRouteSelection.Direct,
                 stopEngineOnFailure = stopEngineOnFailure
             )
@@ -169,7 +175,7 @@ class VpnRuntimeController @Inject constructor(
             }
             is VpnEngineCommandResult.Failure -> {
                 failClosed(
-                    message = startResult.message,
+                    message = UserText.raw(startResult.message),
                     routeSelection = VpnRouteSelection.Direct,
                     stopEngineOnFailure = stopEngineOnFailure
                 )
@@ -191,13 +197,13 @@ class VpnRuntimeController @Inject constructor(
                     message = "VPN engine stop failed: ${result.message}",
                     type = LogType.VPN
                 )
-                VpnRuntimeControllerResult.Failure(result.message)
+                VpnRuntimeControllerResult.Failure(UserText.raw(result.message))
             }
         }
     }
 
     private suspend fun failClosed(
-        message: String,
+        message: UserText,
         selectedProxy: ProxyEntity,
         stopEngineOnFailure: Boolean
     ): VpnRuntimeControllerResult.Failure {
@@ -209,20 +215,20 @@ class VpnRuntimeController @Inject constructor(
     }
 
     private suspend fun failClosed(
-        message: String,
+        message: UserText,
         routeSelection: VpnRouteSelection,
         stopEngineOnFailure: Boolean
     ): VpnRuntimeControllerResult.Failure {
         if (stopEngineOnFailure) {
             engine.stop()
             AppLogger.error(
-                message = "VPN stopped fail-closed: $message",
+                message = "VPN stopped fail-closed: ${message.english()}",
                 type = LogType.PROXY,
                 sensitiveValues = routeSelection.sensitiveValues()
             )
         } else {
             AppLogger.warning(
-                message = "VPN start/reconnect attempt failed: $message",
+                message = "VPN start/reconnect attempt failed: ${message.english()}",
                 type = LogType.PROXY,
                 sensitiveValues = routeSelection.sensitiveValues()
             )

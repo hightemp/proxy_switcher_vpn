@@ -1,5 +1,6 @@
 package com.hightemp.proxy_switcher_vpn.service
 
+import com.hightemp.proxy_switcher_vpn.i18n.UserText
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,8 +17,8 @@ data class VpnRuntimeSnapshot(
     val status: VpnServiceStatus = VpnServiceStatus.STOPPED,
     val isForegroundServiceActive: Boolean = false,
     val startedAtMillis: Long? = null,
-    val statusMessage: String? = null,
-    val lastError: String? = null
+    val statusMessage: UserText? = null,
+    val lastError: UserText? = null
 ) {
     val isRunning: Boolean = status == VpnServiceStatus.RUNNING
 }
@@ -26,7 +27,7 @@ object VpnRuntimeState {
     private val _state = MutableStateFlow(VpnRuntimeSnapshot())
     val state: StateFlow<VpnRuntimeSnapshot> = _state.asStateFlow()
 
-    fun markStarting(message: String) {
+    fun markStarting(message: UserText) {
         _state.value = VpnRuntimeSnapshot(
             status = VpnServiceStatus.STARTING,
             isForegroundServiceActive = true,
@@ -35,7 +36,7 @@ object VpnRuntimeState {
         )
     }
 
-    fun markRunning(message: String) {
+    fun markRunning(message: UserText) {
         _state.value = VpnRuntimeSnapshot(
             status = VpnServiceStatus.RUNNING,
             isForegroundServiceActive = true,
@@ -45,14 +46,14 @@ object VpnRuntimeState {
         )
     }
 
-    fun markStopping(message: String) {
+    fun markStopping(message: UserText) {
         _state.value = _state.value.copy(
             status = VpnServiceStatus.STOPPING,
             statusMessage = message
         )
     }
 
-    fun markStopped(message: String) {
+    fun markStopped(message: UserText) {
         _state.value = VpnRuntimeSnapshot(
             status = VpnServiceStatus.STOPPED,
             isForegroundServiceActive = false,
@@ -61,7 +62,7 @@ object VpnRuntimeState {
         )
     }
 
-    fun markFailedStopped(message: String) {
+    fun markFailedStopped(message: UserText) {
         _state.value = VpnRuntimeSnapshot(
             status = VpnServiceStatus.ERROR,
             isForegroundServiceActive = false,

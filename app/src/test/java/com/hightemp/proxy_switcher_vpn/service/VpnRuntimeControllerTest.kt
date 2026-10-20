@@ -1,7 +1,9 @@
 package com.hightemp.proxy_switcher_vpn.service
 
+import com.hightemp.proxy_switcher_vpn.R
 import com.hightemp.proxy_switcher_vpn.data.local.ProxyEntity
 import com.hightemp.proxy_switcher_vpn.data.local.ProxyType
+import com.hightemp.proxy_switcher_vpn.i18n.UserText
 import com.hightemp.proxy_switcher_vpn.proxy.ProxyNetworkResolver
 import com.hightemp.proxy_switcher_vpn.proxy.ProxyReachabilityTester
 import com.hightemp.proxy_switcher_vpn.proxy.ProxySocketTarget
@@ -39,7 +41,7 @@ class VpnRuntimeControllerTest {
             proxyTester = FakeReachabilityTester(
                 ProxyTestResult(
                     success = false,
-                    message = "Could not connect to proxy."
+                    message = UserText.raw("Could not connect to proxy.")
                 )
             ),
             proxyNetworkResolver = FakeProxyNetworkResolver()
@@ -50,7 +52,7 @@ class VpnRuntimeControllerTest {
         assertTrue(result is VpnRuntimeControllerResult.Failure)
         assertEquals(VpnEngineStatus.STOPPED, engine.state.value.status)
         assertEquals(
-            "Selected upstream proxy failed: Could not connect to proxy.",
+            UserText.of(R.string.error_upstream_failed, UserText.raw("Could not connect to proxy.")),
             (result as VpnRuntimeControllerResult.Failure).message
         )
         val logText = AppLogger.logs.value.joinToString(separator = "\n") { it.message }
@@ -68,7 +70,7 @@ class VpnRuntimeControllerTest {
             proxyTester = FakeReachabilityTester(
                 ProxyTestResult(
                     success = false,
-                    message = "Could not connect to proxy."
+                    message = UserText.raw("Could not connect to proxy.")
                 )
             ),
             proxyNetworkResolver = FakeProxyNetworkResolver()
@@ -94,7 +96,7 @@ class VpnRuntimeControllerTest {
         val controller = VpnRuntimeController(
             engine = engine,
             proxyTester = FakeReachabilityTester(
-                ProxyTestResult(success = true, message = "Proxy test succeeded.")
+                ProxyTestResult(success = true, message = UserText.raw("Proxy test succeeded."))
             ),
             proxyNetworkResolver = FakeProxyNetworkResolver()
         )
@@ -104,7 +106,7 @@ class VpnRuntimeControllerTest {
         assertTrue(result is VpnRuntimeControllerResult.Failure)
         assertEquals(VpnEngineStatus.STOPPED, engine.state.value.status)
         assertEquals(
-            "Upstream proxy refused connection.",
+            UserText.raw("Upstream proxy refused connection."),
             (result as VpnRuntimeControllerResult.Failure).message
         )
         val logText = AppLogger.logs.value.joinToString(separator = "\n") { it.message }
@@ -123,7 +125,7 @@ class VpnRuntimeControllerTest {
             proxyTester = FakeReachabilityTester(
                 ProxyTestResult(
                     success = true,
-                    message = "Proxy test succeeded.",
+                    message = UserText.raw("Proxy test succeeded."),
                     resolvedProxyHost = "203.0.113.10"
                 )
             ),
@@ -147,7 +149,7 @@ class VpnRuntimeControllerTest {
         val controller = VpnRuntimeController(
             engine = engine,
             proxyTester = FakeReachabilityTester(
-                ProxyTestResult(success = true, message = "Proxy test succeeded.")
+                ProxyTestResult(success = true, message = UserText.raw("Proxy test succeeded."))
             ),
             proxyNetworkResolver = FakeProxyNetworkResolver(throwsOnResolve = true)
         )
@@ -157,7 +159,7 @@ class VpnRuntimeControllerTest {
         assertTrue(result is VpnRuntimeControllerResult.Failure)
         assertEquals(VpnEngineStatus.STOPPED, engine.state.value.status)
         assertEquals(
-            "Selected upstream proxy failed: Proxy host bootstrap resolution failed.",
+            UserText.of(R.string.error_upstream_failed, UserText.of(R.string.error_proxy_bootstrap)),
             (result as VpnRuntimeControllerResult.Failure).message
         )
         assertEquals(null, engine.lastStartRequest)
@@ -167,7 +169,7 @@ class VpnRuntimeControllerTest {
     fun directStartSkipsProxyProbeAndUsesDirectConfig() = runTest {
         val engine = FakeVpnEngine()
         val tester = FakeReachabilityTester(
-            ProxyTestResult(success = false, message = "Proxy probe should not run.")
+            ProxyTestResult(success = false, message = UserText.raw("Proxy probe should not run."))
         )
         val controller = VpnRuntimeController(
             engine = engine,

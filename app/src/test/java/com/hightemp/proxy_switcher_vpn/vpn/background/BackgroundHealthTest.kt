@@ -1,5 +1,7 @@
 package com.hightemp.proxy_switcher_vpn.vpn.background
 
+import com.hightemp.proxy_switcher_vpn.R
+import com.hightemp.proxy_switcher_vpn.i18n.UserText
 import com.hightemp.proxy_switcher_vpn.service.VpnRuntimeSnapshot
 import com.hightemp.proxy_switcher_vpn.vpn.diagnostics.DiagnosticSeverity
 import com.hightemp.proxy_switcher_vpn.vpn.diagnostics.VpnDiagnostics
@@ -44,11 +46,11 @@ class BackgroundHealthTest {
         )
         val unknown = VpnDiagnostics.batteryOptimizationField(BackgroundRestrictionStatus())
 
-        assertEquals("optimized", optimized.value)
+        assertEquals(UserText.of(R.string.diag_optimized), optimized.value)
         assertEquals(DiagnosticSeverity.WARNING, optimized.severity)
-        assertEquals("unrestricted", unrestricted.value)
+        assertEquals(UserText.of(R.string.diag_unrestricted), unrestricted.value)
         assertEquals(DiagnosticSeverity.OK, unrestricted.severity)
-        assertEquals("unknown", unknown.value)
+        assertEquals(UserText.of(R.string.diag_unknown), unknown.value)
     }
 
     @Test
@@ -60,27 +62,27 @@ class BackgroundHealthTest {
             BackgroundRestrictionStatus(backgroundRestricted = false)
         )
 
-        assertEquals("restricted", restricted.value)
+        assertEquals(UserText.of(R.string.diag_restricted), restricted.value)
         assertEquals(DiagnosticSeverity.ERROR, restricted.severity)
-        assertEquals("allowed", allowed.value)
+        assertEquals(UserText.of(R.string.diag_allowed), allowed.value)
         assertEquals(DiagnosticSeverity.OK, allowed.severity)
     }
 
     @Test
     fun alwaysOnFieldReportsLockdownAndUnknown() {
         assertEquals(
-            "on, lockdown",
+            UserText.of(R.string.diag_always_on_lockdown),
             VpnDiagnostics.alwaysOnField(AlwaysOnVpnStatus(alwaysOn = true, lockdown = true)).value
         )
         assertEquals(
-            "on",
+            UserText.of(R.string.diag_on),
             VpnDiagnostics.alwaysOnField(AlwaysOnVpnStatus(alwaysOn = true, lockdown = false)).value
         )
         val off = VpnDiagnostics.alwaysOnField(AlwaysOnVpnStatus(alwaysOn = false, lockdown = false))
-        assertEquals("off", off.value)
+        assertEquals(UserText.of(R.string.diag_off), off.value)
         assertEquals(DiagnosticSeverity.INFO, off.severity)
         assertEquals(
-            "unknown until VPN runs",
+            UserText.of(R.string.diag_always_on_unknown),
             VpnDiagnostics.alwaysOnField(AlwaysOnVpnStatus()).value
         )
     }
@@ -97,11 +99,16 @@ class BackgroundHealthTest {
         )
 
         assertEquals(
-            "2025-10-18 11:47 · fail-closed: Selected upstream proxy did not recover.",
+            UserText.of(
+                R.string.diag_time_reason_message,
+                "2025-10-18 11:47",
+                UserText.of(R.string.stop_reason_fail_closed),
+                "Selected upstream proxy did not recover."
+            ),
             field.value
         )
         assertEquals(DiagnosticSeverity.ERROR, field.severity)
-        assertEquals("none", VpnDiagnostics.lastStopField(null, utc).value)
+        assertEquals(UserText.of(R.string.diag_none), VpnDiagnostics.lastStopField(null, utc).value)
     }
 
     @Test
@@ -116,7 +123,15 @@ class BackgroundHealthTest {
         )
 
         assertEquals(DiagnosticSeverity.INFO, field.severity)
-        assertEquals("1970-01-01 00:00 · stopped by user: VPN service stopped.", field.value)
+        assertEquals(
+            UserText.of(
+                R.string.diag_time_reason_message,
+                "1970-01-01 00:00",
+                UserText.of(R.string.stop_reason_user),
+                "VPN service stopped."
+            ),
+            field.value
+        )
     }
 
     @Test
@@ -142,11 +157,17 @@ class BackgroundHealthTest {
             )
         )
 
-        assertEquals("optimized", diagnostics.batteryOptimization.value)
-        assertEquals("allowed", diagnostics.backgroundRestriction.value)
-        assertEquals("on", diagnostics.alwaysOnVpn.value)
-        assertTrue(diagnostics.lastVpnStop.value.contains("permission revoked"))
-        assertTrue(diagnostics.lastProcessExit.value.contains("killed by system"))
+        assertEquals(UserText.of(R.string.diag_optimized), diagnostics.batteryOptimization.value)
+        assertEquals(UserText.of(R.string.diag_allowed), diagnostics.backgroundRestriction.value)
+        assertEquals(UserText.of(R.string.diag_on), diagnostics.alwaysOnVpn.value)
+        assertEquals(
+            UserText.of(R.string.stop_reason_permission_revoked),
+            (diagnostics.lastVpnStop.value as UserText.Res).args[1]
+        )
+        assertEquals(
+            UserText.of(R.string.exit_signaled, 9),
+            (diagnostics.lastProcessExit.value as UserText.Res).args[1]
+        )
         assertEquals(DiagnosticSeverity.ERROR, diagnostics.lastProcessExit.severity)
     }
 }

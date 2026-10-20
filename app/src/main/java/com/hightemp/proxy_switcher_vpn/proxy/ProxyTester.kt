@@ -1,8 +1,11 @@
 package com.hightemp.proxy_switcher_vpn.proxy
 
 import android.util.Base64
+import com.hightemp.proxy_switcher_vpn.R
 import com.hightemp.proxy_switcher_vpn.data.local.ProxyEntity
 import com.hightemp.proxy_switcher_vpn.data.local.ProxyType
+import com.hightemp.proxy_switcher_vpn.i18n.UserText
+import com.hightemp.proxy_switcher_vpn.i18n.english
 import com.hightemp.proxy_switcher_vpn.utils.AppLogger
 import com.hightemp.proxy_switcher_vpn.utils.LogType
 import com.hightemp.proxy_switcher_vpn.vpn.platform.ActiveVpnServiceBridge
@@ -36,7 +39,7 @@ private const val SOCKS_ADDRESS_DOMAIN = 0x03
 
 data class ProxyTestResult(
     val success: Boolean,
-    val message: String,
+    val message: UserText,
     val resolvedProxyHost: String? = null
 )
 
@@ -62,7 +65,7 @@ class ProxyTester @Inject constructor(
         val validationError = validate(proxy, targetHost, targetPort, timeoutMillis)
         if (validationError != null) {
             AppLogger.warning(
-                message = "Proxy test skipped for ${proxy.debugLabel()}: $validationError",
+                message = "Proxy test skipped for ${proxy.debugLabel()}: ${validationError.english()}",
                 type = LogType.PROXY,
                 sensitiveValues = proxy.sensitiveValues()
             )
@@ -91,13 +94,13 @@ class ProxyTester @Inject constructor(
             AppLogger.debug(
                 message = "Proxy test succeeded for ${proxy.debugLabel()}; " +
                     "resolvedProxyHost=${result.resolvedProxyHost ?: "unresolved"}; " +
-                    "message=${result.message}",
+                    "message=${result.message.english()}",
                 type = LogType.PROXY,
                 sensitiveValues = proxy.sensitiveValues()
             )
         } else {
             AppLogger.warning(
-                message = "Proxy test failed for ${proxy.debugLabel()}: ${result.message}",
+                message = "Proxy test failed for ${proxy.debugLabel()}: ${result.message.english()}",
                 type = LogType.PROXY,
                 sensitiveValues = proxy.sensitiveValues()
             )
@@ -111,13 +114,13 @@ class ProxyTester @Inject constructor(
         targetHost: String,
         targetPort: Int,
         timeoutMillis: Int
-    ): String? {
+    ): UserText? {
         return when {
-            proxy.host.isBlank() -> "Proxy host is required."
-            proxy.port !in 1..65535 -> "Proxy port must be between 1 and 65535."
-            targetHost.isBlank() -> "Test target host is required."
-            targetPort !in 1..65535 -> "Test target port must be between 1 and 65535."
-            timeoutMillis <= 0 -> "Proxy test timeout must be positive."
+            proxy.host.isBlank() -> UserText.of(R.string.proxy_test_host_required)
+            proxy.port !in 1..65535 -> UserText.of(R.string.proxy_test_port_range)
+            targetHost.isBlank() -> UserText.of(R.string.proxy_test_target_required)
+            targetPort !in 1..65535 -> UserText.of(R.string.proxy_test_target_port_range)
+            timeoutMillis <= 0 -> UserText.of(R.string.proxy_test_timeout_positive)
             else -> null
         }
     }
@@ -216,22 +219,22 @@ class ProxyTester @Inject constructor(
         val statusCode = statusLine.split(" ", limit = 3).getOrNull(1)?.toIntOrNull()
         return when {
             statusCode in 200..299 -> {
-                ProxyTestResult(success = true, message = "Proxy test succeeded.")
+                ProxyTestResult(success = true, message = UserText.of(R.string.proxy_test_succeeded))
             }
             statusCode == 407 -> {
                 ProxyTestResult(
                     success = false,
-                    message = "Proxy requires authentication or rejected credentials."
+                    message = UserText.of(R.string.proxy_test_http_auth)
                 )
             }
             statusCode != null -> {
                 ProxyTestResult(
                     success = false,
-                    message = "Proxy CONNECT failed with HTTP $statusCode."
+                    message = UserText.of(R.string.proxy_test_http_status, statusCode)
                 )
             }
             else -> {
-                ProxyTestResult(success = false, message = "Proxy returned an invalid response.")
+                ProxyTestResult(success = false, message = UserText.of(R.string.proxy_test_invalid_response))
             }
         }
     }
@@ -272,7 +275,7 @@ class ProxyTester @Inject constructor(
             val version = input.readRequiredByte()
             val selectedMethod = input.readRequiredByte()
             if (version != SOCKS_VERSION) {
-                return ProxyTestResult(false, "SOCKS5 server returned an invalid version.")
+                return ProxyTestResult(false, UserText.of(R.string.proxy_test_socks_version))
             }
 
             when (selectedMethod) {
@@ -281,23 +284,23 @@ class ProxyTester @Inject constructor(
                     if (username == null) {
                         return ProxyTestResult(
                             false,
-                            "SOCKS5 proxy requires username/password authentication."
+                            UserText.of(R.string.proxy_test_socks_auth_required)
                         )
                     }
                     val authResult = authenticateSocks5(input, output, username, password)
                     if (authResult != null) return authResult
                 }
                 SOCKS_METHOD_NONE_ACCEPTABLE -> {
-                    return ProxyTestResult(false, "SOCKS5 proxy rejected available auth methods.")
+                    return ProxyTestResult(false, UserText.of(R.string.proxy_test_socks_methods_rejected))
                 }
                 else -> {
-                    return ProxyTestResult(false, "SOCKS5 proxy selected unsupported auth method.")
+                    return ProxyTestResult(false, UserText.of(R.string.proxy_test_socks_method_unsupported))
                 }
             }
 
             val targetHostBytes = targetHost.toByteArray(Charsets.UTF_8)
             if (targetHostBytes.size > 255) {
-                return ProxyTestResult(false, "Test target host is too long.")
+                return ProxyTestResult(false, UserText.of(R.string.proxy_test_target_too_long))
             }
 
             output.writeByte(SOCKS_VERSION)
@@ -316,7 +319,7 @@ class ProxyTester @Inject constructor(
             val addressType = input.readRequiredByte()
 
             if (responseVersion != SOCKS_VERSION) {
-                return ProxyTestResult(false, "SOCKS5 connect response had an invalid version.")
+                return ProxyTestResult(false, UserText.of(R.string.proxy_test_socks_connect_version))
             }
             if (reply != 0) {
                 return ProxyTestResult(false, socks5ReplyMessage(reply))
@@ -326,7 +329,7 @@ class ProxyTester @Inject constructor(
             input.skipFully(2)
             return ProxyTestResult(
                 success = true,
-                message = "Proxy test succeeded.",
+                message = UserText.of(R.string.proxy_test_succeeded),
                 resolvedProxyHost = target.serverHost
             )
         }
@@ -350,7 +353,7 @@ class ProxyTester @Inject constructor(
         val usernameBytes = username.toByteArray(Charsets.UTF_8)
         val passwordBytes = password.toByteArray(Charsets.UTF_8)
         if (usernameBytes.size > 255 || passwordBytes.size > 255) {
-            return ProxyTestResult(false, "SOCKS5 credentials are too long.")
+            return ProxyTestResult(false, UserText.of(R.string.proxy_test_socks_credentials_long))
         }
 
         output.writeByte(SOCKS_AUTH_VERSION)
@@ -364,10 +367,10 @@ class ProxyTester @Inject constructor(
         val authStatus = input.readRequiredByte()
         return when {
             authVersion != SOCKS_AUTH_VERSION -> {
-                ProxyTestResult(false, "SOCKS5 auth response had an invalid version.")
+                ProxyTestResult(false, UserText.of(R.string.proxy_test_socks_auth_version))
             }
             authStatus != 0 -> {
-                ProxyTestResult(false, "SOCKS5 proxy rejected credentials.")
+                ProxyTestResult(false, UserText.of(R.string.proxy_test_socks_credentials_rejected))
             }
             else -> null
         }
@@ -385,12 +388,12 @@ class ProxyTester @Inject constructor(
 
     private fun Throwable.toSanitizedFailure(): ProxyTestResult {
         val message = when (this) {
-            is SocketTimeoutException -> "Proxy test timed out."
-            is UnknownHostException -> "Proxy host could not be resolved."
-            is ConnectException -> "Could not connect to proxy."
-            is SSLException -> "TLS handshake with HTTPS proxy failed."
-            is EOFException -> "Proxy closed the connection during the test."
-            else -> "Proxy test failed."
+            is SocketTimeoutException -> UserText.of(R.string.proxy_test_timeout)
+            is UnknownHostException -> UserText.of(R.string.proxy_test_unresolved)
+            is ConnectException -> UserText.of(R.string.proxy_test_connect_failed)
+            is SSLException -> UserText.of(R.string.proxy_test_tls_failed)
+            is EOFException -> UserText.of(R.string.proxy_test_closed)
+            else -> UserText.of(R.string.proxy_test_failed)
         }
         return ProxyTestResult(success = false, message = message)
     }
@@ -408,17 +411,17 @@ class ProxyTester @Inject constructor(
         return if (success) copy(resolvedProxyHost = resolvedProxyHost) else this
     }
 
-    private fun socks5ReplyMessage(reply: Int): String {
+    private fun socks5ReplyMessage(reply: Int): UserText {
         return when (reply) {
-            0x01 -> "SOCKS5 proxy reported a general failure."
-            0x02 -> "SOCKS5 proxy disallows the connection."
-            0x03 -> "SOCKS5 proxy reported network unreachable."
-            0x04 -> "SOCKS5 proxy reported host unreachable."
-            0x05 -> "SOCKS5 proxy reported connection refused."
-            0x06 -> "SOCKS5 proxy reported TTL expired."
-            0x07 -> "SOCKS5 proxy does not support CONNECT."
-            0x08 -> "SOCKS5 proxy does not support the target address type."
-            else -> "SOCKS5 proxy returned an unknown failure."
+            0x01 -> UserText.of(R.string.proxy_test_socks_reply_general)
+            0x02 -> UserText.of(R.string.proxy_test_socks_reply_disallowed)
+            0x03 -> UserText.of(R.string.proxy_test_socks_reply_network)
+            0x04 -> UserText.of(R.string.proxy_test_socks_reply_host)
+            0x05 -> UserText.of(R.string.proxy_test_socks_reply_refused)
+            0x06 -> UserText.of(R.string.proxy_test_socks_reply_ttl)
+            0x07 -> UserText.of(R.string.proxy_test_socks_reply_command)
+            0x08 -> UserText.of(R.string.proxy_test_socks_reply_address)
+            else -> UserText.of(R.string.proxy_test_socks_reply_unknown)
         }
     }
 

@@ -1,6 +1,9 @@
 package com.hightemp.proxy_switcher_vpn
 
 import android.app.Application
+import com.hightemp.proxy_switcher_vpn.i18n.AppLanguages
+import com.hightemp.proxy_switcher_vpn.i18n.UserText
+import com.hightemp.proxy_switcher_vpn.i18n.english
 import com.hightemp.proxy_switcher_vpn.utils.AppLogger
 import com.hightemp.proxy_switcher_vpn.utils.LogType
 import com.hightemp.proxy_switcher_vpn.vpn.background.ProcessExitHistory
@@ -24,6 +27,7 @@ class ProxySwitcherVpnApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        UserText.englishResources = AppLanguages.englishContext(this).resources
         runCatching {
             LibboxSetup.ensureInitialized(this)
         }.onFailure {
@@ -44,7 +48,7 @@ class ProxySwitcherVpnApp : Application() {
                     lastSeenMillis = stopHistory.lastSeenProcessExitMillis.first()
                 ) ?: return@launch
                 stopHistory.markProcessExitSeen(exit.timestampMillis)
-                val message = "Previous app process exit: ${exit.summary()}."
+                val message = "Previous app process exit: ${exit.summary().english()}."
                 if (exit.killedWhileServiceInForeground || exit.isCrash) {
                     AppLogger.warning(message = message, type = LogType.VPN)
                 } else {

@@ -38,11 +38,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.hightemp.proxy_switcher_vpn.R
 import com.hightemp.proxy_switcher_vpn.data.local.ProxyEntity
+import com.hightemp.proxy_switcher_vpn.i18n.UserText
+import com.hightemp.proxy_switcher_vpn.i18n.asString
 import com.hightemp.proxy_switcher_vpn.data.local.ProxyType
 import com.hightemp.proxy_switcher_vpn.proxy.ParsedProxyString
 import com.hightemp.proxy_switcher_vpn.proxy.ProxyStringParseResult
@@ -66,11 +70,13 @@ fun AddEditProxyScreen(
                     IconButton(onClick = onBack) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = stringResource(R.string.action_back)
                         )
                     }
                 },
-                title = { Text(if (isEdit) "Edit proxy" else "Add proxy") }
+                title = {
+                    Text(stringResource(if (isEdit) R.string.edit_proxy_title else R.string.add_proxy_title))
+                }
             )
         },
         modifier = modifier.fillMaxSize()
@@ -108,11 +114,11 @@ private fun MissingProxyState(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "Proxy was not found.",
+            text = stringResource(R.string.edit_proxy_not_found),
             style = MaterialTheme.typography.titleMedium
         )
         OutlinedButton(onClick = onBack) {
-            Text("Back")
+            Text(stringResource(R.string.action_back))
         }
     }
 }
@@ -133,10 +139,10 @@ private fun ProxyForm(
     var username by remember(proxy?.id) { mutableStateOf(proxy?.username.orEmpty()) }
     var password by remember(proxy?.id) { mutableStateOf(proxy?.password.orEmpty()) }
     var isEnabled by remember(proxy?.id) { mutableStateOf(proxy?.isEnabled ?: true) }
-    var errorMessage by remember(proxy?.id) { mutableStateOf<String?>(null) }
+    var errorMessage by remember(proxy?.id) { mutableStateOf<UserText?>(null) }
     var proxyString by remember(proxy?.id) { mutableStateOf("") }
-    var proxyStringError by remember(proxy?.id) { mutableStateOf<String?>(null) }
-    var proxyStringInfo by remember(proxy?.id) { mutableStateOf<String?>(null) }
+    var proxyStringError by remember(proxy?.id) { mutableStateOf<UserText?>(null) }
+    var proxyStringInfo by remember(proxy?.id) { mutableStateOf<UserText?>(null) }
     var ambiguousParse by remember(proxy?.id) {
         mutableStateOf<ProxyStringParseResult.Ambiguous?>(null)
     }
@@ -155,21 +161,21 @@ private fun ProxyForm(
         if (parsed.type != null) {
             type = parsed.type
             isDetecting = false
-            proxyStringInfo = "Parsed ${parsed.type.name} proxy."
+            proxyStringInfo = UserText.of(R.string.proxy_string_parsed, parsed.type.name)
         } else {
             type = null
             isDetecting = true
-            proxyStringInfo = "Detecting protocol: connecting to the proxy..."
+            proxyStringInfo = UserText.of(R.string.proxy_string_detecting)
             onDetectProtocol(parsed) { detected ->
                 if (generation == detectGeneration) {
                     isDetecting = false
                     proxyStringInfo = null
                     when {
                         detected == null -> proxyStringError =
-                            "Could not detect the protocol. Select it manually."
+                            UserText.of(R.string.proxy_string_detect_failed)
                         type == null -> {
                             type = detected
-                            proxyStringInfo = "Detected ${detected.name} proxy."
+                            proxyStringInfo = UserText.of(R.string.proxy_string_detected, detected.name)
                         }
                     }
                 }
@@ -218,7 +224,7 @@ private fun ProxyForm(
         OutlinedTextField(
             value = label,
             onValueChange = { label = it },
-            label = { Text("Label (optional)") },
+            label = { Text(stringResource(R.string.proxy_field_label)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
         )
@@ -228,7 +234,7 @@ private fun ProxyForm(
                 host = it
                 errorMessage = null
             },
-            label = { Text("Host") },
+            label = { Text(stringResource(R.string.proxy_field_host)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
         )
@@ -238,7 +244,7 @@ private fun ProxyForm(
                 port = it
                 errorMessage = null
             },
-            label = { Text("Port") },
+            label = { Text(stringResource(R.string.proxy_field_port)) },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
@@ -256,7 +262,7 @@ private fun ProxyForm(
                 username = it
                 errorMessage = null
             },
-            label = { Text("Username (optional)") },
+            label = { Text(stringResource(R.string.proxy_field_username)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
         )
@@ -266,7 +272,7 @@ private fun ProxyForm(
                 password = it
                 errorMessage = null
             },
-            label = { Text("Password (optional)") },
+            label = { Text(stringResource(R.string.proxy_field_password)) },
             visualTransformation = PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
             singleLine = true,
@@ -278,7 +284,7 @@ private fun ProxyForm(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Enabled",
+                text = stringResource(R.string.proxy_enabled),
                 style = MaterialTheme.typography.bodyLarge
             )
             Switch(
@@ -288,7 +294,7 @@ private fun ProxyForm(
         }
         errorMessage?.let { message ->
             Text(
-                text = message,
+                text = message.asString(),
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodySmall
             )
@@ -301,7 +307,7 @@ private fun ProxyForm(
                 onClick = onCancel,
                 modifier = Modifier.weight(1f)
             ) {
-                Text("Cancel")
+                Text(stringResource(R.string.action_cancel))
             }
             Button(
                 enabled = !isDetecting,
@@ -314,9 +320,9 @@ private fun ProxyForm(
                         passwordInput = password
                     )
                     if (ambiguousParse != null) {
-                        errorMessage = "Choose the field order of the proxy string."
+                        errorMessage = UserText.of(R.string.proxy_form_choose_order)
                     } else if (selectedType == null) {
-                        errorMessage = "Select a protocol."
+                        errorMessage = UserText.of(R.string.proxy_form_select_protocol)
                     } else if (validation.isValid) {
                         onSave(
                             ProxyEntity(
@@ -338,7 +344,7 @@ private fun ProxyForm(
             ) {
                 Icon(Icons.Default.Save, contentDescription = null)
                 Spacer(modifier = Modifier.padding(horizontal = 4.dp))
-                Text("Save")
+                Text(stringResource(R.string.action_save))
             }
         }
     }
@@ -348,8 +354,8 @@ private fun ProxyForm(
 private fun ProxyStringInput(
     value: String,
     onValueChange: (String) -> Unit,
-    errorMessage: String?,
-    infoMessage: String?,
+    errorMessage: UserText?,
+    infoMessage: UserText?,
     isDetecting: Boolean,
     onShowHelp: () -> Unit,
     onParse: () -> Unit,
@@ -367,20 +373,20 @@ private fun ProxyStringInput(
             OutlinedTextField(
                 value = value,
                 onValueChange = onValueChange,
-                label = { Text("Proxy string (optional)") },
+                label = { Text(stringResource(R.string.proxy_string_field)) },
                 placeholder = { Text("user:pass@host:port") },
                 isError = errorMessage != null,
                 singleLine = true,
                 modifier = Modifier.weight(1f)
             )
             IconButton(onClick = onShowHelp) {
-                Icon(Icons.Outlined.Info, contentDescription = "Supported proxy string formats")
+                Icon(Icons.Outlined.Info, contentDescription = stringResource(R.string.proxy_string_formats))
             }
             OutlinedButton(
                 onClick = onParse,
                 enabled = value.isNotBlank() && !isDetecting
             ) {
-                Text("Parse")
+                Text(stringResource(R.string.proxy_string_parse))
             }
         }
         if (isDetecting) {
@@ -392,18 +398,19 @@ private fun ProxyStringInput(
                     modifier = Modifier.size(16.dp),
                     strokeWidth = 2.dp
                 )
-                infoMessage?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+                infoMessage?.let { Text(it.asString(), style = MaterialTheme.typography.bodySmall) }
             }
         } else if (errorMessage == null) {
             Text(
-                text = infoMessage ?: ProxyStringFormatHelp.supportingText,
+                text = infoMessage?.asString()
+                    ?: stringResource(R.string.proxy_string_supporting_text),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
         errorMessage?.let {
             Text(
-                text = it,
+                text = it.asString(),
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodySmall
             )
@@ -422,7 +429,7 @@ private fun FieldOrderSelector(
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Text(
-            text = "The string fits both field orders. Choose one:",
+            text = stringResource(R.string.proxy_string_ambiguous),
             style = MaterialTheme.typography.bodySmall
         )
         SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {

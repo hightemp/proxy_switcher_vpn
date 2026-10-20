@@ -1,17 +1,25 @@
 package com.hightemp.proxy_switcher_vpn.vpn.routing
 
+import com.hightemp.proxy_switcher_vpn.R
 import com.hightemp.proxy_switcher_vpn.data.local.ProxyEntity
+import com.hightemp.proxy_switcher_vpn.i18n.UserText
 
 sealed interface VpnRouteSelection {
+    /** English label for logs. */
     val displayLabel: String
+
+    /** Label shown to the user. */
+    val displayText: UserText
 
     data object Direct : VpnRouteSelection {
         override val displayLabel: String = "Direct Connection"
+        override val displayText: UserText = UserText.of(R.string.route_direct)
     }
 
     data class Proxy(val proxy: ProxyEntity) : VpnRouteSelection {
         override val displayLabel: String =
             "${proxy.label ?: proxy.host}:${proxy.port} (${proxy.type})"
+        override val displayText: UserText = UserText.raw(displayLabel)
     }
 }
 

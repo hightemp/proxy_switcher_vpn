@@ -3,11 +3,13 @@ package com.hightemp.proxy_switcher_vpn.ui.viewmodel
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.emptyPreferences
+import com.hightemp.proxy_switcher_vpn.R
 import com.hightemp.proxy_switcher_vpn.data.local.ProxyDao
 import com.hightemp.proxy_switcher_vpn.data.local.ProxyEntity
 import com.hightemp.proxy_switcher_vpn.data.local.ProxyType
 import com.hightemp.proxy_switcher_vpn.data.repository.ProxyRepository
 import com.hightemp.proxy_switcher_vpn.data.settings.SettingsRepository
+import com.hightemp.proxy_switcher_vpn.i18n.UserText
 import com.hightemp.proxy_switcher_vpn.proxy.ParsedProxyString
 import com.hightemp.proxy_switcher_vpn.proxy.ProxyReachabilityTester
 import com.hightemp.proxy_switcher_vpn.proxy.ProxyTestResult
@@ -26,17 +28,17 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -50,12 +52,12 @@ class VpnViewModelTest {
 
     @Before
     fun setUp() {
-        VpnRuntimeState.markStopped("Test reset.")
+        VpnRuntimeState.markStopped(UserText.raw("Test reset."))
     }
 
     @After
     fun tearDown() {
-        VpnRuntimeState.markStopped("Test reset.")
+        VpnRuntimeState.markStopped(UserText.raw("Test reset."))
     }
 
     @Test
@@ -90,7 +92,7 @@ class VpnViewModelTest {
         viewModel.onStartVpnBlockedNoSelectedProxy()
 
         assertEquals(
-            "Select Direct or a valid enabled proxy before starting VPN.",
+            UserText.of(R.string.error_no_valid_route),
             viewModel.uiState.value.lastError
         )
     }
@@ -98,13 +100,13 @@ class VpnViewModelTest {
     @Test
     fun permissionCancellationLeavesRuntimeStopped() = runTest {
         val viewModel = newViewModel()
-        VpnRuntimeState.markStarting("Starting VPN foreground service.")
+        VpnRuntimeState.markStarting(UserText.raw("Starting VPN foreground service."))
 
         viewModel.onVpnPermissionResult(granted = false)
 
         assertEquals(VpnPermissionStatus.DENIED, viewModel.uiState.value.permissionStatus)
         assertEquals(
-            "VPN permission was not granted.",
+            UserText.of(R.string.permission_not_granted),
             viewModel.uiState.value.lastError
         )
         assertEquals(VpnServiceStatus.STOPPED, VpnRuntimeState.state.value.status)
@@ -117,7 +119,7 @@ class VpnViewModelTest {
         val proxyDao = FakeProxyDao()
         val viewModel = newViewModel(proxyDao = proxyDao)
         var importedCount = -1
-        var errorMessage: String? = "unset"
+        var errorMessage: UserText? = UserText.raw("unset")
 
         viewModel.importProxiesFromText(
             """
@@ -145,7 +147,7 @@ class VpnViewModelTest {
         assertEquals(1L, imported.id)
         assertEquals("legacy.example", imported.host)
         assertEquals(1080, imported.port)
-        assertEquals("Imported 1 proxies.", viewModel.uiState.value.message)
+        assertEquals(UserText.Plural(R.plurals.proxy_list_imported, 1), viewModel.uiState.value.message)
     }
 
     @Test
@@ -153,7 +155,7 @@ class VpnViewModelTest {
         val proxyDao = FakeProxyDao()
         val viewModel = newViewModel(proxyDao = proxyDao)
         var importedCount = -1
-        var errorMessage: String? = null
+        var errorMessage: UserText? = null
 
         viewModel.importProxiesFromText("not-json") { count, error ->
             importedCount = count
@@ -163,7 +165,7 @@ class VpnViewModelTest {
 
         assertEquals(0, importedCount)
         assertEquals(emptyList<ProxyEntity>(), proxyDao.snapshot())
-        assertFalse(errorMessage.isNullOrBlank())
+        assertTrue(errorMessage != null)
     }
 
     @Test
@@ -203,8 +205,11 @@ class VpnViewModelTest {
         advanceUntilIdle()
 
         assertTrue(viewModel.backgroundRestrictions.value.needsAttention)
-        assertEquals("optimized", viewModel.diagnostics.value.batteryOptimization.value)
-        assertTrue(viewModel.diagnostics.value.lastProcessExit.value.contains("killed by system"))
+        assertEquals(UserText.of(R.string.diag_optimized), viewModel.diagnostics.value.batteryOptimization.value)
+        assertEquals(
+            UserText.of(R.string.exit_signaled, 9),
+            (viewModel.diagnostics.value.lastProcessExit.value as UserText.Res).args[1]
+        )
 
         checker.status = BackgroundRestrictionStatus(
             batteryOptimizationIgnored = true,
@@ -214,7 +219,7 @@ class VpnViewModelTest {
         advanceUntilIdle()
 
         assertFalse(viewModel.backgroundRestrictions.value.needsAttention)
-        assertEquals("unrestricted", viewModel.diagnostics.value.batteryOptimization.value)
+        assertEquals(UserText.of(R.string.diag_unrestricted), viewModel.diagnostics.value.batteryOptimization.value)
         collector.cancel()
     }
 
@@ -255,7 +260,7 @@ class VpnViewModelTest {
             targetPort: Int,
             timeoutMillis: Int
         ): ProxyTestResult {
-            return ProxyTestResult(success = true, message = "Proxy test succeeded.")
+            return ProxyTestResult(success = true, message = UserText.of(R.string.proxy_test_succeeded))
         }
     }
 

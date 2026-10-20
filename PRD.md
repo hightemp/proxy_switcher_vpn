@@ -381,6 +381,19 @@ Use the reference project's simple Compose Material 3 style:
 - Screens under `ui/screens`.
 - Theme under `ui/theme`.
 
+Localization:
+
+- All user-visible text comes from Android string resources. Supported
+  languages: English (default), Russian, Ukrainian, German, French, Spanish,
+  Italian, Portuguese (Brazil), Polish, Chinese (Simplified), Japanese and
+  Korean.
+- The app follows the system language, supports Android 13+ per-app language
+  settings, and offers an in-app language picker in Settings.
+- Core layers return `UserText` (resource id + arguments); the UI resolves it
+  in the current language. Log entries, technical diagnostic tokens and the
+  config preview stay in English.
+- README is maintained in every app language (`README.<lang>.md`).
+
 Expected screens:
 
 1. Home screen

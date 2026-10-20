@@ -1,11 +1,14 @@
 package com.hightemp.proxy_switcher_vpn.ui.screens
 
+import com.hightemp.proxy_switcher_vpn.R
+import com.hightemp.proxy_switcher_vpn.i18n.UserText
+
 data class ProxyFormValidationResult(
     val host: String = "",
     val port: Int = 0,
     val username: String? = null,
     val password: String? = null,
-    val errorMessage: String? = null
+    val errorMessage: UserText? = null
 ) {
     val isValid: Boolean = errorMessage == null
 }
@@ -24,12 +27,13 @@ object ProxyFormValidator {
         val password = passwordInput.takeIf { it.isNotBlank() }
 
         val error = when {
-            host.isBlank() -> "Host is required"
-            host.any { it.isWhitespace() } -> "Host must not contain whitespace"
-            portText.isBlank() -> "Port is required"
-            port == null -> "Port must be a number"
-            port !in 1..65535 -> "Port must be between 1 and 65535"
-            username == null && password != null -> "Username is required when password is set"
+            host.isBlank() -> UserText.of(R.string.validation_host_required)
+            host.any { it.isWhitespace() } -> UserText.of(R.string.validation_host_whitespace)
+            portText.isBlank() -> UserText.of(R.string.validation_port_required)
+            port == null -> UserText.of(R.string.validation_port_number)
+            port !in 1..65535 -> UserText.of(R.string.validation_port_range)
+            username == null && password != null ->
+                UserText.of(R.string.validation_username_required)
             else -> null
         }
 

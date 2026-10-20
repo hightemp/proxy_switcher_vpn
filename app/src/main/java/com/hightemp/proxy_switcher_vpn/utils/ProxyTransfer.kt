@@ -1,7 +1,9 @@
 package com.hightemp.proxy_switcher_vpn.utils
 
+import com.hightemp.proxy_switcher_vpn.R
 import com.hightemp.proxy_switcher_vpn.data.local.ProxyEntity
 import com.hightemp.proxy_switcher_vpn.data.local.ProxyType
+import com.hightemp.proxy_switcher_vpn.i18n.UserText
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -46,7 +48,7 @@ object ProxyTransfer {
 
     data class ImportResult(
         val proxies: List<ProxyEntity>,
-        val errorMessage: String? = null
+        val errorMessage: UserText? = null
     ) {
         val isSuccess: Boolean get() = errorMessage == null
     }
@@ -54,23 +56,26 @@ object ProxyTransfer {
     fun import(text: String): ImportResult {
         val trimmed = text.trim()
         if (trimmed.isEmpty()) {
-            return ImportResult(emptyList(), "Input is empty")
+            return ImportResult(emptyList(), UserText.of(R.string.import_error_empty))
         }
 
         return runCatching {
             val element = json.parseToJsonElement(trimmed)
             val array = element as? JsonArray
-                ?: return ImportResult(emptyList(), "Invalid format: expected JSON array")
+                ?: return ImportResult(emptyList(), UserText.of(R.string.import_error_not_array))
             val proxies = array.mapNotNull { proxyElement ->
                 (proxyElement as? JsonObject)?.toProxyEntity()
             }
             if (proxies.isEmpty()) {
-                ImportResult(emptyList(), "No valid proxies found")
+                ImportResult(emptyList(), UserText.of(R.string.import_error_no_proxies))
             } else {
                 ImportResult(proxies)
             }
         }.getOrElse { error ->
-            ImportResult(emptyList(), "Invalid format: ${error.message}")
+            ImportResult(
+                emptyList(),
+                UserText.of(R.string.import_error_invalid, error.message.orEmpty())
+            )
         }
     }
 

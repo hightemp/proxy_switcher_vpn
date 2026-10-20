@@ -1,5 +1,7 @@
 package com.hightemp.proxy_switcher_vpn.vpn.stats
 
+import com.hightemp.proxy_switcher_vpn.R
+import com.hightemp.proxy_switcher_vpn.i18n.UserText
 import com.hightemp.proxy_switcher_vpn.vpn.events.DnsEventStatus
 import com.hightemp.proxy_switcher_vpn.vpn.events.VpnEvent
 import org.junit.Assert.assertEquals
@@ -179,9 +181,9 @@ class VpnStatsStoreTest {
             VpnStats(processMemoryBytes = 42L * 1024 * 1024, goroutines = 37)
         )
 
-        assertEquals("42.0 MiB, 37 goroutines", field.value)
+        assertEquals(UserText.of(R.string.diag_process_memory_goroutines, "42.0", 37), field.value)
         assertEquals(
-            "n/a",
+            UserText.of(R.string.diag_not_available),
             com.hightemp.proxy_switcher_vpn.vpn.diagnostics.VpnDiagnostics.processMemoryField(VpnStats()).value
         )
     }

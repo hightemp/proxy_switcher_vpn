@@ -1,5 +1,6 @@
 package com.hightemp.proxy_switcher_vpn.service
 
+import com.hightemp.proxy_switcher_vpn.i18n.UserText
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -8,21 +9,21 @@ import org.junit.Test
 class VpnRuntimeStateTest {
     @Test
     fun failedStoppedUsesErrorStateAndLastError() {
-        VpnRuntimeState.markFailedStopped("Selected upstream proxy failed.")
+        VpnRuntimeState.markFailedStopped(UserText.raw("Selected upstream proxy failed."))
 
         val snapshot = VpnRuntimeState.state.value
 
         assertEquals(VpnServiceStatus.ERROR, snapshot.status)
         assertFalse(snapshot.isForegroundServiceActive)
         assertFalse(snapshot.isRunning)
-        assertEquals("Selected upstream proxy failed.", snapshot.lastError)
+        assertEquals(UserText.raw("Selected upstream proxy failed."), snapshot.lastError)
     }
 
     @Test
     fun startingClearsPreviousError() {
-        VpnRuntimeState.markFailedStopped("Previous failure.")
+        VpnRuntimeState.markFailedStopped(UserText.raw("Previous failure."))
 
-        VpnRuntimeState.markStarting("Starting VPN foreground service.")
+        VpnRuntimeState.markStarting(UserText.raw("Starting VPN foreground service."))
 
         val snapshot = VpnRuntimeState.state.value
 
@@ -32,9 +33,9 @@ class VpnRuntimeStateTest {
 
     @Test
     fun stoppedClearsPreviousError() {
-        VpnRuntimeState.markFailedStopped("Previous failure.")
+        VpnRuntimeState.markFailedStopped(UserText.raw("Previous failure."))
 
-        VpnRuntimeState.markStopped("VPN foreground service stopped.")
+        VpnRuntimeState.markStopped(UserText.raw("VPN foreground service stopped."))
 
         val snapshot = VpnRuntimeState.state.value
 

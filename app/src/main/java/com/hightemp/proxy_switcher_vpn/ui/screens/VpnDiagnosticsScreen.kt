@@ -25,10 +25,13 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.hightemp.proxy_switcher_vpn.R
+import com.hightemp.proxy_switcher_vpn.i18n.asString
 import com.hightemp.proxy_switcher_vpn.ui.theme.Proxy_switcher_vpnTheme
 import com.hightemp.proxy_switcher_vpn.vpn.diagnostics.DiagnosticField
 import com.hightemp.proxy_switcher_vpn.vpn.diagnostics.DiagnosticSeverity
@@ -49,11 +52,11 @@ fun VpnDiagnosticsScreen(
                     IconButton(onClick = onBack) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = stringResource(R.string.action_back)
                         )
                     }
                 },
-                title = { Text("VPN diagnostics") }
+                title = { Text(stringResource(R.string.diag_title)) }
             )
         },
         modifier = modifier.fillMaxSize()
@@ -66,7 +69,7 @@ fun VpnDiagnosticsScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            DiagnosticsSection(title = "Runtime") {
+            DiagnosticsSection(title = stringResource(R.string.diag_section_runtime)) {
                 DiagnosticRow(diagnostics.vpnPermission)
                 DiagnosticRow(diagnostics.foregroundService)
                 DiagnosticRow(diagnostics.singBoxCore)
@@ -74,7 +77,7 @@ fun VpnDiagnosticsScreen(
                 DiagnosticRow(diagnostics.processMemory)
             }
 
-            DiagnosticsSection(title = "Background") {
+            DiagnosticsSection(title = stringResource(R.string.diag_section_background)) {
                 DiagnosticRow(diagnostics.batteryOptimization)
                 DiagnosticRow(diagnostics.backgroundRestriction)
                 DiagnosticRow(diagnostics.alwaysOnVpn)
@@ -82,14 +85,14 @@ fun VpnDiagnosticsScreen(
                 DiagnosticRow(diagnostics.lastProcessExit)
             }
 
-            DiagnosticsSection(title = "Traffic policy") {
+            DiagnosticsSection(title = stringResource(R.string.diag_section_traffic)) {
                 DiagnosticRow(diagnostics.dns)
                 DiagnosticRow(diagnostics.ipv4Route)
                 DiagnosticRow(diagnostics.ipv6)
                 DiagnosticRow(diagnostics.udp)
                 DiagnosticRow(diagnostics.selectedProxy)
-                DiagnosticValueRow("UDP/443", diagnostics.udp443Status)
-                DiagnosticValueRow("Non-DNS UDP", diagnostics.nonDnsUdpStatus)
+                DiagnosticValueRow(stringResource(R.string.diag_udp443), diagnostics.udp443Status)
+                DiagnosticValueRow(stringResource(R.string.diag_non_dns_udp), diagnostics.nonDnsUdpStatus)
             }
 
             CountersSection(
@@ -98,9 +101,9 @@ fun VpnDiagnosticsScreen(
                 activeConnectionStatsStatus = diagnostics.activeConnectionStatsStatus
             )
 
-            DiagnosticsSection(title = "Last error") {
+            DiagnosticsSection(title = stringResource(R.string.diag_section_last_error)) {
                 Text(
-                    text = diagnostics.lastError ?: "none",
+                    text = diagnostics.lastError?.asString() ?: stringResource(R.string.diag_none),
                     color = if (diagnostics.lastError == null) {
                         MaterialTheme.colorScheme.onSurfaceVariant
                     } else {
@@ -110,9 +113,9 @@ fun VpnDiagnosticsScreen(
                 )
             }
 
-            DiagnosticsSection(title = "Config preview") {
+            DiagnosticsSection(title = stringResource(R.string.diag_section_config)) {
                 Text(
-                    text = diagnostics.maskedConfigPreview ?: "No selected proxy config.",
+                    text = diagnostics.maskedConfigPreview ?: stringResource(R.string.diag_no_config),
                     fontFamily = FontFamily.Monospace,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface
@@ -147,8 +150,8 @@ private fun DiagnosticsSection(
 @Composable
 private fun DiagnosticRow(field: DiagnosticField) {
     DiagnosticValueRow(
-        label = field.label,
-        value = field.value,
+        label = field.label.asString(),
+        value = field.value.asString(),
         valueColor = field.severity.color()
     )
 }
@@ -187,17 +190,17 @@ private fun CountersSection(
     trafficStatsStatus: String,
     activeConnectionStatsStatus: String
 ) {
-    DiagnosticsSection(title = "Counters") {
-        DiagnosticValueRow("Bytes in", formatBytes(counters.bytesIn))
-        DiagnosticValueRow("Bytes out", formatBytes(counters.bytesOut))
-        DiagnosticValueRow("Total connections", counters.totalConnections.toString())
-        DiagnosticValueRow("Failed connections", counters.failedConnections.toString())
-        DiagnosticValueRow("DNS queries", counters.dnsQueries.toString())
-        DiagnosticValueRow("Blocked UDP", counters.blockedUdp.toString())
-        DiagnosticValueRow("Bypassed UDP", counters.bypassedUdp.toString())
+    DiagnosticsSection(title = stringResource(R.string.diag_section_counters)) {
+        DiagnosticValueRow(stringResource(R.string.diag_bytes_in), formatBytes(counters.bytesIn))
+        DiagnosticValueRow(stringResource(R.string.diag_bytes_out), formatBytes(counters.bytesOut))
+        DiagnosticValueRow(stringResource(R.string.diag_total_connections), counters.totalConnections.toString())
+        DiagnosticValueRow(stringResource(R.string.diag_failed_connections), counters.failedConnections.toString())
+        DiagnosticValueRow(stringResource(R.string.diag_dns_queries), counters.dnsQueries.toString())
+        DiagnosticValueRow(stringResource(R.string.diag_blocked_udp), counters.blockedUdp.toString())
+        DiagnosticValueRow(stringResource(R.string.diag_bypassed_udp), counters.bypassedUdp.toString())
         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-        DiagnosticValueRow("Traffic stats", trafficStatsStatus)
-        DiagnosticValueRow("Active connections", activeConnectionStatsStatus)
+        DiagnosticValueRow(stringResource(R.string.diag_traffic_stats), trafficStatsStatus)
+        DiagnosticValueRow(stringResource(R.string.diag_active_connections), activeConnectionStatsStatus)
     }
 }
 

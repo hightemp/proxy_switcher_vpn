@@ -1,7 +1,9 @@
 package com.hightemp.proxy_switcher_vpn.vpn.diagnostics
 
+import com.hightemp.proxy_switcher_vpn.R
 import com.hightemp.proxy_switcher_vpn.data.local.ProxyEntity
 import com.hightemp.proxy_switcher_vpn.data.local.ProxyType
+import com.hightemp.proxy_switcher_vpn.i18n.UserText
 import com.hightemp.proxy_switcher_vpn.service.VpnRuntimeSnapshot
 import com.hightemp.proxy_switcher_vpn.service.VpnServiceStatus
 import com.hightemp.proxy_switcher_vpn.vpn.engine.VpnEngineCounters
@@ -93,13 +95,13 @@ class VpnDiagnosticsTest {
         assertFalse(preview!!.contains("diagnostic-user"))
         assertFalse(preview.contains("diagnostic-secret"))
         assertTrue(preview.contains("***"))
-        assertEquals("granted", diagnostics.vpnPermission.value)
-        assertEquals("running", diagnostics.foregroundService.value)
-        assertEquals("sing-box/libbox", diagnostics.singBoxCore.label)
-        assertEquals("libbox_running", diagnostics.singBoxCore.value)
-        assertEquals("unsupported_disabled", diagnostics.ipv6.value)
-        assertEquals("proxy_safe_doh_private_dns_blocked", diagnostics.dns.value)
-        assertEquals("Primary:8443 (HTTPS)", diagnostics.selectedProxy.value)
+        assertEquals(UserText.raw("granted"), diagnostics.vpnPermission.value)
+        assertEquals(UserText.raw("running"), diagnostics.foregroundService.value)
+        assertEquals(UserText.of(R.string.diag_singbox), diagnostics.singBoxCore.label)
+        assertEquals(UserText.raw("libbox_running"), diagnostics.singBoxCore.value)
+        assertEquals(UserText.raw("unsupported_disabled"), diagnostics.ipv6.value)
+        assertEquals(UserText.raw("proxy_safe_doh_private_dns_blocked"), diagnostics.dns.value)
+        assertEquals(UserText.raw("Primary:8443 (HTTPS)"), diagnostics.selectedProxy.value)
         assertEquals(12L, diagnostics.counters.bytesIn)
         assertEquals(1L, diagnostics.counters.blockedUdp)
     }
@@ -123,9 +125,7 @@ class VpnDiagnosticsTest {
             stats = VpnStats()
         )
 
-        assertFalse(diagnostics.selectedProxy.value.contains("user"))
-        assertFalse(diagnostics.selectedProxy.value.contains("secret"))
-        assertEquals("proxy.example:1080 (SOCKS5)", diagnostics.selectedProxy.value)
+        assertEquals(UserText.raw("proxy.example:1080 (SOCKS5)"), diagnostics.selectedProxy.value)
     }
 
     @Test
@@ -138,7 +138,7 @@ class VpnDiagnosticsTest {
             stats = VpnStats()
         )
 
-        assertEquals("Direct Connection", diagnostics.selectedProxy.value)
+        assertEquals(UserText.of(R.string.route_direct), diagnostics.selectedProxy.value)
         assertTrue(diagnostics.maskedConfigPreview.orEmpty().contains("\"type\":\"direct\""))
     }
 }

@@ -6,19 +6,23 @@ import android.net.Uri
 import android.net.VpnService
 import android.os.Bundle
 import android.provider.Settings
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.hightemp.proxy_switcher_vpn.i18n.AppLanguages
 import com.hightemp.proxy_switcher_vpn.service.VpnRuntimeState
 import com.hightemp.proxy_switcher_vpn.ui.screens.AddEditProxyScreen
 import com.hightemp.proxy_switcher_vpn.ui.screens.HomeScreen
@@ -32,7 +36,7 @@ import com.hightemp.proxy_switcher_vpn.vpn.ProxyVpnService
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
-class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
     private val viewModel: VpnViewModel by viewModels()
     private val vpnPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -61,6 +65,7 @@ class MainActivity : ComponentActivity() {
                 val canStartVpn by viewModel.canStartVpn.collectAsState()
                 val backgroundRestrictions by viewModel.backgroundRestrictions.collectAsState()
                 val alwaysOnStatus by viewModel.alwaysOnStatus.collectAsState()
+                var languageTag by remember { mutableStateOf(AppLanguages.current(this)) }
                 NavHost(
                     navController = navController,
                     startDestination = "home"
@@ -73,7 +78,6 @@ class MainActivity : ComponentActivity() {
                             stats = stats,
                             proxies = proxyList,
                             selectedProxyId = settings.selectedProxyId,
-                            diagnosticsSummary = "IPv4 only; DNS proxy-safe; UDP/443 blocked.",
                             lastError = uiState.lastError ?: runtimeState.lastError,
                             canStartVpn = canStartVpn,
                             onStartVpn = ::requestVpnPermission,
@@ -102,7 +106,12 @@ class MainActivity : ComponentActivity() {
                             backgroundRestrictions = backgroundRestrictions,
                             alwaysOnStatus = alwaysOnStatus,
                             onFixBackgroundRestrictions = ::openBackgroundSettings,
-                            onOpenVpnSettings = ::openVpnSettings
+                            onOpenVpnSettings = ::openVpnSettings,
+                            languageTag = languageTag,
+                            onLanguageSelected = { tag ->
+                                languageTag = tag
+                                AppLanguages.apply(this@MainActivity, tag)
+                            }
                         )
                     }
                     composable("logs") {

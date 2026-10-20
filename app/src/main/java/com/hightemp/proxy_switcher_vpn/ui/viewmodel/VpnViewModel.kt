@@ -2,11 +2,13 @@ package com.hightemp.proxy_switcher_vpn.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.hightemp.proxy_switcher_vpn.R
 import com.hightemp.proxy_switcher_vpn.data.local.ProxyEntity
 import com.hightemp.proxy_switcher_vpn.data.local.ProxyType
 import com.hightemp.proxy_switcher_vpn.data.repository.ProxyRepository
 import com.hightemp.proxy_switcher_vpn.data.settings.AppSettings
 import com.hightemp.proxy_switcher_vpn.data.settings.SettingsRepository
+import com.hightemp.proxy_switcher_vpn.i18n.UserText
 import com.hightemp.proxy_switcher_vpn.proxy.ParsedProxyString
 import com.hightemp.proxy_switcher_vpn.proxy.ProxyProtocolDetector
 import com.hightemp.proxy_switcher_vpn.proxy.ProxyReachabilityTester
@@ -49,8 +51,8 @@ enum class VpnPermissionStatus {
 data class VpnPermissionUiState(
     val permissionStatus: VpnPermissionStatus = VpnPermissionStatus.UNKNOWN,
     val lastPermissionGranted: Boolean? = null,
-    val message: String = "VPN permission has not been checked.",
-    val lastError: String? = null
+    val message: UserText = UserText.of(R.string.permission_not_checked),
+    val lastError: UserText? = null
 )
 
 enum class ProxyTestStatus {
@@ -61,7 +63,7 @@ enum class ProxyTestStatus {
 
 data class ProxyTestUiState(
     val status: ProxyTestStatus,
-    val message: String
+    val message: UserText
 )
 
 @HiltViewModel
@@ -166,7 +168,7 @@ class VpnViewModel @Inject constructor(
         _uiState.update {
             it.copy(
                 permissionStatus = VpnPermissionStatus.UNKNOWN,
-                message = "Checking VPN permission...",
+                message = UserText.of(R.string.permission_checking),
                 lastError = null
             )
         }
@@ -175,7 +177,7 @@ class VpnViewModel @Inject constructor(
     fun onVpnPermissionRequired() {
         _uiState.value = VpnPermissionUiState(
             permissionStatus = VpnPermissionStatus.REQUESTING,
-            message = "Waiting for VPN permission result."
+            message = UserText.of(R.string.permission_waiting)
         )
     }
 
@@ -184,7 +186,7 @@ class VpnViewModel @Inject constructor(
         _uiState.value = VpnPermissionUiState(
             permissionStatus = VpnPermissionStatus.GRANTED,
             lastPermissionGranted = true,
-            message = "VPN permission is granted. Starting VPN."
+            message = UserText.of(R.string.permission_already_granted)
         )
     }
 
@@ -194,36 +196,36 @@ class VpnViewModel @Inject constructor(
             VpnPermissionUiState(
                 permissionStatus = VpnPermissionStatus.GRANTED,
                 lastPermissionGranted = true,
-                message = "VPN permission granted. Starting VPN."
+                message = UserText.of(R.string.permission_granted_starting)
             )
         } else {
             statsStore.stopSession()
-            VpnRuntimeState.markStopped("VPN permission was not granted.")
+            VpnRuntimeState.markStopped(UserText.of(R.string.permission_not_granted))
             VpnPermissionUiState(
                 permissionStatus = VpnPermissionStatus.DENIED,
                 lastPermissionGranted = false,
-                message = "VPN permission was not granted.",
-                lastError = "VPN permission was not granted."
+                message = UserText.of(R.string.permission_not_granted),
+                lastError = UserText.of(R.string.permission_not_granted)
             )
         }
     }
 
     fun onVpnPermissionRequestUnavailable() {
         statsStore.stopSession()
-        VpnRuntimeState.markStopped("VPN permission is required before the VPN can start.")
+        VpnRuntimeState.markStopped(UserText.of(R.string.permission_required_message))
         _uiState.value = VpnPermissionUiState(
             permissionStatus = VpnPermissionStatus.REQUIRED,
             lastPermissionGranted = false,
-            message = "VPN permission is required before the VPN can start.",
-            lastError = "VPN permission is required before the VPN can start."
+            message = UserText.of(R.string.permission_required_message),
+            lastError = UserText.of(R.string.permission_required_message)
         )
     }
 
     fun onStartVpnBlockedNoSelectedProxy() {
         _uiState.update {
             it.copy(
-                message = "Select Direct or a valid enabled proxy before starting VPN.",
-                lastError = "Select Direct or a valid enabled proxy before starting VPN."
+                message = UserText.of(R.string.error_no_valid_route),
+                lastError = UserText.of(R.string.error_no_valid_route)
             )
         }
     }
@@ -232,7 +234,7 @@ class VpnViewModel @Inject constructor(
         statsStore.stopSession()
         _uiState.update {
             it.copy(
-                message = "VPN stop requested.",
+                message = UserText.of(R.string.status_stop_requested),
                 lastError = null
             )
         }
@@ -273,7 +275,7 @@ class VpnViewModel @Inject constructor(
             }
             _uiState.update {
                 it.copy(
-                    message = "Proxy saved.",
+                    message = UserText.of(R.string.proxy_saved),
                     lastError = null
                 )
             }
@@ -287,7 +289,7 @@ class VpnViewModel @Inject constructor(
             results + (
                 proxy.id to ProxyTestUiState(
                     status = ProxyTestStatus.TESTING,
-                    message = "Testing proxy..."
+                    message = UserText.of(R.string.proxy_testing_message)
                 )
             )
         }
@@ -321,7 +323,7 @@ class VpnViewModel @Inject constructor(
 
     fun importProxiesFromText(
         text: String,
-        onResult: (importedCount: Int, errorMessage: String?) -> Unit
+        onResult: (importedCount: Int, errorMessage: UserText?) -> Unit
     ) {
         val result = ProxyTransfer.import(text)
         if (!result.isSuccess) {
@@ -334,7 +336,7 @@ class VpnViewModel @Inject constructor(
             }
             _uiState.update {
                 it.copy(
-                    message = "Imported ${result.proxies.size} proxies.",
+                    message = UserText.Plural(R.plurals.proxy_list_imported, result.proxies.size),
                     lastError = null
                 )
             }
@@ -345,7 +347,7 @@ class VpnViewModel @Inject constructor(
     fun onProxyEditorUnavailable() {
         _uiState.update {
             it.copy(
-                message = "Proxy editor is not available yet.",
+                message = UserText.of(R.string.proxy_editor_unavailable),
                 lastError = null
             )
         }

@@ -2,6 +2,7 @@ package com.hightemp.proxy_switcher_vpn.proxy
 
 import com.hightemp.proxy_switcher_vpn.data.local.ProxyEntity
 import com.hightemp.proxy_switcher_vpn.data.local.ProxyType
+import com.hightemp.proxy_switcher_vpn.i18n.UserText
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -72,7 +73,7 @@ class ProxyProtocolDetectorTest {
             probes += proxy
             return ProxyTestResult(
                 success = proxy.type == workingType,
-                message = "probe"
+                message = UserText.raw("probe")
             )
         }
     }

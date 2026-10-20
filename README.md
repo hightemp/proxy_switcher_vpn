@@ -14,6 +14,8 @@
   <img src="https://asdertasd.site/counter/proxy_switcher_vpn" alt="Statistics" />
 </p>
 
+<p align="center"><b>English</b> · <a href="README.ru.md">Русский</a> · <a href="README.uk.md">Українська</a> · <a href="README.de.md">Deutsch</a> · <a href="README.fr.md">Français</a> · <a href="README.es.md">Español</a> · <a href="README.it.md">Italiano</a> · <a href="README.pt-BR.md">Português (Brasil)</a> · <a href="README.pl.md">Polski</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.ja.md">日本語</a> · <a href="README.ko.md">한국어</a></p>
+
 Android app for running a local VPN that routes device traffic through the
 selected upstream proxy or through explicit Direct mode.
 
@@ -31,24 +33,33 @@ reserved TEST-NET addresses and contain no credentials.
     <th>Proxy profiles</th>
   </tr>
   <tr>
-    <td align="center"><img src="docs/screenshots/home.png" width="320" alt="Home screen with the VPN running" /></td>
-    <td align="center"><img src="docs/screenshots/proxies.png" width="320" alt="Proxy profiles with safe demo data" /></td>
+    <td align="center"><img src="docs/screenshots/home.png" width="320" alt="Home — VPN running" /></td>
+    <td align="center"><img src="docs/screenshots/proxies.png" width="320" alt="Proxy profiles" /></td>
   </tr>
   <tr>
     <th>Add proxy</th>
     <th>VPN diagnostics</th>
   </tr>
   <tr>
-    <td align="center"><img src="docs/screenshots/add-proxy.png" width="320" alt="Add proxy form with reserved demo address" /></td>
-    <td align="center"><img src="docs/screenshots/diagnostics.png" width="320" alt="VPN runtime and traffic policy diagnostics" /></td>
+    <td align="center"><img src="docs/screenshots/add-proxy.png" width="320" alt="Add proxy" /></td>
+    <td align="center"><img src="docs/screenshots/diagnostics.png" width="320" alt="VPN diagnostics" /></td>
   </tr>
   <tr>
     <th colspan="2">Filtered VPN logs</th>
   </tr>
   <tr>
-    <td colspan="2" align="center"><img src="docs/screenshots/logs.png" width="320" alt="Filtered VPN lifecycle logs" /></td>
+    <td colspan="2" align="center"><img src="docs/screenshots/logs.png" width="320" alt="Filtered VPN logs" /></td>
   </tr>
 </table>
+
+## Languages
+
+The app is available in English, Russian, Ukrainian, German, French, Spanish,
+Italian, Portuguese (Brazil), Polish, Chinese (Simplified), Japanese and
+Korean. It follows the system language; you can also pick a language in
+Settings → Language or, on Android 13+, in the system per-app language
+settings. Log entries and technical diagnostic values stay in English so bug
+reports are easy to read.
 
 ## Limits
 

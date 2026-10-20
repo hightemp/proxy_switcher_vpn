@@ -1,6 +1,9 @@
 package com.hightemp.proxy_switcher_vpn.proxy
 
+import androidx.annotation.StringRes
+import com.hightemp.proxy_switcher_vpn.R
 import com.hightemp.proxy_switcher_vpn.data.local.ProxyType
+import com.hightemp.proxy_switcher_vpn.i18n.UserText
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -125,7 +128,7 @@ class ProxyStringParserTest {
 
     @Test
     fun conflictingSchemeAndProtocolTokenAreRejected() {
-        assertFailure("http://proxy.example:8080 socks5", "conflict")
+        assertFailure("http://proxy.example:8080 socks5", R.string.proxy_string_error_conflict)
     }
 
     @Test
@@ -224,7 +227,7 @@ class ProxyStringParserTest {
 
     @Test
     fun fourFieldRecordValidInNoOrderIsRejected() {
-        assertFailure("localhost:8080:user:pass", "format")
+        assertFailure("localhost:8080:user:pass", R.string.proxy_string_error_four_fields)
     }
 
     @Test
@@ -245,81 +248,81 @@ class ProxyStringParserTest {
 
     @Test
     fun socks4SchemesAreUnsupported() {
-        assertFailure("socks4://192.0.2.10:1080", "SOCKS4")
-        assertFailure("socks4a://demo-user@proxy.example:1080", "SOCKS4")
-        assertFailure("192.0.2.10:1080 socks4", "SOCKS4")
+        assertFailure("socks4://192.0.2.10:1080", R.string.proxy_string_error_socks4)
+        assertFailure("socks4a://demo-user@proxy.example:1080", R.string.proxy_string_error_socks4)
+        assertFailure("192.0.2.10:1080 socks4", R.string.proxy_string_error_socks4)
     }
 
     @Test
     fun ambiguousSocksTokenIsRejected() {
-        assertFailure("socks://proxy.example:1080", "socks5")
+        assertFailure("socks://proxy.example:1080", R.string.proxy_string_error_socks)
     }
 
     @Test
     fun unknownSchemeIsRejected() {
-        assertFailure("ftp://proxy.example:21", "Unsupported")
+        assertFailure("ftp://proxy.example:21", R.string.proxy_string_error_scheme)
     }
 
     @Test
     fun ipv6HostsAreUnsupported() {
-        assertFailure("[2001:db8::10]:1080", "IPv6")
-        assertFailure("socks5h://demo-user:demo-pass@[2001:db8::10]:1080", "IPv6")
-        assertFailure("[2001:db8::10]:1080:demo-user:demo-pass socks5", "IPv6")
+        assertFailure("[2001:db8::10]:1080", R.string.proxy_string_error_ipv6)
+        assertFailure("socks5h://demo-user:demo-pass@[2001:db8::10]:1080", R.string.proxy_string_error_ipv6)
+        assertFailure("[2001:db8::10]:1080:demo-user:demo-pass socks5", R.string.proxy_string_error_ipv6)
     }
 
     @Test
     fun portIsRequiredAndBounded() {
-        assertFailure("proxy.example", "port")
-        assertFailure("proxy.example:0", "port")
-        assertFailure("proxy.example:65536", "port")
-        assertFailure("proxy.example:80a", "port")
-        assertFailure("http://proxy.example", "port")
+        assertFailure("proxy.example", R.string.proxy_string_error_port_required)
+        assertFailure("proxy.example:0", R.string.proxy_string_error_port_range)
+        assertFailure("proxy.example:65536", R.string.proxy_string_error_port_range)
+        assertFailure("proxy.example:80a", R.string.proxy_string_error_port_range)
+        assertFailure("http://proxy.example", R.string.proxy_string_error_port_required)
     }
 
     @Test
     fun invalidHostsAreRejected() {
-        assertFailure("999.1.1.1:8080", "host")
-        assertFailure("-bad.example:8080", "host")
-        assertFailure("bad_host.example:8080", "host")
+        assertFailure("999.1.1.1:8080", R.string.proxy_string_error_ipv4)
+        assertFailure("-bad.example:8080", R.string.proxy_string_error_host_name)
+        assertFailure("bad_host.example:8080", R.string.proxy_string_error_host_name)
     }
 
     @Test
     fun uriPathQueryAndFragmentAreRejected() {
-        assertFailure("http://proxy.example:8080/path", "path")
-        assertFailure("http://proxy.example:8080?x=1", "path")
-        assertFailure("http://proxy.example:8080#frag", "path")
+        assertFailure("http://proxy.example:8080/path", R.string.proxy_string_error_path)
+        assertFailure("http://proxy.example:8080?x=1", R.string.proxy_string_error_path)
+        assertFailure("http://proxy.example:8080#frag", R.string.proxy_string_error_path)
     }
 
     @Test
     fun invalidPercentEncodingIsRejected() {
-        assertFailure("http://demo%4:pass@proxy.example:8080", "percent")
-        assertFailure("http://demo%ZZ:pass@proxy.example:8080", "percent")
-        assertFailure("http://demo%FF:pass@proxy.example:8080", "UTF-8")
+        assertFailure("http://demo%4:pass@proxy.example:8080", R.string.proxy_string_error_percent)
+        assertFailure("http://demo%ZZ:pass@proxy.example:8080", R.string.proxy_string_error_percent)
+        assertFailure("http://demo%FF:pass@proxy.example:8080", R.string.proxy_string_error_utf8)
     }
 
     @Test
     fun passwordWithoutUsernameIsRejected() {
-        assertFailure("http://:pass@proxy.example:8080", "Username")
-        assertFailure(":pass@proxy.example:8080", "Username")
+        assertFailure("http://:pass@proxy.example:8080", R.string.proxy_string_error_username_required)
+        assertFailure(":pass@proxy.example:8080", R.string.proxy_string_error_username_required)
     }
 
     @Test
     fun controlCharactersAreRejected() {
-        assertFailure("http://demo%0Auser:pass@proxy.example:8080", "control")
-        assertFailure("proxy.example:1080:us\u0001er:pass", "control")
+        assertFailure("http://demo%0Auser:pass@proxy.example:8080", R.string.proxy_string_error_credentials_control)
+        assertFailure("proxy.example:1080:us\u0001er:pass", R.string.proxy_string_error_control)
     }
 
     @Test
     fun emptyInputIsRejected() {
-        assertFailure("   ", "empty")
+        assertFailure("   ", R.string.proxy_string_error_empty)
     }
 
     @Test
     fun malformedRecordsAreRejected() {
-        assertFailure("proxy.example:1080:user", "format")
-        assertFailure("a@b@proxy.example:1080", "format")
-        assertFailure("proxy.example 1080 user", "format")
-        assertFailure("one two three four five six", "format")
+        assertFailure("proxy.example:1080:user", R.string.proxy_string_error_format)
+        assertFailure("a@b@proxy.example:1080", R.string.proxy_string_error_format)
+        assertFailure("proxy.example 1080 user", R.string.proxy_string_error_format)
+        assertFailure("one two three four five six", R.string.proxy_string_error_format)
     }
 
     @Test
@@ -328,8 +331,7 @@ class ProxyStringParserTest {
 
         assertTrue(result is ProxyStringParseResult.Failure)
         val message = (result as ProxyStringParseResult.Failure).message
-        assertFalse(message.contains("secret-user"))
-        assertFalse(message.contains("secret-pass"))
+        assertEquals(UserText.of(R.string.proxy_string_error_socks4), message)
     }
 
     private fun assertParsed(input: String, expected: ParsedProxyString) {
@@ -337,13 +339,8 @@ class ProxyStringParserTest {
         assertEquals(input, ProxyStringParseResult.Success(expected), result)
     }
 
-    private fun assertFailure(input: String, messageFragment: String) {
+    private fun assertFailure(input: String, @StringRes expectedMessage: Int) {
         val result = ProxyStringParser.parse(input)
-        assertTrue("Expected failure for '$input' but got $result", result is ProxyStringParseResult.Failure)
-        val message = (result as ProxyStringParseResult.Failure).message
-        assertTrue(
-            "Expected '$messageFragment' in '$message' for '$input'",
-            message.contains(messageFragment, ignoreCase = true)
-        )
+        assertEquals(input, ProxyStringParseResult.Failure(UserText.of(expectedMessage)), result)
     }
 }

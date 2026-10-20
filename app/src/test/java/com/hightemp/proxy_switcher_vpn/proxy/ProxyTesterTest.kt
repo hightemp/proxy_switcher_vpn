@@ -1,15 +1,17 @@
 package com.hightemp.proxy_switcher_vpn.proxy
 
+import com.hightemp.proxy_switcher_vpn.R
 import com.hightemp.proxy_switcher_vpn.data.local.ProxyEntity
 import com.hightemp.proxy_switcher_vpn.data.local.ProxyType
+import com.hightemp.proxy_switcher_vpn.i18n.UserText
 import com.hightemp.proxy_switcher_vpn.vpn.platform.ActiveVpnServiceBridge
 import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.ServerSocket
 import java.net.Socket
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withContext
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -33,7 +35,7 @@ class ProxyTesterTest {
         )
 
         assertFalse(result.success)
-        assertEquals("Proxy host is required.", result.message)
+        assertEquals(UserText.of(R.string.proxy_test_host_required), result.message)
     }
 
     @Test
@@ -49,9 +51,7 @@ class ProxyTesterTest {
         )
 
         assertFalse(result.success)
-        assertEquals("Proxy port must be between 1 and 65535.", result.message)
-        assertFalse(result.message.contains("user"))
-        assertFalse(result.message.contains("secret-password"))
+        assertEquals(UserText.of(R.string.proxy_test_port_range), result.message)
     }
 
     @Test
@@ -74,7 +74,7 @@ class ProxyTesterTest {
         )
 
         server.close()
-        assertTrue(result.message, result.success)
+        assertTrue(result.message.toString(), result.success)
         assertEquals("127.0.0.1", result.resolvedProxyHost)
         assertEquals("proxy.example.invalid", resolver.lastHost)
         assertEquals(8080, resolver.lastPort)

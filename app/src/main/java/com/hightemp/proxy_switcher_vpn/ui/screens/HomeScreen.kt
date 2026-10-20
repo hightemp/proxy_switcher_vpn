@@ -2,6 +2,7 @@ package com.hightemp.proxy_switcher_vpn.ui.screens
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -22,6 +23,8 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -43,13 +46,18 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.hightemp.proxy_switcher_vpn.R
 import com.hightemp.proxy_switcher_vpn.data.local.ProxyEntity
 import com.hightemp.proxy_switcher_vpn.data.local.ProxyType
 import com.hightemp.proxy_switcher_vpn.data.settings.AppSettings
+import com.hightemp.proxy_switcher_vpn.i18n.AppLanguages
+import com.hightemp.proxy_switcher_vpn.i18n.UserText
+import com.hightemp.proxy_switcher_vpn.i18n.asString
 import com.hightemp.proxy_switcher_vpn.service.VpnRuntimeSnapshot
 import com.hightemp.proxy_switcher_vpn.service.VpnServiceStatus
 import com.hightemp.proxy_switcher_vpn.ui.theme.Proxy_switcher_vpnTheme
@@ -68,8 +76,7 @@ fun HomeScreen(
     stats: VpnStats,
     proxies: List<ProxyEntity>,
     selectedProxyId: Long?,
-    diagnosticsSummary: String,
-    lastError: String?,
+    lastError: UserText?,
     canStartVpn: Boolean,
     onStartVpn: () -> Unit,
     onStopVpn: () -> Unit,
@@ -85,45 +92,48 @@ fun HomeScreen(
     backgroundRestrictions: BackgroundRestrictionStatus = BackgroundRestrictionStatus(),
     alwaysOnStatus: AlwaysOnVpnStatus = AlwaysOnVpnStatus(),
     onFixBackgroundRestrictions: () -> Unit = {},
-    onOpenVpnSettings: () -> Unit = {}
+    onOpenVpnSettings: () -> Unit = {},
+    languageTag: String = AppLanguages.SYSTEM,
+    onLanguageSelected: (String) -> Unit = {}
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     var settingsDialogVisible by remember { mutableStateOf(false) }
 
-    val statusMessage = runtimeState.statusMessage ?: uiState.message
+    val statusMessage = (runtimeState.statusMessage ?: uiState.message).asString()
     LaunchedEffect(statusMessage) {
         if (statusMessage.isNotBlank()) {
             snackbarHostState.showSnackbar(statusMessage)
         }
     }
-    LaunchedEffect(lastError) {
-        if (!lastError.isNullOrBlank()) {
-            snackbarHostState.showSnackbar(lastError)
+    val lastErrorText = lastError?.asString()
+    LaunchedEffect(lastErrorText) {
+        if (!lastErrorText.isNullOrBlank()) {
+            snackbarHostState.showSnackbar(lastErrorText)
         }
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Proxy Switcher VPN") },
+                title = { Text(stringResource(R.string.app_name)) },
                 actions = {
                     IconButton(onClick = onManageProxies) {
-                        Icon(Icons.Default.Dns, contentDescription = "Manage proxies")
+                        Icon(Icons.Default.Dns, contentDescription = stringResource(R.string.home_manage_proxies))
                     }
                     IconButton(onClick = onViewLogs) {
                         Icon(
                             Icons.AutoMirrored.Filled.Article,
-                            contentDescription = "View logs"
+                            contentDescription = stringResource(R.string.home_view_logs)
                         )
                     }
                     IconButton(onClick = onViewDiagnostics) {
                         Icon(
                             Icons.Default.NetworkCheck,
-                            contentDescription = "View diagnostics"
+                            contentDescription = stringResource(R.string.home_view_diagnostics)
                         )
                     }
                     IconButton(onClick = { settingsDialogVisible = true }) {
-                        Icon(Icons.Default.Settings, contentDescription = "Settings")
+                        Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.settings_title))
                     }
                 }
             )
@@ -169,7 +179,7 @@ fun HomeScreen(
                     ButtonDefaults.buttonColors()
                 }
             ) {
-                Text(if (isVpnActive) "STOP VPN" else "START VPN")
+                Text(stringResource(if (isVpnActive) R.string.home_stop_vpn else R.string.home_start_vpn))
             }
 
             Row(
@@ -177,12 +187,12 @@ fun HomeScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Route",
+                    text = stringResource(R.string.home_route),
                     style = MaterialTheme.typography.titleSmall,
                     modifier = Modifier.weight(1f)
                 )
                 TextButton(onClick = onManageProxies) {
-                    Text("Manage")
+                    Text(stringResource(R.string.home_manage))
                 }
             }
 
@@ -194,8 +204,8 @@ fun HomeScreen(
             ) {
                 item {
                     RouteRow(
-                        title = DIRECT_ROUTE_LABEL,
-                        subtitle = "No upstream proxy",
+                        title = stringResource(R.string.route_direct),
+                        subtitle = stringResource(R.string.route_direct_subtitle),
                         selected = selectedProxyId == null,
                         enabled = true,
                         onClick = onDirectSelected
@@ -204,8 +214,14 @@ fun HomeScreen(
                 items(proxies, key = { proxy -> proxy.id }) { proxy ->
                     RouteRow(
                         title = proxy.label?.takeIf { it.isNotBlank() } ?: proxy.host,
-                        subtitle = "${proxy.type} ${proxy.host}:${proxy.port}" +
-                            if (proxy.isEnabled) "" else " - disabled",
+                        subtitle = if (proxy.isEnabled) {
+                            "${proxy.type} ${proxy.host}:${proxy.port}"
+                        } else {
+                            stringResource(
+                                R.string.route_proxy_disabled_subtitle,
+                                "${proxy.type} ${proxy.host}:${proxy.port}"
+                            )
+                        },
                         selected = selectedProxyId == proxy.id,
                         enabled = proxy.isEnabled,
                         onClick = { onProxySelected(proxy) }
@@ -214,7 +230,7 @@ fun HomeScreen(
             }
 
             Text(
-                text = diagnosticsSummary,
+                text = stringResource(R.string.home_diagnostics_summary),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
@@ -237,7 +253,9 @@ fun HomeScreen(
             backgroundRestrictions = backgroundRestrictions,
             alwaysOnStatus = alwaysOnStatus,
             onFixBackgroundRestrictions = onFixBackgroundRestrictions,
-            onOpenVpnSettings = onOpenVpnSettings
+            onOpenVpnSettings = onOpenVpnSettings,
+            languageTag = languageTag,
+            onLanguageSelected = onLanguageSelected
         )
     }
 }
@@ -258,22 +276,24 @@ private fun BackgroundRestrictionWarning(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = if (status.backgroundRestricted == true) {
-                        "Background activity is restricted. Android can stop the VPN."
-                    } else {
-                        "Battery optimization can stop the VPN in the background."
-                    },
+                    text = stringResource(
+                        if (status.backgroundRestricted == true) {
+                            R.string.home_warning_background_restricted
+                        } else {
+                            R.string.home_warning_battery_optimized
+                        }
+                    ),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onErrorContainer
                 )
                 Text(
-                    text = "On Samsung, also remove the app from Sleeping apps.",
+                    text = stringResource(R.string.home_warning_samsung),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onErrorContainer
                 )
             }
             TextButton(onClick = onFix) {
-                Text("Allow")
+                Text(stringResource(R.string.action_allow))
             }
         }
     }
@@ -304,13 +324,13 @@ private fun StatusLine(
             modifier = Modifier.size(10.dp)
         ) {}
         Text(
-            text = runtimeState.status.name,
+            text = stringResource(runtimeState.status.labelRes()),
             style = MaterialTheme.typography.titleMedium,
             color = statusColor,
             modifier = Modifier.weight(1f)
         )
         Text(
-            text = "permission: ${permissionStatus.name.lowercase()}",
+            text = stringResource(R.string.home_permission, stringResource(permissionStatus.labelRes())),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -334,9 +354,9 @@ private fun TrafficLine(stats: VpnStats) {
         )
         Text(
             text = if (stats.activeConnectionsAvailable) {
-                "conn ${stats.activeConnections}"
+                stringResource(R.string.home_connections, stats.activeConnections)
             } else {
-                "conn n/a"
+                stringResource(R.string.home_connections_unavailable)
             },
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -412,49 +432,89 @@ private fun SettingsDialog(
     backgroundRestrictions: BackgroundRestrictionStatus,
     alwaysOnStatus: AlwaysOnVpnStatus,
     onFixBackgroundRestrictions: () -> Unit,
-    onOpenVpnSettings: () -> Unit
+    onOpenVpnSettings: () -> Unit,
+    languageTag: String,
+    onLanguageSelected: (String) -> Unit
 ) {
+    var languageMenuExpanded by remember { mutableStateOf(false) }
     AlertDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("Close")
+                Text(stringResource(R.string.action_close))
             }
         },
-        title = { Text("Settings") },
+        title = { Text(stringResource(R.string.settings_title)) },
         text = {
             Column(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                val languageName = AppLanguages.supported
+                    .firstOrNull { it.tag == languageTag }
+                    ?.nativeName
+                    ?: stringResource(R.string.settings_language_system)
+                Box {
+                    SettingsActionRow(
+                        title = stringResource(R.string.settings_language),
+                        description = languageName,
+                        actionLabel = stringResource(R.string.action_change),
+                        onAction = { languageMenuExpanded = true }
+                    )
+                    DropdownMenu(
+                        expanded = languageMenuExpanded,
+                        onDismissRequest = { languageMenuExpanded = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.settings_language_system)) },
+                            onClick = {
+                                languageMenuExpanded = false
+                                onLanguageSelected(AppLanguages.SYSTEM)
+                            }
+                        )
+                        AppLanguages.supported.forEach { language ->
+                            DropdownMenuItem(
+                                text = { Text(language.nativeName) },
+                                onClick = {
+                                    languageMenuExpanded = false
+                                    onLanguageSelected(language.tag)
+                                }
+                            )
+                        }
+                    }
+                }
                 SettingsActionRow(
-                    title = "Run in background",
-                    description = when {
-                        backgroundRestrictions.backgroundRestricted == true ->
-                            "Background activity is restricted."
-                        backgroundRestrictions.batteryOptimizationIgnored == false ->
-                            "Battery optimization is on; Android may stop the VPN."
-                        backgroundRestrictions.batteryOptimizationIgnored == true ->
-                            "Battery optimization is off for this app."
-                        else -> "Battery optimization status is unknown."
-                    },
-                    actionLabel = if (backgroundRestrictions.needsAttention) "Allow" else "Open",
+                    title = stringResource(R.string.settings_background),
+                    description = stringResource(
+                        when {
+                            backgroundRestrictions.backgroundRestricted == true ->
+                                R.string.settings_background_restricted
+                            backgroundRestrictions.batteryOptimizationIgnored == false ->
+                                R.string.settings_background_optimized
+                            backgroundRestrictions.batteryOptimizationIgnored == true ->
+                                R.string.settings_background_unrestricted
+                            else -> R.string.settings_background_unknown
+                        }
+                    ),
+                    actionLabel = stringResource(
+                        if (backgroundRestrictions.needsAttention) R.string.action_allow else R.string.action_open
+                    ),
                     onAction = onFixBackgroundRestrictions
                 )
                 SettingsActionRow(
-                    title = "Always-on VPN",
-                    description = when (alwaysOnStatus.alwaysOn) {
-                        true -> if (alwaysOnStatus.lockdown == true) {
-                            "On, connections without VPN are blocked."
-                        } else {
-                            "On. Android restarts the VPN if it is stopped."
+                    title = stringResource(R.string.settings_always_on),
+                    description = stringResource(
+                        when (alwaysOnStatus.alwaysOn) {
+                            true -> if (alwaysOnStatus.lockdown == true) {
+                                R.string.settings_always_on_lockdown
+                            } else {
+                                R.string.settings_always_on_on
+                            }
+                            false -> R.string.settings_always_on_off
+                            null -> R.string.settings_always_on_unknown
                         }
-                        false -> "Off. Enable it in system VPN settings so Android " +
-                            "restarts the VPN after it is killed."
-                        null -> "Enable it in system VPN settings so Android restarts " +
-                            "the VPN after it is killed."
-                    },
-                    actionLabel = "Settings",
+                    ),
+                    actionLabel = stringResource(R.string.settings_open_system),
                     onAction = onOpenVpnSettings
                 )
                 Row(
@@ -462,10 +522,9 @@ private fun SettingsDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(text = "Reconnect indefinitely")
+                        Text(text = stringResource(R.string.settings_reconnect))
                         Text(
-                            text = "Keep retrying the selected proxy instead of " +
-                                "stopping the VPN after a few failures.",
+                            text = stringResource(R.string.settings_reconnect_body),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -480,7 +539,7 @@ private fun SettingsDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Disclosure accepted",
+                        text = stringResource(R.string.settings_disclosure),
                         modifier = Modifier.weight(1f)
                     )
                     Switch(
@@ -493,7 +552,7 @@ private fun SettingsDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Detailed domain logging",
+                        text = stringResource(R.string.settings_domain_logging),
                         modifier = Modifier.weight(1f)
                     )
                     Switch(
@@ -539,7 +598,6 @@ private fun formatBytes(bytes: Long): String {
     return "%.1f MiB".format(kib / 1024.0)
 }
 
-private const val DIRECT_ROUTE_LABEL = "Direct Connection"
 
 @Preview(showBackground = true)
 @Composable
@@ -548,7 +606,7 @@ private fun HomeScreenPreview() {
         HomeScreen(
             uiState = VpnPermissionUiState(
                 permissionStatus = VpnPermissionStatus.GRANTED,
-                message = "VPN permission is granted."
+                message = UserText.of(R.string.permission_already_granted)
             ),
             settings = AppSettings(),
             runtimeState = VpnRuntimeSnapshot(),
@@ -563,7 +621,6 @@ private fun HomeScreenPreview() {
                 )
             ),
             selectedProxyId = 1L,
-            diagnosticsSummary = "IPv4 only; DNS proxy-safe; UDP/443 blocked.",
             lastError = null,
             canStartVpn = true,
             onStartVpn = {},
@@ -578,4 +635,20 @@ private fun HomeScreenPreview() {
             onInfiniteReconnectEnabled = {}
         )
     }
+}
+
+private fun VpnServiceStatus.labelRes(): Int = when (this) {
+    VpnServiceStatus.STOPPED -> R.string.status_stopped
+    VpnServiceStatus.STARTING -> R.string.status_starting
+    VpnServiceStatus.RUNNING -> R.string.status_running
+    VpnServiceStatus.STOPPING -> R.string.status_stopping
+    VpnServiceStatus.ERROR -> R.string.status_error
+}
+
+private fun VpnPermissionStatus.labelRes(): Int = when (this) {
+    VpnPermissionStatus.UNKNOWN -> R.string.permission_unknown
+    VpnPermissionStatus.REQUIRED -> R.string.permission_required
+    VpnPermissionStatus.REQUESTING -> R.string.permission_requesting
+    VpnPermissionStatus.GRANTED -> R.string.permission_granted
+    VpnPermissionStatus.DENIED -> R.string.permission_denied
 }

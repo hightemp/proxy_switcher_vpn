@@ -34,9 +34,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.hightemp.proxy_switcher_vpn.R
 import com.hightemp.proxy_switcher_vpn.ui.theme.Proxy_switcher_vpnTheme
 import com.hightemp.proxy_switcher_vpn.utils.LogEntry
 import com.hightemp.proxy_switcher_vpn.utils.LogType
@@ -76,17 +78,17 @@ fun LogsScreen(
                     IconButton(onClick = onBack) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = stringResource(R.string.action_back)
                         )
                     }
                 },
-                title = { Text("Logs") },
+                title = { Text(stringResource(R.string.logs_title)) },
                 actions = {
                     IconButton(
                         onClick = onClearLogs,
                         enabled = logs.isNotEmpty()
                     ) {
-                        Icon(Icons.Default.Delete, contentDescription = "Clear logs")
+                        Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.logs_clear))
                     }
                 }
             )
@@ -105,8 +107,10 @@ fun LogsScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 FilterMenu<VpnEngineLogLevel>(
-                    selectedLabel = selectedLevel?.name ?: "All levels",
-                    options = listOf(FilterOption<VpnEngineLogLevel>(null, "All levels")) +
+                    selectedLabel = selectedLevel?.name ?: stringResource(R.string.logs_all_levels),
+                    options = listOf(
+                        FilterOption<VpnEngineLogLevel>(null, stringResource(R.string.logs_all_levels))
+                    ) +
                         VpnEngineLogLevel.entries.map {
                             FilterOption<VpnEngineLogLevel>(it, it.name)
                         },
@@ -114,8 +118,8 @@ fun LogsScreen(
                     modifier = Modifier.weight(1f)
                 )
                 FilterMenu<LogType>(
-                    selectedLabel = selectedType?.name ?: "All types",
-                    options = listOf(FilterOption<LogType>(null, "All types")) +
+                    selectedLabel = selectedType?.name ?: stringResource(R.string.logs_all_types),
+                    options = listOf(FilterOption<LogType>(null, stringResource(R.string.logs_all_types))) +
                         LogType.entries.map {
                             FilterOption<LogType>(it, it.name)
                         },
@@ -184,7 +188,7 @@ private fun EmptyLogs(modifier: Modifier = Modifier) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "No logs",
+            text = stringResource(R.string.logs_empty),
             style = MaterialTheme.typography.titleMedium
         )
     }

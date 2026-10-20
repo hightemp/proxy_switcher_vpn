@@ -4,6 +4,7 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
+import android.content.Context
 import android.content.Intent
 import android.net.VpnService
 import android.os.Build
@@ -15,6 +16,10 @@ import com.hightemp.proxy_switcher_vpn.R
 import com.hightemp.proxy_switcher_vpn.data.local.ProxyEntity
 import com.hightemp.proxy_switcher_vpn.data.repository.ProxyRepository
 import com.hightemp.proxy_switcher_vpn.data.settings.SettingsRepository
+import com.hightemp.proxy_switcher_vpn.i18n.AppLanguages
+import com.hightemp.proxy_switcher_vpn.i18n.UserText
+import com.hightemp.proxy_switcher_vpn.i18n.english
+import com.hightemp.proxy_switcher_vpn.i18n.resolve
 import com.hightemp.proxy_switcher_vpn.proxy.ProxyReachabilityTester
 import com.hightemp.proxy_switcher_vpn.service.VpnReconnectPolicy
 import com.hightemp.proxy_switcher_vpn.service.VpnRuntimeController
@@ -72,6 +77,10 @@ class ProxyVpnService : VpnService(), ActiveVpnService {
     private var activeRouteSelection: VpnRouteSelection? = null
     private var lastRouteSensitiveValues: List<String> = emptyList()
 
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(AppLanguages.wrap(newBase))
+    }
+
     override fun onCreate() {
         super.onCreate()
         activeVpnServiceBridge.attach(this)
@@ -122,7 +131,7 @@ class ProxyVpnService : VpnService(), ActiveVpnService {
             runtimeController.stop()
             closeTun()
             activeVpnServiceBridge.detach(this@ProxyVpnService)
-            val message = "VPN permission was revoked."
+            val message = UserText.of(R.string.status_permission_revoked)
             setVpnEnabledFlag(false)
             recordStop(VpnStopReason.PERMISSION_REVOKED, message)
             VpnKeepAlive.cancel(this@ProxyVpnService)
@@ -142,9 +151,10 @@ class ProxyVpnService : VpnService(), ActiveVpnService {
         activeVpnServiceBridge.detach(this)
         serviceScope.cancel()
         if (VpnRuntimeState.state.value.isForegroundServiceActive) {
-            recordStop(VpnStopReason.SERVICE_DESTROYED, "VPN service destroyed.")
-            VpnRuntimeState.markStopped("VPN service destroyed.")
-            sendStatus("VPN service destroyed.")
+            val message = UserText.of(R.string.status_service_destroyed)
+            recordStop(VpnStopReason.SERVICE_DESTROYED, message)
+            VpnRuntimeState.markStopped(message)
+            sendStatus(message)
         }
         super.onDestroy()
     }
@@ -239,13 +249,13 @@ class ProxyVpnService : VpnService(), ActiveVpnService {
         if (routeSelection == null || !snapshot.isForegroundServiceActive) {
             serviceScope.launch {
                 runtimeController.stop()
-                failClosedAndStop(message)
+                failClosedAndStop(UserText.raw(message))
             }
             return
         }
 
-        VpnRuntimeState.markStarting("Recovering VPN after engine error.")
-        notify("Recovering VPN after engine error.")
+        VpnRuntimeState.markStarting(UserText.of(R.string.status_recovering_engine))
+        notify(UserText.of(R.string.status_recovering_engine))
         AppLogger.error(
             message = "VPN engine reported runtime failure; reconnect will be attempted: $message",
             type = LogType.VPN,
@@ -255,13 +265,14 @@ class ProxyVpnService : VpnService(), ActiveVpnService {
             val result = startRouteWithRetries(
                 routeSelection = routeSelection,
                 reason = "engine runtime failure: $message",
-                runningMessage = "VPN reconnected to ${routeSelection.displayLabel}.",
+                runningMessage = UserText.of(R.string.status_reconnected, routeSelection.displayText),
                 restartMonitorOnSuccess = true
             )
             if (!result.success) {
-                val finalMessage = "VPN engine failed and reconnect attempts were exhausted: ${
-                    result.lastFailure ?: message
-                }"
+                val finalMessage = UserText.of(
+                    R.string.error_engine_exhausted,
+                    result.lastFailure ?: UserText.raw(message)
+                )
                 runtimeController.stop()
                 failClosedAndStop(finalMessage)
             }
@@ -273,11 +284,11 @@ class ProxyVpnService : VpnService(), ActiveVpnService {
         when (snapshot.status) {
             VpnServiceStatus.STARTING,
             VpnServiceStatus.RUNNING -> {
-                sendStatus(snapshot.statusMessage ?: "VPN already active.")
+                sendStatus(snapshot.statusMessage ?: UserText.of(R.string.status_already_active))
                 return
             }
             VpnServiceStatus.STOPPING -> {
-                sendStatus(snapshot.statusMessage ?: "VPN stop is in progress.")
+                sendStatus(snapshot.statusMessage ?: UserText.of(R.string.status_stop_in_progress))
                 return
             }
             VpnServiceStatus.STOPPED,
@@ -285,30 +296,32 @@ class ProxyVpnService : VpnService(), ActiveVpnService {
         }
         if (startJob?.isActive == true) return
 
-        VpnRuntimeState.markStarting("Starting VPN service.")
+        VpnRuntimeState.markStarting(UserText.of(R.string.status_starting_service))
         VpnKeepAlive.schedule(this)
         startForeground(
             NOTIFICATION_ID,
-            createNotification("VPN service starting.")
+            createNotification(UserText.of(R.string.status_service_starting))
         )
         startJob = serviceScope.launch {
             setVpnEnabledFlag(true)
             val routeSelection = loadRouteSelection()
             if (!routeSelection.isValidForStart()) {
-                failClosedAndStop("Select Direct or a valid enabled proxy before starting VPN.")
+                failClosedAndStop(UserText.of(R.string.error_no_valid_route))
                 return@launch
             }
 
             val result = startRouteWithRetries(
                 routeSelection = routeSelection!!,
                 reason = "start request",
-                runningMessage = "VPN service running.",
+                runningMessage = UserText.of(R.string.status_service_running),
                 restartMonitorOnSuccess = true
             )
             if (!result.success) {
-                val message = "VPN could not start after ${
-                    reconnectPolicy.attemptBudgetLabel
-                } attempts: ${result.lastFailure ?: "Unknown error."}"
+                val message = UserText.of(
+                    R.string.error_start_exhausted,
+                    reconnectPolicy.attemptBudgetLabel,
+                    result.lastFailure ?: UserText.of(R.string.error_unknown)
+                )
                 runtimeController.stop()
                 failClosedAndStop(message)
             }
@@ -321,37 +334,39 @@ class ProxyVpnService : VpnService(), ActiveVpnService {
             VpnServiceStatus.RUNNING -> Unit
             VpnServiceStatus.STARTING,
             VpnServiceStatus.STOPPING -> {
-                sendStatus(snapshot.statusMessage ?: "VPN transition is in progress.")
+                sendStatus(snapshot.statusMessage ?: UserText.of(R.string.status_transition_in_progress))
                 return
             }
             VpnServiceStatus.STOPPED,
             VpnServiceStatus.ERROR -> {
-                sendStatus(snapshot.statusMessage ?: "VPN is not running.")
+                sendStatus(snapshot.statusMessage ?: UserText.of(R.string.status_not_running))
                 return
             }
         }
         if (startJob?.isActive == true || stopJob?.isActive == true) return
 
         upstreamMonitorJob?.cancel()
-        VpnRuntimeState.markStarting("Switching VPN route.")
-        notify("Switching VPN route.")
+        VpnRuntimeState.markStarting(UserText.of(R.string.status_switching_route))
+        notify(UserText.of(R.string.status_switching_route))
         startJob = serviceScope.launch {
             val routeSelection = loadRouteSelection(intent)
             if (!routeSelection.isValidForStart()) {
-                failClosedAndStop("Selected VPN route is not available.")
+                failClosedAndStop(UserText.of(R.string.error_route_unavailable))
                 return@launch
             }
 
             val result = startRouteWithRetries(
                 routeSelection = routeSelection!!,
                 reason = "route switch request",
-                runningMessage = "VPN route switched to ${routeSelection.displayLabel}.",
+                runningMessage = UserText.of(R.string.status_route_switched, routeSelection.displayText),
                 restartMonitorOnSuccess = true
             )
             if (!result.success) {
-                val message = "VPN route switch failed after ${
-                    reconnectPolicy.attemptBudgetLabel
-                } attempts: ${result.lastFailure ?: "Unknown error."}"
+                val message = UserText.of(
+                    R.string.error_switch_exhausted,
+                    reconnectPolicy.attemptBudgetLabel,
+                    result.lastFailure ?: UserText.of(R.string.error_unknown)
+                )
                 runtimeController.stop()
                 failClosedAndStop(message)
             }
@@ -366,12 +381,12 @@ class ProxyVpnService : VpnService(), ActiveVpnService {
             VpnServiceStatus.STOPPED,
             VpnServiceStatus.ERROR -> {
                 serviceScope.launch { setVpnEnabledFlag(false) }
-                sendStatus(snapshot.statusMessage ?: "VPN service stopped.")
+                sendStatus(snapshot.statusMessage ?: UserText.of(R.string.status_service_stopped))
                 stopSelf()
                 return
             }
             VpnServiceStatus.STOPPING -> {
-                sendStatus(snapshot.statusMessage ?: "VPN stop is in progress.")
+                sendStatus(snapshot.statusMessage ?: UserText.of(R.string.status_stop_in_progress))
                 return
             }
             VpnServiceStatus.STARTING,
@@ -380,12 +395,12 @@ class ProxyVpnService : VpnService(), ActiveVpnService {
         if (stopJob?.isActive == true) return
 
         stopJob = serviceScope.launch {
-            VpnRuntimeState.markStopping("Stopping VPN service.")
+            VpnRuntimeState.markStopping(UserText.of(R.string.status_stopping_service))
             setVpnEnabledFlag(false)
             runtimeController.stop()
             closeTun()
             activeRouteSelection = null
-            val stoppedMessage = "VPN service stopped."
+            val stoppedMessage = UserText.of(R.string.status_service_stopped)
             recordStop(VpnStopReason.USER, stoppedMessage)
             VpnKeepAlive.cancel(this@ProxyVpnService)
             VpnRuntimeState.markStopped(stoppedMessage)
@@ -404,7 +419,7 @@ class ProxyVpnService : VpnService(), ActiveVpnService {
 
         startForeground(
             NOTIFICATION_ID,
-            createNotification("Restoring VPN service.")
+            createNotification(UserText.of(R.string.status_restoring_service))
         )
         serviceScope.launch {
             val vpnEnabled = runCatching {
@@ -423,10 +438,11 @@ class ProxyVpnService : VpnService(), ActiveVpnService {
         }
     }
 
-    private fun recordStop(reason: VpnStopReason, message: String) {
+    private fun recordStop(reason: VpnStopReason, message: UserText) {
         val sensitiveValues = lastRouteSensitiveValues
+        val englishMessage = message.english()
         historyScope.launch {
-            runCatching { stopHistory.record(reason, message, sensitiveValues) }
+            runCatching { stopHistory.record(reason, englishMessage, sensitiveValues) }
         }
     }
 
@@ -461,12 +477,12 @@ class ProxyVpnService : VpnService(), ActiveVpnService {
         }?.let(VpnRouteSelection::Proxy)
     }
 
-    private fun failClosedAndStop(message: String) {
+    private fun failClosedAndStop(message: UserText) {
         failClosedAndStop(message, cancelMonitor = true)
     }
 
     private fun failClosedAndStop(
-        message: String,
+        message: UserText,
         cancelMonitor: Boolean
     ) {
         if (cancelMonitor) {
@@ -475,7 +491,7 @@ class ProxyVpnService : VpnService(), ActiveVpnService {
         activeRouteSelection = null
         closeTun()
         AppLogger.error(
-            message = "VPN service stopped fail-closed: $message",
+            message = "VPN service stopped fail-closed: ${message.english()}",
             type = LogType.VPN
         )
         serviceScope.launch { setVpnEnabledFlag(false) }
@@ -552,12 +568,13 @@ class ProxyVpnService : VpnService(), ActiveVpnService {
                 consecutiveFailures += 1
                 val failureMessage = probeResult.exceptionOrNull()
                     ?.toMonitorMessage()
+                    ?.let(UserText::raw)
                     ?: probe?.message
-                    ?: "Proxy test failed."
+                    ?: UserText.of(R.string.proxy_test_failed)
                 AppLogger.warning(
                     message = "Upstream monitor probe failed " +
                         "($consecutiveFailures/${reconnectPolicy.monitorFailureThreshold}); " +
-                        "probeLatency=${elapsedMillis}ms; reason=$failureMessage. " +
+                        "probeLatency=${elapsedMillis}ms; reason=${failureMessage.english()}. " +
                         "VPN remains active while retrying.",
                     type = LogType.PROXY,
                     sensitiveValues = selectedProxy.sensitiveValues()
@@ -567,12 +584,12 @@ class ProxyVpnService : VpnService(), ActiveVpnService {
                     continue
                 }
 
-                VpnRuntimeState.markStarting("Reconnecting VPN route after upstream failures.")
-                notify("Reconnecting VPN route.")
+                VpnRuntimeState.markStarting(UserText.of(R.string.status_reconnecting_after_failures))
+                notify(UserText.of(R.string.status_reconnecting))
                 val result = startRouteWithRetries(
                     routeSelection = routeSelection,
                     reason = "$consecutiveFailures upstream monitor failures",
-                    runningMessage = "VPN reconnected to ${routeSelection.displayLabel}.",
+                    runningMessage = UserText.of(R.string.status_reconnected, routeSelection.displayText),
                     restartMonitorOnSuccess = false
                 )
                 if (result.success) {
@@ -580,12 +597,14 @@ class ProxyVpnService : VpnService(), ActiveVpnService {
                     continue
                 }
 
-                val message = "Selected upstream proxy did not recover after " +
-                    "$consecutiveFailures monitor failures and " +
-                    "${reconnectPolicy.attemptBudgetLabel} reconnect attempts: " +
-                    (result.lastFailure ?: failureMessage)
+                val message = UserText.of(
+                    R.string.error_upstream_not_recovered,
+                    consecutiveFailures,
+                    reconnectPolicy.attemptBudgetLabel,
+                    result.lastFailure ?: failureMessage
+                )
                 AppLogger.error(
-                    message = message,
+                    message = message.english(),
                     type = LogType.PROXY,
                     sensitiveValues = selectedProxy.sensitiveValues()
                 )
@@ -599,10 +618,10 @@ class ProxyVpnService : VpnService(), ActiveVpnService {
     private suspend fun startRouteWithRetries(
         routeSelection: VpnRouteSelection,
         reason: String,
-        runningMessage: String,
+        runningMessage: UserText,
         restartMonitorOnSuccess: Boolean
     ): RouteStartAttemptsResult {
-        var lastFailure: String? = null
+        var lastFailure: UserText? = null
         lastRouteSensitiveValues = routeSelection.sensitiveValues()
         refreshReconnectPolicy()
         val attemptBudget = reconnectPolicy.attemptBudgetLabel
@@ -624,9 +643,9 @@ class ProxyVpnService : VpnService(), ActiveVpnService {
             )
             notify(
                 if (attempt == 1) {
-                    "Starting VPN route."
+                    UserText.of(R.string.status_starting_route)
                 } else {
-                    "Retrying VPN route ($attempt/$attemptBudget)."
+                    UserText.of(R.string.status_retrying_route, attempt, attemptBudget)
                 }
             )
 
@@ -656,7 +675,7 @@ class ProxyVpnService : VpnService(), ActiveVpnService {
                     AppLogger.warning(
                         message = "VPN route attempt " +
                             "$attempt/$attemptBudget failed: " +
-                            result.message,
+                            result.message.english(),
                         type = LogType.VPN,
                         sensitiveValues = routeSelection.sensitiveValues()
                     )
@@ -685,17 +704,17 @@ class ProxyVpnService : VpnService(), ActiveVpnService {
         reconnectPolicy = reconnectPolicy.copy(unlimitedReconnectAttempts = unlimited)
     }
 
-    private fun notify(contentText: String) {
+    private fun notify(contentText: UserText) {
         getSystemService(NotificationManager::class.java)
             .notify(NOTIFICATION_ID, createNotification(contentText))
     }
 
-    private fun sendStatus(message: String) {
+    private fun sendStatus(message: UserText) {
         val snapshot = VpnRuntimeState.state.value
         val intent = Intent(ACTION_STATUS_CHANGED).apply {
             setPackage(packageName)
             putExtra(EXTRA_IS_RUNNING, snapshot.isRunning)
-            putExtra(EXTRA_STATUS_MESSAGE, message)
+            putExtra(EXTRA_STATUS_MESSAGE, message.english())
         }
         sendBroadcast(intent)
     }
@@ -711,10 +730,10 @@ class ProxyVpnService : VpnService(), ActiveVpnService {
 
     private data class RouteStartAttemptsResult(
         val success: Boolean,
-        val lastFailure: String? = null
+        val lastFailure: UserText? = null
     )
 
-    private fun createNotification(contentText: String): Notification {
+    private fun createNotification(contentText: UserText): Notification {
         val contentIntent = PendingIntent.getActivity(
             this,
             0,
@@ -729,12 +748,12 @@ class ProxyVpnService : VpnService(), ActiveVpnService {
         )
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Proxy Switcher VPN")
-            .setContentText(contentText)
+            .setContentTitle(getString(R.string.app_name))
+            .setContentText(contentText.resolve(this))
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentIntent(contentIntent)
             .setOngoing(true)
-            .addAction(R.drawable.ic_launcher_foreground, "Stop", stopIntent)
+            .addAction(R.drawable.ic_launcher_foreground, getString(R.string.notification_stop), stopIntent)
             .build()
     }
 
@@ -742,7 +761,7 @@ class ProxyVpnService : VpnService(), ActiveVpnService {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val serviceChannel = NotificationChannel(
                 CHANNEL_ID,
-                "VPN Service",
+                getString(R.string.notification_channel),
                 NotificationManager.IMPORTANCE_LOW
             )
             getSystemService(NotificationManager::class.java)

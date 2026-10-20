@@ -1,5 +1,7 @@
 package com.hightemp.proxy_switcher_vpn.ui.screens
 
+import com.hightemp.proxy_switcher_vpn.R
+import com.hightemp.proxy_switcher_vpn.i18n.UserText
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -17,7 +19,7 @@ class ProxyFormValidatorTest {
         )
 
         assertFalse(result.isValid)
-        assertEquals("Host is required", result.errorMessage)
+        assertEquals(UserText.of(R.string.validation_host_required), result.errorMessage)
     }
 
     @Test
@@ -30,7 +32,7 @@ class ProxyFormValidatorTest {
         )
 
         assertFalse(result.isValid)
-        assertEquals("Host must not contain whitespace", result.errorMessage)
+        assertEquals(UserText.of(R.string.validation_host_whitespace), result.errorMessage)
     }
 
     @Test
@@ -43,7 +45,7 @@ class ProxyFormValidatorTest {
         )
 
         assertFalse(result.isValid)
-        assertEquals("Port must be a number", result.errorMessage)
+        assertEquals(UserText.of(R.string.validation_port_number), result.errorMessage)
     }
 
     @Test
@@ -56,7 +58,7 @@ class ProxyFormValidatorTest {
         )
 
         assertFalse(result.isValid)
-        assertEquals("Port must be between 1 and 65535", result.errorMessage)
+        assertEquals(UserText.of(R.string.validation_port_range), result.errorMessage)
     }
 
     @Test
@@ -69,7 +71,7 @@ class ProxyFormValidatorTest {
         )
 
         assertFalse(result.isValid)
-        assertEquals("Username is required when password is set", result.errorMessage)
+        assertEquals(UserText.of(R.string.validation_username_required), result.errorMessage)
     }
 
     @Test

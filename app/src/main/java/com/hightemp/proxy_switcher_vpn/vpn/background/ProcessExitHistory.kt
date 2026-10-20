@@ -3,6 +3,8 @@ package com.hightemp.proxy_switcher_vpn.vpn.background
 import android.app.ActivityManager
 import android.content.Context
 import android.os.Build
+import com.hightemp.proxy_switcher_vpn.R
+import com.hightemp.proxy_switcher_vpn.i18n.UserText
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.util.TimeZone
 import javax.inject.Inject
@@ -26,32 +28,29 @@ data class ProcessExitRecord(
     val killedWhileServiceInForeground: Boolean =
         reason in SYSTEM_KILL_REASONS && importance <= IMPORTANCE_FOREGROUND_SERVICE
 
-    fun summary(timeZone: TimeZone = TimeZone.getDefault()): String {
+    fun summary(timeZone: TimeZone = TimeZone.getDefault()): UserText {
         val cause = when (reason) {
-            REASON_SIGNALED -> "killed by system (signal $status)"
-            REASON_LOW_MEMORY -> "killed by low memory killer"
-            REASON_EXCESSIVE_RESOURCE_USAGE -> "killed for excessive resource use"
-            REASON_FREEZER -> "killed by app freezer"
-            REASON_OTHER -> "killed by system"
-            REASON_CRASH -> "crash"
-            REASON_CRASH_NATIVE -> "native crash"
-            REASON_ANR -> "not responding (ANR)"
-            REASON_EXIT_SELF -> "exited"
-            REASON_USER_REQUESTED, REASON_USER_STOPPED -> "stopped by user"
-            REASON_PACKAGE_UPDATED -> "app updated"
-            REASON_PERMISSION_CHANGE -> "permission changed"
-            else -> "exit reason $reason"
+            REASON_SIGNALED -> UserText.of(R.string.exit_signaled, status)
+            REASON_LOW_MEMORY -> UserText.of(R.string.exit_low_memory)
+            REASON_EXCESSIVE_RESOURCE_USAGE -> UserText.of(R.string.exit_excessive_resources)
+            REASON_FREEZER -> UserText.of(R.string.exit_freezer)
+            REASON_OTHER -> UserText.of(R.string.exit_other)
+            REASON_CRASH -> UserText.of(R.string.exit_crash)
+            REASON_CRASH_NATIVE -> UserText.of(R.string.exit_crash_native)
+            REASON_ANR -> UserText.of(R.string.exit_anr)
+            REASON_EXIT_SELF -> UserText.of(R.string.exit_self)
+            REASON_USER_REQUESTED, REASON_USER_STOPPED -> UserText.of(R.string.exit_user)
+            REASON_PACKAGE_UPDATED -> UserText.of(R.string.exit_package_updated)
+            REASON_PERMISSION_CHANGE -> UserText.of(R.string.exit_permission_change)
+            else -> UserText.of(R.string.exit_reason_code, reason)
         }
-        val state = when {
-            reason !in SYSTEM_KILL_REASONS && !isCrash -> null
+        val time = formatDiagnosticTime(timestampMillis, timeZone)
+        return when {
+            reason !in SYSTEM_KILL_REASONS && !isCrash -> UserText.of(R.string.diag_time_and_text, time, cause)
             importance <= IMPORTANCE_FOREGROUND_SERVICE ->
-                "while the VPN service was in foreground"
-            else -> "in background"
+                UserText.of(R.string.exit_summary_foreground, time, cause)
+            else -> UserText.of(R.string.exit_summary_background, time, cause)
         }
-        return listOfNotNull(
-            "${formatDiagnosticTime(timestampMillis, timeZone)} · $cause",
-            state
-        ).joinToString(" ")
     }
 
     companion object {

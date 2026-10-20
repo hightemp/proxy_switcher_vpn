@@ -1,22 +1,24 @@
 package com.hightemp.proxy_switcher_vpn.vpn.background
 
+import androidx.annotation.StringRes
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import com.hightemp.proxy_switcher_vpn.R
 import java.io.IOException
 import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 
-enum class VpnStopReason(val label: String) {
-    USER("stopped by user"),
-    FAIL_CLOSED("fail-closed"),
-    PERMISSION_REVOKED("permission revoked"),
-    SERVICE_DESTROYED("service destroyed by system")
+enum class VpnStopReason(@StringRes val label: Int) {
+    USER(R.string.stop_reason_user),
+    FAIL_CLOSED(R.string.stop_reason_fail_closed),
+    PERMISSION_REVOKED(R.string.stop_reason_permission_revoked),
+    SERVICE_DESTROYED(R.string.stop_reason_service_destroyed)
 }
 
 data class VpnStopRecord(

@@ -1,5 +1,7 @@
 package com.hightemp.proxy_switcher_vpn.vpn.diagnostics
 
+import com.hightemp.proxy_switcher_vpn.R
+import com.hightemp.proxy_switcher_vpn.i18n.UserText
 import com.hightemp.proxy_switcher_vpn.service.VpnRuntimeSnapshot
 import com.hightemp.proxy_switcher_vpn.vpn.background.BackgroundHealth
 import com.hightemp.proxy_switcher_vpn.vpn.routing.VpnRouteSelection
@@ -73,11 +75,11 @@ class VpnDiagnosticsRepository @Inject constructor() {
             lastVpnStop = VpnDiagnostics.lastStopField(backgroundHealth.lastStop),
             lastProcessExit = VpnDiagnostics.lastProcessExitField(backgroundHealth.lastProcessExit),
             udp = DiagnosticField(
-                label = "UDP",
-                value = udpPolicy.diagnosticSummary,
+                label = UserText.of(R.string.diag_udp),
+                value = UserText.raw(udpPolicy.diagnosticSummary),
                 severity = DiagnosticSeverity.WARNING
             ),
-            lastError = stats.lastError ?: runtime.lastError
+            lastError = stats.lastError?.let(UserText::raw) ?: runtime.lastError
         )
     }
 }

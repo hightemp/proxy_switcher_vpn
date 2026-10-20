@@ -104,6 +104,9 @@ Useful reference files:
 ## 7. UI Rules
 
 - Preserve the reference app's Compose Material 3 style.
+- Never hard-code user-visible text. Add it to `res/values/strings.xml` and to
+  every `values-<locale>/strings.xml` (ru, uk, de, fr, es, it, pt-rBR, pl,
+  zh-rCN, ja, ko); non-UI layers return `UserText`. Keep logs in English.
 - Use practical app screens, not a marketing landing page.
 - Expected routes/screens:
   - Home.

@@ -1,6 +1,9 @@
 package com.hightemp.proxy_switcher_vpn.proxy
 
+import androidx.annotation.StringRes
+import com.hightemp.proxy_switcher_vpn.R
 import com.hightemp.proxy_switcher_vpn.data.local.ProxyType
+import com.hightemp.proxy_switcher_vpn.i18n.UserText
 import java.io.ByteArrayOutputStream
 import java.net.IDN
 import java.nio.ByteBuffer
@@ -41,7 +44,7 @@ sealed interface ProxyStringParseResult {
         val credentialsFirst: ParsedProxyString
     ) : ProxyStringParseResult
 
-    data class Failure(val message: String) : ProxyStringParseResult
+    data class Failure(val message: UserText) : ProxyStringParseResult
 }
 
 /**
@@ -55,14 +58,14 @@ object ProxyStringParser {
         val text = input.trim()
         return try {
             when {
-                text.isEmpty() -> fail("Proxy string is empty.")
-                text.length > MAX_INPUT_LENGTH -> fail("Proxy string is too long.")
+                text.isEmpty() -> fail(R.string.proxy_string_error_empty)
+                text.length > MAX_INPUT_LENGTH -> fail(R.string.proxy_string_error_too_long)
                 text.any { it.isISOControl() && it != '\t' } ->
-                    fail("Proxy string must not contain control characters.")
+                    fail(R.string.proxy_string_error_control)
                 else -> parseCsvRow(text) ?: parseTokens(text)
             }
         } catch (error: ParseException) {
-            ProxyStringParseResult.Failure(error.message.orEmpty())
+            ProxyStringParseResult.Failure(error.text)
         }
     }
 
@@ -74,7 +77,7 @@ object ProxyStringParser {
 
         val protocol = when (fields.size) {
             3, 5 -> protocolToken(fields.last())
-                ?: fail("Unsupported protocol in the last column.")
+                ?: fail(R.string.proxy_string_error_last_column)
             else -> null
         }
         val username = if (fields.size >= 4) fields[2].ifEmpty { null } else null
@@ -93,24 +96,24 @@ object ProxyStringParser {
                     leading != null -> parseRecord(tokens[1], leading)
                     trailing != null -> parseRecord(tokens[0], trailing)
                     isPortText(tokens[1]) -> success(buildProxy(tokens[0], tokens[1], null, null, null))
-                    else -> fail(FORMAT_ERROR)
+                    else -> fail(R.string.proxy_string_error_format)
                 }
             }
             3 -> {
                 val protocol = protocolToken(tokens[2])
-                if (protocol == null || !isPortText(tokens[1])) fail(FORMAT_ERROR)
+                if (protocol == null || !isPortText(tokens[1])) fail(R.string.proxy_string_error_format)
                 success(buildProxy(tokens[0], tokens[1], null, null, protocol))
             }
             4, 5 -> {
                 val protocol = if (tokens.size == 5) {
-                    protocolToken(tokens[4]) ?: fail(FORMAT_ERROR)
+                    protocolToken(tokens[4]) ?: fail(R.string.proxy_string_error_format)
                 } else {
                     null
                 }
-                if (!isPortText(tokens[1])) fail(FORMAT_ERROR)
+                if (!isPortText(tokens[1])) fail(R.string.proxy_string_error_format)
                 success(buildProxy(tokens[0], tokens[1], tokens[2], tokens[3], protocol))
             }
-            else -> fail(FORMAT_ERROR)
+            else -> fail(R.string.proxy_string_error_format)
         }
     }
 
@@ -118,14 +121,14 @@ object ProxyStringParser {
         if (record.contains("://")) {
             val proxy = parseUri(record)
             if (tokenProtocol != null && tokenProtocol != proxy.type) {
-                fail("Protocol conflict: the URI scheme and the protocol name differ.")
+                fail(R.string.proxy_string_error_conflict)
             }
             return success(proxy)
         }
-        if (record.startsWith("[")) fail(IPV6_ERROR)
+        if (record.startsWith("[")) fail(R.string.proxy_string_error_ipv6)
 
         val atCount = record.count { it == '@' }
-        if (atCount > 1) fail(FORMAT_ERROR)
+        if (atCount > 1) fail(R.string.proxy_string_error_format)
         if (atCount == 1) {
             val userInfo = record.substringBefore('@')
             val (username, password) = splitUserInfo(userInfo)
@@ -137,7 +140,7 @@ object ProxyStringParser {
         return when (parts.size) {
             2 -> success(buildProxy(parts[0], parts[1], null, null, tokenProtocol))
             4 -> resolveFourFields(parts, tokenProtocol)
-            else -> if (parts.size == 1) fail(PORT_REQUIRED_ERROR) else fail(FORMAT_ERROR)
+            else -> if (parts.size == 1) fail(R.string.proxy_string_error_port_required) else fail(R.string.proxy_string_error_format)
         }
     }
 
@@ -151,19 +154,16 @@ object ProxyStringParser {
                 ProxyStringParseResult.Ambiguous(hostFirst, credentialsFirst)
             hostFirst != null -> success(hostFirst)
             credentialsFirst != null -> success(credentialsFirst)
-            else -> fail(
-                "Unrecognized format: expected host:port:username:password " +
-                    "or username:password:host:port."
-            )
+            else -> fail(R.string.proxy_string_error_four_fields)
         }
     }
 
     private fun parseUri(record: String): ParsedProxyString {
         val scheme = record.substringBefore("://")
-        val type = protocolToken(scheme) ?: fail("Unsupported proxy scheme.")
+        val type = protocolToken(scheme) ?: fail(R.string.proxy_string_error_scheme)
         var authority = record.substringAfter("://").removeSuffix("/")
         if (authority.any { it == '/' || it == '?' || it == '#' }) {
-            fail("Proxy URI must not contain a path, query, or fragment.")
+            fail(R.string.proxy_string_error_path)
         }
 
         var username: String? = null
@@ -175,25 +175,25 @@ object ProxyStringParser {
             username = rawUsername?.let(::percentDecode)
             password = rawPassword?.let(::percentDecode)
         }
-        if (authority.startsWith("[")) fail(IPV6_ERROR)
+        if (authority.startsWith("[")) fail(R.string.proxy_string_error_ipv6)
         val (host, port) = splitHostPort(authority)
         return buildProxy(host, port, username, password, type)
     }
 
     private fun splitUserInfo(userInfo: String): Pair<String?, String?> {
-        if (userInfo.any { it.isWhitespace() || it == '@' }) fail(FORMAT_ERROR)
+        if (userInfo.any { it.isWhitespace() || it == '@' }) fail(R.string.proxy_string_error_format)
         val username = userInfo.substringBefore(':')
         val password = if (userInfo.contains(':')) userInfo.substringAfter(':') else null
         return username.ifEmpty { null } to password?.ifEmpty { null }
     }
 
     private fun splitHostPort(value: String): Pair<String, String> {
-        if (value.startsWith("[")) fail(IPV6_ERROR)
+        if (value.startsWith("[")) fail(R.string.proxy_string_error_ipv6)
         val parts = value.split(':')
         return when (parts.size) {
-            1 -> fail(PORT_REQUIRED_ERROR)
+            1 -> fail(R.string.proxy_string_error_port_required)
             2 -> parts[0] to parts[1]
-            else -> fail(FORMAT_ERROR)
+            else -> fail(R.string.proxy_string_error_format)
         }
     }
 
@@ -219,12 +219,12 @@ object ProxyStringParser {
         protocol: ProxyType?
     ): ParsedProxyString {
         val port = portText.takeIf(::isPortText)?.toIntOrNull()?.takeIf { it in 1..65535 }
-            ?: fail("Proxy port must be a number between 1 and 65535.")
+            ?: fail(R.string.proxy_string_error_port_range)
         if (listOfNotNull(username, password).any { value -> value.any { it.isISOControl() } }) {
-            fail("Credentials must not contain control characters.")
+            fail(R.string.proxy_string_error_credentials_control)
         }
         if (username.isNullOrEmpty() && !password.isNullOrEmpty()) {
-            fail("Username is required when password is set.")
+            fail(R.string.proxy_string_error_username_required)
         }
         return ParsedProxyString(
             host = normalizeHost(hostText),
@@ -236,15 +236,15 @@ object ProxyStringParser {
     }
 
     private fun normalizeHost(value: String): String {
-        if (value.startsWith("[") || value.count { it == ':' } > 1) fail(IPV6_ERROR)
-        if (value.isEmpty()) fail("Proxy host is required.")
+        if (value.startsWith("[") || value.count { it == ':' } > 1) fail(R.string.proxy_string_error_ipv6)
+        if (value.isEmpty()) fail(R.string.proxy_string_error_host_required)
         if (value.all { it.isDigit() || it == '.' }) {
-            return value.takeIf(::isIpv4) ?: fail("Invalid IPv4 host.")
+            return value.takeIf(::isIpv4) ?: fail(R.string.proxy_string_error_ipv4)
         }
         val ascii = try {
             IDN.toASCII(value, IDN.USE_STD3_ASCII_RULES).lowercase()
         } catch (_: IllegalArgumentException) {
-            fail("Invalid proxy host name.")
+            fail(R.string.proxy_string_error_host_name)
         }
         val labels = ascii.removeSuffix(".").split('.')
         val valid = ascii.length <= 253 && labels.all { label ->
@@ -253,7 +253,7 @@ object ProxyStringParser {
                 !label.endsWith('-') &&
                 label.all { it in 'a'..'z' || it.isDigit() || it == '-' }
         }
-        return ascii.takeIf { valid } ?: fail("Invalid proxy host name.")
+        return ascii.takeIf { valid } ?: fail(R.string.proxy_string_error_host_name)
     }
 
     private fun isDottedHost(value: String): Boolean {
@@ -275,8 +275,8 @@ object ProxyStringParser {
             "http" -> ProxyType.HTTP
             "https" -> ProxyType.HTTPS
             "socks5", "socks5h" -> ProxyType.SOCKS5
-            "socks4", "socks4a" -> fail("SOCKS4/SOCKS4a proxies are not supported.")
-            "socks" -> fail("Ambiguous protocol 'socks': use socks5.")
+            "socks4", "socks4a" -> fail(R.string.proxy_string_error_socks4)
+            "socks" -> fail(R.string.proxy_string_error_socks)
             else -> null
         }
     }
@@ -289,7 +289,7 @@ object ProxyStringParser {
             if (char == '%') {
                 val hex = value.substring(index + 1, minOf(index + 3, value.length))
                 if (hex.length != 2 || !hex.all { it in '0'..'9' || it.lowercaseChar() in 'a'..'f' }) {
-                    fail("Invalid percent-encoding in credentials.")
+                    fail(R.string.proxy_string_error_percent)
                 }
                 bytes.write(hex.toInt(16))
                 index += 3
@@ -305,17 +305,14 @@ object ProxyStringParser {
                 .decode(ByteBuffer.wrap(bytes.toByteArray()))
                 .toString()
         } catch (_: CharacterCodingException) {
-            fail("Credentials must be valid UTF-8.")
+            fail(R.string.proxy_string_error_utf8)
         }
     }
 
     private fun success(proxy: ParsedProxyString) = ProxyStringParseResult.Success(proxy)
 
-    private fun fail(message: String): Nothing = throw ParseException(message)
+    private fun fail(@StringRes message: Int): Nothing = throw ParseException(UserText.of(message))
 
-    private class ParseException(message: String) : Exception(message)
+    private class ParseException(val text: UserText) : Exception()
 
-    private const val FORMAT_ERROR = "Unrecognized proxy string format."
-    private const val PORT_REQUIRED_ERROR = "Proxy port is required."
-    private const val IPV6_ERROR = "IPv6 upstream proxies are not supported."
 }

@@ -47,12 +47,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.hightemp.proxy_switcher_vpn.R
 import com.hightemp.proxy_switcher_vpn.data.local.ProxyEntity
 import com.hightemp.proxy_switcher_vpn.data.local.ProxyType
+import com.hightemp.proxy_switcher_vpn.i18n.UserText
+import com.hightemp.proxy_switcher_vpn.i18n.asString
+import com.hightemp.proxy_switcher_vpn.i18n.resolve
 import com.hightemp.proxy_switcher_vpn.ui.theme.Proxy_switcher_vpnTheme
 import com.hightemp.proxy_switcher_vpn.ui.viewmodel.ProxyTestStatus
 import com.hightemp.proxy_switcher_vpn.ui.viewmodel.ProxyTestUiState
@@ -70,18 +75,22 @@ fun ProxyListScreen(
     onDeleteProxy: (ProxyEntity) -> Unit,
     onTestProxy: (ProxyEntity) -> Unit,
     onExportProxies: () -> String,
-    onImportProxies: (String, (Int, String?) -> Unit) -> Unit,
+    onImportProxies: (String, (Int, UserText?) -> Unit) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     var showExportDialog by remember { mutableStateOf(false) }
     var showImportDialog by remember { mutableStateOf(false) }
     var exportText by remember { mutableStateOf("") }
-    val showImportResult = { count: Int, error: String? ->
+    val showImportResult = { count: Int, error: UserText? ->
         if (error != null) {
-            Toast.makeText(context, error, Toast.LENGTH_LONG).show()
+            Toast.makeText(context, error.resolve(context), Toast.LENGTH_LONG).show()
         } else {
-            Toast.makeText(context, "Imported $count proxies", Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                context,
+                context.resources.getQuantityString(R.plurals.proxy_list_imported, count, count),
+                Toast.LENGTH_SHORT
+            ).show()
         }
     }
     val saveFileLauncher = rememberLauncherForActivityResult(
@@ -93,9 +102,13 @@ fun ProxyListScreen(
                     output.write(exportText.toByteArray(Charsets.UTF_8))
                 } ?: error("Could not open output file")
             }.onSuccess {
-                Toast.makeText(context, "Saved to file", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, R.string.proxy_list_saved_to_file, Toast.LENGTH_SHORT).show()
             }.onFailure { error ->
-                Toast.makeText(context, "Save failed: ${error.message}", Toast.LENGTH_LONG).show()
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.proxy_list_save_failed, error.message.orEmpty()),
+                    Toast.LENGTH_LONG
+                ).show()
             }
         }
     }
@@ -109,7 +122,7 @@ fun ProxyListScreen(
                 }
             }.getOrNull()
             if (text == null) {
-                Toast.makeText(context, "Could not read file", Toast.LENGTH_LONG).show()
+                Toast.makeText(context, R.string.proxy_list_read_failed, Toast.LENGTH_LONG).show()
             } else {
                 onImportProxies(text, showImportResult)
             }
@@ -123,14 +136,14 @@ fun ProxyListScreen(
                     IconButton(onClick = onBack) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = stringResource(R.string.action_back)
                         )
                     }
                 },
-                title = { Text("Proxies") },
+                title = { Text(stringResource(R.string.proxy_list_title)) },
                 actions = {
                     IconButton(onClick = { showImportDialog = true }) {
-                        Icon(Icons.Default.Download, contentDescription = "Import proxies")
+                        Icon(Icons.Default.Download, contentDescription = stringResource(R.string.proxy_list_import))
                     }
                     IconButton(
                         onClick = {
@@ -138,14 +151,14 @@ fun ProxyListScreen(
                             showExportDialog = true
                         }
                     ) {
-                        Icon(Icons.Default.Upload, contentDescription = "Export proxies")
+                        Icon(Icons.Default.Upload, contentDescription = stringResource(R.string.proxy_list_export))
                     }
                 }
             )
         },
         floatingActionButton = {
             FloatingActionButton(onClick = onAddProxy) {
-                Icon(Icons.Default.Add, contentDescription = "Add proxy")
+                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.proxy_list_add))
             }
         },
         modifier = modifier.fillMaxSize()
@@ -220,11 +233,11 @@ private fun ExportProxyDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Export Proxies") },
+        title = { Text(stringResource(R.string.proxy_export_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    text = "Export includes saved proxy credentials.",
+                    text = stringResource(R.string.proxy_export_warning),
                     style = MaterialTheme.typography.bodyMedium
                 )
                 OutlinedTextField(
@@ -244,19 +257,19 @@ private fun ExportProxyDialog(
             TextButton(
                 onClick = {
                     clipboard.setText(AnnotatedString(text))
-                    Toast.makeText(context, "Copied to clipboard", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, R.string.proxy_export_copied, Toast.LENGTH_SHORT).show()
                 }
             ) {
-                Text("Copy")
+                Text(stringResource(R.string.action_copy))
             }
         },
         dismissButton = {
             Row {
                 TextButton(onClick = onSaveToFile) {
-                    Text("Save to file")
+                    Text(stringResource(R.string.proxy_export_save_to_file))
                 }
                 TextButton(onClick = onDismiss) {
-                    Text("Close")
+                    Text(stringResource(R.string.action_close))
                 }
             }
         }
@@ -273,14 +286,14 @@ private fun ImportProxyDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Import Proxies") },
+        title = { Text(stringResource(R.string.proxy_import_title)) },
         text = {
             Column(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    text = "Paste exported JSON below, or load it from a file.",
+                    text = stringResource(R.string.proxy_import_hint),
                     style = MaterialTheme.typography.bodyMedium
                 )
                 OutlinedTextField(
@@ -301,16 +314,16 @@ private fun ImportProxyDialog(
                 onClick = { onImportText(text) },
                 enabled = text.isNotBlank()
             ) {
-                Text("Import")
+                Text(stringResource(R.string.action_import))
             }
         },
         dismissButton = {
             Row {
                 TextButton(onClick = onLoadFromFile) {
-                    Text("Load from file")
+                    Text(stringResource(R.string.proxy_import_load_from_file))
                 }
                 TextButton(onClick = onDismiss) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.action_cancel))
                 }
             }
         }
@@ -327,11 +340,11 @@ private fun EmptyProxyList(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "No saved proxies",
+            text = stringResource(R.string.proxy_list_empty_title),
             style = MaterialTheme.typography.titleLarge
         )
         Text(
-            text = "Add a SOCKS5, HTTP, or HTTPS proxy before starting VPN.",
+            text = stringResource(R.string.proxy_list_empty_body),
             style = MaterialTheme.typography.bodyMedium
         )
     }
@@ -379,7 +392,7 @@ private fun ProxyListItem(
                         Spacer(modifier = Modifier.width(8.dp))
                         Icon(
                             Icons.Default.CheckCircle,
-                            contentDescription = "Selected",
+                            contentDescription = stringResource(R.string.proxy_list_selected),
                             tint = MaterialTheme.colorScheme.primary
                         )
                     }
@@ -389,12 +402,14 @@ private fun ProxyListItem(
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Text(
-                    text = if (proxy.isEnabled) "Enabled" else "Disabled",
+                    text = stringResource(
+                        if (proxy.isEnabled) R.string.proxy_enabled else R.string.proxy_disabled
+                    ),
                     style = MaterialTheme.typography.bodySmall
                 )
                 testState?.let { state ->
                     Text(
-                        text = state.message,
+                        text = state.message.asString(),
                         color = when (state.status) {
                             ProxyTestStatus.SUCCESS -> MaterialTheme.colorScheme.primary
                             ProxyTestStatus.FAILURE -> MaterialTheme.colorScheme.error
@@ -411,20 +426,28 @@ private fun ProxyListItem(
             ) {
                 if (!selected) {
                     TextButton(onClick = onSelect) {
-                        Text("Select")
+                        Text(stringResource(R.string.action_select))
                     }
                 }
                 TextButton(
                     onClick = onTest,
                     enabled = testState?.status != ProxyTestStatus.TESTING
                 ) {
-                    Text(if (testState?.status == ProxyTestStatus.TESTING) "Testing" else "Test")
+                    Text(
+                        stringResource(
+                            if (testState?.status == ProxyTestStatus.TESTING) {
+                                R.string.proxy_testing
+                            } else {
+                                R.string.action_test
+                            }
+                        )
+                    )
                 }
                 IconButton(onClick = onEdit) {
-                    Icon(Icons.Default.Edit, contentDescription = "Edit proxy")
+                    Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.proxy_list_edit))
                 }
                 IconButton(onClick = onDelete) {
-                    Icon(Icons.Default.Delete, contentDescription = "Delete proxy")
+                    Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.proxy_list_delete))
                 }
             }
         }
@@ -455,7 +478,7 @@ private fun ProxyListScreenPreview() {
             proxyTestResults = mapOf(
                 2L to ProxyTestUiState(
                     status = ProxyTestStatus.FAILURE,
-                    message = "Could not connect to proxy."
+                    message = UserText.of(R.string.proxy_test_connect_failed)
                 )
             ),
             onBack = {},

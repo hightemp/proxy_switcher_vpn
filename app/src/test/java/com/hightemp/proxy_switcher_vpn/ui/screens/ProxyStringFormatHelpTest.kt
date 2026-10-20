@@ -11,7 +11,7 @@ class ProxyStringFormatHelpTest {
 
     @Test
     fun helpExplainsWhatAProxyStringIs() {
-        assertFalse(ProxyStringFormatHelp.intro.isBlank())
+        assertTrue(ProxyStringFormatHelp.supportedGroups.isNotEmpty())
         assertTrue(ProxyStringFormatHelp.rules.isNotEmpty())
     }
 

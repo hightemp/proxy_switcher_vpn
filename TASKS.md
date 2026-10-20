@@ -2418,6 +2418,124 @@ memory-only, so the stop reason is lost with the process.
   - TASK-218
 - Estimated risk: medium
 
+## Phase 19.7: Internationalization
+
+Decisions (agreed with the user on 2026-10-20):
+
+- Languages: English (default), Russian, Ukrainian, German, French, Spanish,
+  Italian, Portuguese (Brazil), Polish, Chinese (Simplified), Japanese,
+  Korean.
+- Translate all user-visible text: screens, dialogs, notification, format
+  help, statuses and errors shown to the user. Log entries, technical
+  diagnostic tokens (for example `libbox_running`,
+  `proxy_safe_doh_private_dns_blocked`) and the config preview stay English
+  for bug reports.
+- Language follows the system, with Android 13+ per-app language settings,
+  plus an in-app language picker that also works below Android 13.
+- README is fully translated into every app language with a language
+  switcher at the top.
+
+### ✅ TASK-223: Add i18n Infrastructure And Language Picker
+
+- Status: done
+- Goal: Move user-visible text to Android string resources and let the user
+  choose the app language.
+- Files likely to create/change:
+  - `gradle/libs.versions.toml`, `app/build.gradle.kts` (AppCompat,
+    `generateLocaleConfig`).
+  - `app/src/main/res/resources.properties`
+  - `app/src/main/AndroidManifest.xml`, `app/src/main/res/values/themes.xml`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/i18n/`
+    (`UserText`, `AppLanguage`).
+  - all screens under `ui/screens/`, `MainActivity.kt`, `VpnViewModel.kt`,
+    `ProxyVpnService.kt`, `VpnRuntimeController.kt`, `VpnRuntimeState.kt`,
+    `ProxyTester.kt`, `ProxyStringParser.kt`, `ProxyFormValidator.kt`,
+    `ProxyTransfer.kt`, `VpnDiagnostics.kt`, `ProcessExitHistory.kt`.
+  - affected unit tests.
+- Implementation notes:
+  - Core layers return `UserText` (string resource id + arguments, or raw
+    text) instead of English strings; the UI resolves it with the current
+    locale, logs render it in English.
+  - The chosen language is stored in app preferences and applied through
+    `AppCompatDelegate.setApplicationLocales`; the VPN service and receivers
+    wrap their context with it so the notification follows the choice.
+  - Completed on 2026-10-20. Added `i18n/UserText.kt` (Res, Plural, Raw;
+    `resolve`, `english`, `asString`) and `i18n/AppLanguage.kt` (supported
+    languages, picker state, `AppCompatDelegate.setApplicationLocales`,
+    `wrap` for the service on Android < 13).
+  - `MainActivity` is now an `AppCompatActivity` with an AppCompat DayNight
+    theme; `generateLocaleConfig` and `AppLocalesMetadataHolderService`
+    (autoStoreLocales) are enabled.
+  - Moved 304 strings (1 plural) into `values/strings.xml`. Screens use
+    `stringResource`; `ProxyStringParser`, `ProxyFormValidator`,
+    `ProxyTester`, `ProxyTransfer`, `VpnRuntimeController`,
+    `VpnRuntimeState`, `ProxyVpnService` (status + notification),
+    `VpnViewModel` and diagnostics return `UserText`. Logs, the status
+    broadcast and the persisted stop message use the English rendering.
+  - Tests compare `UserText` values / resource ids instead of English
+    strings; 172 unit tests pass.
+- Acceptance criteria:
+  - No hard-coded user-visible English text left in Compose screens or in
+    messages that reach the UI.
+  - Language picker in Settings: System default plus the 12 languages;
+    the change applies immediately and survives restarts.
+  - Unit tests pass.
+- Test/smoke commands:
+  - `./gradlew test`
+  - `./gradlew assembleDebug`
+  - `./gradlew lintDebug` (MissingTranslation / ExtraTranslation clean).
+- Dependencies:
+  - TASK-216, TASK-222
+- Estimated risk: medium
+
+### ✅ TASK-224: Translate The App Into 11 Languages
+
+- Status: done
+- Goal: Provide `values-<locale>/strings.xml` for ru, uk, de, fr, es, it,
+  pt-rBR, pl, zh-rCN, ja, ko.
+- Implementation notes:
+  - Product names, protocol names, and proxy string examples are not
+    translated.
+  - Translations are machine-produced by the agent; native-speaker review is
+    welcome.
+  - Completed on 2026-10-20: 295 translatable strings in 11 locales,
+    validated for complete keys and matching format arguments; plurals use
+    one/few/many/other for ru, uk, pl, one/many/other for fr, es, it,
+    pt-BR, one/other for de and other for zh, ja, ko.
+  - `./gradlew lintDebug`: no MissingTranslation, ExtraTranslation,
+    StringFormat* or MissingQuantity issues.
+  - Emulator API 35: switched languages with the in-app picker and checked
+    Home and Settings (ru, de), Add proxy and the format help (zh-CN) and
+    Diagnostics (ja); the choice persisted after force-stop and showed up as
+    the system per-app locale (`cmd locale get-app-locales` → `[de]`).
+- Acceptance criteria:
+  - Every locale has every translatable string (lint MissingTranslation).
+  - Format arguments match the default strings.
+  - Home, Settings, Add/Edit, help dialog and Diagnostics visually checked
+    on the emulator in at least ru, de, zh-CN and ja.
+- Test/smoke commands:
+  - `./gradlew lintDebug`
+  - Manual emulator screenshots.
+- Dependencies:
+  - TASK-223
+- Estimated risk: low
+
+### ✅ TASK-225: Translate README
+
+- Status: done
+- Goal: Provide `README.<lang>.md` for every app language and a language
+  switcher line at the top of every README.
+- Implementation notes:
+  - Completed on 2026-10-20: `README.md` plus `README.<lang>.md` for ru, uk,
+    de, fr, es, it, pt-BR, pl, zh-CN, ja, ko, generated from one template so
+    sections, commands, links and screenshots match; a language switcher is
+    at the top of each file. Added a "Languages" section.
+- Acceptance criteria:
+  - All 12 READMEs have the same sections, commands and links.
+- Dependencies:
+  - TASK-224
+- Estimated risk: low
+
 ## Phase 20: Post-MVP Improvements
 
 ### TASK-200: Evaluate Full UDP Proxying
