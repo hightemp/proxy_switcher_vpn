@@ -131,6 +131,10 @@ New project should keep these conventions, but replace system proxy management w
 - When the string has no protocol, the app probes HTTPS, then SOCKS5, then
   HTTP against the proxy. If none succeeds, the protocol stays unselected and
   Save is blocked until the user picks one. It never defaults to HTTP.
+- The Proxy string field shows a one-line hint and an info button that opens
+  a "Supported formats" dialog explaining what a proxy string is, with
+  grouped demo examples and parsing rules. Help examples are unit-tested
+  against the parser.
 
 ### VPN Lifecycle
 

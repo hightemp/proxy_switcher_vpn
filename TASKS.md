@@ -2074,6 +2074,65 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
   - TASK-132
 - Estimated risk: medium
 
+### TASK-216: Add Proxy String Format Help To Add/Edit Proxy
+
+- Status: done
+- Goal: Explain on the Add/Edit proxy screen what a proxy string is and which
+  formats Parse accepts, similar to proxy-vouch "Formats & help".
+- Context files to inspect:
+  - `PRD.md` Proxy CRUD section.
+  - `~/Projects/proxy-vouch/src/ImportFormatHelp.tsx` (read-only).
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/ui/screens/AddEditProxyScreen.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/proxy/ProxyStringParser.kt`
+- Files likely to create/change:
+  - `PRD.md`
+  - `TASKS.md`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/ui/screens/ProxyStringFormatHelp.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/ui/screens/AddEditProxyScreen.kt`
+  - `app/src/test/java/com/hightemp/proxy_switcher_vpn/ui/screens/ProxyStringFormatHelpTest.kt`
+- Decisions (agreed with the user on 2026-10-20):
+  - A short supporting text under the Proxy string field.
+  - An info icon next to the field opens a "Supported formats" dialog:
+    what a proxy string is, grouped examples using reserved example
+    addresses/credentials, and rules (auto-detection, SOCKS4/IPv6 not
+    supported, percent-encoding, field-order choice, Parse only fills the
+    form).
+  - UI language stays English, like the rest of the app.
+- Acceptance criteria:
+  - Help content is defined as data, not inline in composables.
+  - Every supported example in the help parses with `ProxyStringParser`
+    to the documented result (unit test), and every unsupported example
+    fails, so help cannot drift from parser behavior.
+  - Examples use only reserved demo values (RFC 5737 / `.example`).
+  - The dialog is scrollable and closes with a button.
+- Test/smoke commands:
+  - `./gradlew test`
+  - `./gradlew assembleDebug`
+- Implementation notes:
+  - Completed on 2026-10-20 test-first: `ProxyStringFormatHelpTest` was
+    written and seen failing before `ProxyStringFormatHelp` existed.
+  - Added `ProxyStringFormatHelp` data (intro, seven example groups, an
+    ambiguous example, unsupported examples, rules) and
+    `ProxyStringFormatHelpDialog`. Tests check that every supported example
+    parses, the ambiguous one asks for field order, unsupported ones fail, and
+    all use reserved demo hosts.
+  - Add/Edit shows the supporting text under the field when there is no
+    parse/detect message, and an info icon between the field and Parse.
+  - Examples render as separate tinted blocks so a wrapped example still
+    reads as one item; demo credentials were shortened to `user`/`pass` to
+    avoid mid-token wrapping on phone width.
+  - Smoke commands `./gradlew test` (145 tests) and `./gradlew assembleDebug`
+    passed.
+  - Visually checked on a read-only Android API 35 emulator (1080x2400):
+    field row, supporting text, both halves of the help dialog, proxyline
+    parse, ambiguous order toggle, detection progress, detection failure,
+    and Save blocked with "Select a protocol.". The connected phone could not
+    be updated because its installed CI-signed build has a different
+    signature than the local keystore.
+- Dependencies:
+  - TASK-215
+- Estimated risk: low
+
 ## Phase 20: Post-MVP Improvements
 
 ### TASK-200: Evaluate Full UDP Proxying

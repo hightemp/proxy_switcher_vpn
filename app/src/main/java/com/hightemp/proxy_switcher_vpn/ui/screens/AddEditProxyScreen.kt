@@ -14,6 +14,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -140,6 +141,7 @@ private fun ProxyForm(
         mutableStateOf<ProxyStringParseResult.Ambiguous?>(null)
     }
     var isDetecting by remember(proxy?.id) { mutableStateOf(false) }
+    var showFormatHelp by remember { mutableStateOf(false) }
     var detectGeneration by remember(proxy?.id) { mutableIntStateOf(0) }
 
     val applyParsed = { parsed: ParsedProxyString ->
@@ -190,6 +192,7 @@ private fun ProxyForm(
             errorMessage = proxyStringError,
             infoMessage = proxyStringInfo,
             isDetecting = isDetecting,
+            onShowHelp = { showFormatHelp = true },
             onParse = {
                 proxyStringError = null
                 proxyStringInfo = null
@@ -201,6 +204,9 @@ private fun ProxyForm(
                 }
             }
         )
+        if (showFormatHelp) {
+            ProxyStringFormatHelpDialog(onDismiss = { showFormatHelp = false })
+        }
         ambiguousParse?.let { ambiguous ->
             FieldOrderSelector(
                 onOrderSelected = { hostFirst ->
@@ -345,6 +351,7 @@ private fun ProxyStringInput(
     errorMessage: String?,
     infoMessage: String?,
     isDetecting: Boolean,
+    onShowHelp: () -> Unit,
     onParse: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -366,6 +373,9 @@ private fun ProxyStringInput(
                 singleLine = true,
                 modifier = Modifier.weight(1f)
             )
+            IconButton(onClick = onShowHelp) {
+                Icon(Icons.Outlined.Info, contentDescription = "Supported proxy string formats")
+            }
             OutlinedButton(
                 onClick = onParse,
                 enabled = value.isNotBlank() && !isDetecting
@@ -384,14 +394,12 @@ private fun ProxyStringInput(
                 )
                 infoMessage?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
             }
-        } else {
-            infoMessage?.let {
-                Text(
-                    text = it,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+        } else if (errorMessage == null) {
+            Text(
+                text = infoMessage ?: ProxyStringFormatHelp.supportingText,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
         errorMessage?.let {
             Text(
