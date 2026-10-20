@@ -6,7 +6,7 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
 
 ## Phase 0: Repository Bootstrap From Reference Project
 
-### TASK-000: Document Current Baseline
+### ✅ TASK-000: Document Current Baseline
 
 - Status: done
 - Goal: Capture the current new repository state before copying patterns from the reference project.
@@ -33,7 +33,7 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
   - none
 - Estimated risk: low
 
-### TASK-001: Compare Reference Project Structure
+### ✅ TASK-001: Compare Reference Project Structure
 
 - Status: done
 - Goal: Identify the minimal reference files/patterns to copy or adapt.
@@ -65,7 +65,7 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
 
 ## Phase 1: Branding/Package Rename/Project Setup
 
-### TASK-010: Align Build Stack With Reference
+### ✅ TASK-010: Align Build Stack With Reference
 
 - Status: done
 - Goal: Add the reference app stack to the new project without changing app behavior.
@@ -92,7 +92,7 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
   - TASK-001
 - Estimated risk: medium
 
-### TASK-011: Add Application Class And Manifest Wiring
+### ✅ TASK-011: Add Application Class And Manifest Wiring
 
 - Status: done
 - Goal: Add Hilt application setup and required baseline manifest declarations.
@@ -117,7 +117,7 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
   - TASK-010
 - Estimated risk: low
 
-### TASK-012: Establish Package Structure
+### ✅ TASK-012: Establish Package Structure
 
 - Status: done
 - Goal: Create package directories matching the reference architecture.
@@ -148,7 +148,7 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
 
 ## Phase 2: Data Model And Proxy Storage
 
-### TASK-020: Implement Proxy Entity And DAO
+### ✅ TASK-020: Implement Proxy Entity And DAO
 
 - Status: done
 - Goal: Store SOCKS5/HTTP/HTTPS proxies in Room.
@@ -175,7 +175,7 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
   - TASK-010
 - Estimated risk: medium
 
-### TASK-021: Implement AppDatabase And DI Module
+### ✅ TASK-021: Implement AppDatabase And DI Module
 
 - Status: done
 - Goal: Provide Room database and DAO through Hilt.
@@ -199,7 +199,7 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
   - TASK-020
 - Estimated risk: low
 
-### TASK-022: Implement Proxy Repository
+### ✅ TASK-022: Implement Proxy Repository
 
 - Status: done
 - Goal: Provide a thin repository layer around the DAO.
@@ -220,7 +220,7 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
   - TASK-021
 - Estimated risk: low
 
-### TASK-023: Add App Settings Storage
+### ✅ TASK-023: Add App Settings Storage
 
 - Status: done
 - Goal: Persist selected proxy and privacy/logging settings.
@@ -250,7 +250,7 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
 
 ## Phase 3: VPN Permission And Foreground Service Skeleton
 
-### TASK-030: Add VPN Permission Flow Contract
+### ✅ TASK-030: Add VPN Permission Flow Contract
 
 - Status: done
 - Goal: Model the `VpnService.prepare()` permission flow without starting a real VPN yet.
@@ -276,7 +276,7 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
   - TASK-023
 - Estimated risk: medium
 
-### TASK-031: Create Foreground Service Skeleton
+### ✅ TASK-031: Create Foreground Service Skeleton
 
 - Status: done
 - Goal: Add a foreground service shell for future VPN lifecycle.
@@ -305,7 +305,7 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
   - TASK-030
 - Estimated risk: medium
 
-### TASK-032: Add VpnService Subclass Skeleton
+### ✅ TASK-032: Add VpnService Subclass Skeleton
 
 - Status: done
 - Goal: Introduce the Android `VpnService` component without a full packet/core pipeline.
@@ -334,7 +334,7 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
 
 ## Phase 4: VPN Engine Abstraction
 
-### TASK-040: Define Engine Interfaces And Fake Engine
+### ✅ TASK-040: Define Engine Interfaces And Fake Engine
 
 - Status: done
 - Goal: Create testable engine interfaces before native/sing-box integration.
@@ -359,7 +359,7 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
   - TASK-032
 - Estimated risk: low
 
-### TASK-041: Define TUN Session Model
+### ✅ TASK-041: Define TUN Session Model
 
 - Status: done
 - Goal: Model Android TUN configuration and lifecycle independent from sing-box.
@@ -387,7 +387,7 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
 
 ## Phase 5: SPIKE-001 sing-box Android Embedding Validation
 
-### SPIKE-001: Validate sing-box Android Embedding
+### ✅ SPIKE-001: Validate sing-box Android Embedding
 
 - Status: done
 - Goal: Verify whether and how sing-box can be embedded or run in this app.
@@ -439,7 +439,7 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
 
 ## Phase 6: sing-box Config Generator
 
-### TASK-060: Create Config Model And Serializer
+### ✅ TASK-060: Create Config Model And Serializer
 
 - Status: done
 - Goal: Generate sing-box config from Kotlin models.
@@ -464,7 +464,7 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
   - SPIKE-001
 - Estimated risk: medium
 
-### TASK-061: Generate TUN Inbound And Route Defaults
+### ✅ TASK-061: Generate TUN Inbound And Route Defaults
 
 - Status: done
 - Goal: Add MVP TUN inbound, IPv4 routing, and default route behavior to generated config.
@@ -492,7 +492,7 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
 
 ## Phase 7: Upstream Proxy Config: SOCKS5/HTTP/HTTPS
 
-### TASK-070: Add SOCKS5 Outbound Generation
+### ✅ TASK-070: Add SOCKS5 Outbound Generation
 
 - Status: done
 - Goal: Generate sing-box `socks` outbound for SOCKS5 proxies.
@@ -516,7 +516,7 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
   - TASK-061
 - Estimated risk: low
 
-### TASK-071: Add HTTP Outbound Generation
+### ✅ TASK-071: Add HTTP Outbound Generation
 
 - Status: done
 - Goal: Generate sing-box `http` outbound for HTTP proxies.
@@ -539,7 +539,7 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
   - TASK-061
 - Estimated risk: low
 
-### TASK-072: Add HTTPS Proxy Outbound Generation
+### ✅ TASK-072: Add HTTPS Proxy Outbound Generation
 
 - Status: done
 - Goal: Generate sing-box `http` outbound with TLS enabled for HTTPS proxy upstreams.
@@ -566,7 +566,7 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
 
 ## Phase 8: DNS Through Proxy
 
-### TASK-080: Add DNS Config Generation
+### ✅ TASK-080: Add DNS Config Generation
 
 - Status: done
 - Goal: Ensure generated config routes DNS through a proxy-safe path.
@@ -594,7 +594,7 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
   - TASK-072
 - Estimated risk: medium
 
-### TASK-081: Add DNS Event Logging Adapter
+### ✅ TASK-081: Add DNS Event Logging Adapter
 
 - Status: done
 - Goal: Convert core DNS events/logs into app logs and counters.
@@ -623,7 +623,7 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
 
 ## Phase 9: UDP/443 Block And UDP Behavior
 
-### TASK-090: Add UDP Policy Model
+### ✅ TASK-090: Add UDP Policy Model
 
 - Status: done
 - Goal: Make MVP UDP behavior explicit in code and diagnostics.
@@ -649,7 +649,7 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
   - SPIKE-001
 - Estimated risk: medium
 
-### TASK-091: Generate UDP/443 Block Rules
+### ✅ TASK-091: Generate UDP/443 Block Rules
 
 - Status: done
 - Goal: Add sing-box rules that block UDP/443 by default.
@@ -679,7 +679,7 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
 
 ## Phase 10: Statistics And Counters
 
-### TASK-100: Add Runtime Counters Model
+### ✅ TASK-100: Add Runtime Counters Model
 
 - Status: done
 - Goal: Track MVP counters independent from Android `TrafficStats`.
@@ -705,7 +705,7 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
   - TASK-040
 - Estimated risk: low
 
-### TASK-101: Wire sing-box Stats/Event Source
+### ✅ TASK-101: Wire sing-box Stats/Event Source
 
 - Status: done
 - Goal: Populate counters from sing-box logs/API/events where available.
@@ -735,7 +735,7 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
 
 ## Phase 11: Logging
 
-### TASK-110: Implement App Logger
+### ✅ TASK-110: Implement App Logger
 
 - Status: done
 - Goal: Provide structured in-memory logs for UI.
@@ -763,7 +763,7 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
   - TASK-023
 - Estimated risk: low
 
-### TASK-111: Add Privacy Gate For Domain/Destination Logging
+### ✅ TASK-111: Add Privacy Gate For Domain/Destination Logging
 
 - Status: done
 - Goal: Make sensitive connection/domain logging user-visible and controllable.
@@ -795,7 +795,7 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
 
 ## Phase 12: Home UI
 
-### TASK-120: Build Home Screen Shell
+### ✅ TASK-120: Build Home Screen Shell
 
 - Status: done
 - Goal: Replace template UI with reference-style Home screen for VPN control.
@@ -821,7 +821,7 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
   - TASK-100
 - Estimated risk: medium
 
-### TASK-121: Wire Home Screen To VPN Runtime
+### ✅ TASK-121: Wire Home Screen To VPN Runtime
 
 - Status: done
 - Goal: Connect Home UI to VPN permission, service, selected proxy, and stats state.
@@ -851,7 +851,7 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
 
 ## Phase 13: Proxy List/Add/Edit UI
 
-### TASK-130: Port Proxy List Screen Pattern
+### ✅ TASK-130: Port Proxy List Screen Pattern
 
 - Status: done
 - Goal: Provide saved proxy list with selected indicator and CRUD actions.
@@ -881,7 +881,7 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
   - TASK-023
 - Estimated risk: medium
 
-### TASK-131: Port Add/Edit Proxy Screen Pattern
+### ✅ TASK-131: Port Add/Edit Proxy Screen Pattern
 
 - Status: done
 - Goal: Add form for SOCKS5/HTTP/HTTPS proxy creation and editing.
@@ -910,7 +910,7 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
   - TASK-130
 - Estimated risk: low
 
-### TASK-132: Add Proxy Test Action
+### ✅ TASK-132: Add Proxy Test Action
 
 - Status: done
 - Goal: Test upstream proxy reachability without starting full VPN.
@@ -941,7 +941,7 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
 
 ## Phase 14: Logs UI
 
-### TASK-140: Build Logs Screen
+### ✅ TASK-140: Build Logs Screen
 
 - Status: done
 - Goal: Show structured logs with filters and clear action.
@@ -972,7 +972,7 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
 
 ## Phase 15: VPN Diagnostics UI
 
-### TASK-150: Create Diagnostics Model
+### ✅ TASK-150: Create Diagnostics Model
 
 - Status: done
 - Goal: Consolidate VPN/core/TUN/DNS/UDP status for UI.
@@ -1000,7 +1000,7 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
   - TASK-100
 - Estimated risk: medium
 
-### TASK-151: Build VPN Diagnostics Screen
+### ✅ TASK-151: Build VPN Diagnostics Screen
 
 - Status: done
 - Goal: Replace old System Proxy concept with VPN diagnostics UI.
@@ -1031,7 +1031,7 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
 
 ## Phase 16: Error Handling And Lifecycle Hardening
 
-### TASK-160: Implement Fail-Closed Upstream Failure Handling
+### ✅ TASK-160: Implement Fail-Closed Upstream Failure Handling
 
 - Status: done
 - Goal: Stop VPN and show error when selected upstream proxy fails.
@@ -1064,7 +1064,7 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
   - TASK-121
 - Estimated risk: high
 
-### TASK-161: Harden Start/Stop Race Conditions
+### ✅ TASK-161: Harden Start/Stop Race Conditions
 
 - Status: done
 - Goal: Make rapid start/stop, permission cancellation, and process recreation predictable.
@@ -1097,7 +1097,7 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
 
 ## Phase 17: Tests
 
-### TASK-170: Add Config Generator Test Suite
+### ✅ TASK-170: Add Config Generator Test Suite
 
 - Status: done
 - Goal: Cover all MVP sing-box config generation paths.
@@ -1123,7 +1123,7 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
   - TASK-091
 - Estimated risk: low
 
-### TASK-171: Add ViewModel And Runtime State Tests
+### ✅ TASK-171: Add ViewModel And Runtime State Tests
 
 - Status: done
 - Goal: Cover UI/runtime state behavior.
@@ -1149,7 +1149,7 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
   - TASK-161
 - Estimated risk: medium
 
-### TASK-172: Add Manual VPN QA Script
+### ✅ TASK-172: Add Manual VPN QA Script
 
 - Status: done
 - Goal: Create a repeatable manual checklist for real VPN behavior.
@@ -1174,7 +1174,7 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
 
 ## Phase 18: CI/Release
 
-### TASK-180: Add Debug CI Workflow
+### ✅ TASK-180: Add Debug CI Workflow
 
 - Status: done
 - Goal: Run build and unit tests on pushes/PRs.
@@ -1199,7 +1199,7 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
   - TASK-010
 - Estimated risk: low
 
-### TASK-181: Add Release Workflow
+### ✅ TASK-181: Add Release Workflow
 
 - Status: done
 - Goal: Add signed APK release flow similar to the reference project.
@@ -1230,7 +1230,7 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
 
 ## Phase 18.5: Production sing-box/libbox VPN Integration
 
-### TASK-182: Bundle And Verify libbox AAR
+### ✅ TASK-182: Bundle And Verify libbox AAR
 
 - Status: done
 - Goal: Make the spike-produced libbox Android artifact a real app dependency with deterministic verification.
@@ -1272,7 +1272,7 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
   - TASK-181
 - Estimated risk: medium
 
-### TASK-183: Implement Android VpnService TUN Platform Bridge
+### ✅ TASK-183: Implement Android VpnService TUN Platform Bridge
 
 - Status: done
 - Goal: Provide the Android platform callbacks libbox needs for fd protection, TUN creation, and default interface discovery.
@@ -1313,7 +1313,7 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
   - TASK-182
 - Estimated risk: high
 
-### TASK-184: Implement libbox Command Server VPN Engine
+### ✅ TASK-184: Implement libbox Command Server VPN Engine
 
 - Status: done
 - Goal: Replace the fake runtime engine in production with a libbox-backed engine that starts/stops sing-box from generated config.
@@ -1350,7 +1350,7 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
   - TASK-183
 - Estimated risk: high
 
-### TASK-185: Wire Real VPN Service Runtime And Diagnostics
+### ✅ TASK-185: Wire Real VPN Service Runtime And Diagnostics
 
 - Status: done
 - Goal: Make the foreground VPN lifecycle, notification stop action, runtime state, logs, and diagnostics reflect the real `ProxyVpnService`/libbox engine path.
@@ -1384,7 +1384,7 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
   - TASK-184
 - Estimated risk: high
 
-### TASK-186: Production VPN Integration Build Readiness
+### ✅ TASK-186: Production VPN Integration Build Readiness
 
 - Status: done
 - Goal: Add local verification coverage for the production native artifact and real-engine wiring before manual QA.
@@ -1419,7 +1419,7 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
 
 ## Phase 19: Manual QA Checklist
 
-### TASK-190: Execute MVP Manual QA
+### ✅ TASK-190: Execute MVP Manual QA
 
 - Status: completed
 - Goal: Verify the complete MVP on a real device or emulator.
@@ -1461,7 +1461,7 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
 
 ## Phase 19.5: Connected Device Runtime Fixes
 
-### TASK-205: Fix Chrome DNS Timeout Through VPN
+### ✅ TASK-205: Fix Chrome DNS Timeout Through VPN
 
 - Status: done
 - Goal: Fix the connected-device DNS timeout where Chrome shows
@@ -1511,7 +1511,7 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
   - TASK-186
 - Estimated risk: medium
 
-### TASK-206: Add Home Route Selector And Runtime Switching
+### ✅ TASK-206: Add Home Route Selector And Runtime Switching
 
 - Status: done
 - Goal: Add a reference-style Home route selector with Direct and saved proxies,
@@ -1568,7 +1568,7 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
   - TASK-205
 - Estimated risk: medium
 
-### TASK-207: Refine Home Route Control Layout
+### ✅ TASK-207: Refine Home Route Control Layout
 
 - Status: done
 - Goal: Make the Home route selector standalone and replace the separate
@@ -1601,7 +1601,7 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
   - TASK-206
 - Estimated risk: low
 
-### TASK-208: Add VPN Logo Launcher Icon
+### ✅ TASK-208: Add VPN Logo Launcher Icon
 
 - Status: done
 - Goal: Use the provided root PNG as the Android launcher icon.
@@ -1639,7 +1639,7 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
   - TASK-000
 - Estimated risk: low
 
-### TASK-209: Add Short README
+### ✅ TASK-209: Add Short README
 
 - Status: done
 - Goal: Add a short, clear project README for developers and testers.
@@ -1668,7 +1668,7 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
   - TASK-208
 - Estimated risk: low
 
-### TASK-210: Add Runtime Debug Logging And Reconnect
+### ✅ TASK-210: Add Runtime Debug Logging And Reconnect
 
 - Status: done
 - Goal: Make runtime failures diagnosable from device logs and keep VPN alive
@@ -1723,7 +1723,7 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
   - TASK-185
 - Estimated risk: medium
 
-### TASK-211: Update Runtime Logging And Reconnect Documentation
+### ✅ TASK-211: Update Runtime Logging And Reconnect Documentation
 
 - Status: done
 - Goal: Align user and project documentation with the new detailed runtime
@@ -1760,7 +1760,7 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
   - TASK-210
 - Estimated risk: low
 
-### TASK-212: Audit Dependency Licenses And License The Repository
+### ✅ TASK-212: Audit Dependency Licenses And License The Repository
 
 - Status: done
 - Goal: Record the licenses of shipped and development dependencies, choose a
@@ -1811,7 +1811,7 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
   - TASK-182
 - Estimated risk: medium
 
-### TASK-213: Download And Verify libbox During Build
+### ✅ TASK-213: Download And Verify libbox During Build
 
 - Status: done
 - Goal: Remove the large libbox AAR from the current source tree and fetch the
@@ -1879,7 +1879,7 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
   - TASK-212
 - Estimated risk: medium
 
-### TASK-214: Add Privacy-Safe App Screenshots To README
+### ✅ TASK-214: Add Privacy-Safe App Screenshots To README
 
 - Status: done
 - Goal: Capture representative application screens with non-sensitive demo
@@ -1930,7 +1930,7 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
   - TASK-209
 - Estimated risk: low
 
-### TASK-215: Add Proxy String Parsing To Add/Edit Proxy
+### ✅ TASK-215: Add Proxy String Parsing To Add/Edit Proxy
 
 - Status: done
 - Goal: Let the user paste one proxy record in any common text format on the
@@ -2074,7 +2074,7 @@ Execution rule: keep each task small. Before changing code, read `AGENTS.md`, `P
   - TASK-132
 - Estimated risk: medium
 
-### TASK-216: Add Proxy String Format Help To Add/Edit Proxy
+### ✅ TASK-216: Add Proxy String Format Help To Add/Edit Proxy
 
 - Status: done
 - Goal: Explain on the Add/Edit proxy screen what a proxy string is and which
@@ -2142,7 +2142,7 @@ importance 125 (foreground service), no crashes, the app not exempt from
 battery optimization, and Always-on VPN not configured. In-app logs are
 memory-only, so the stop reason is lost with the process.
 
-### TASK-217: Request Battery Optimization Exemption
+### ✅ TASK-217: Request Battery Optimization Exemption
 
 - Status: done
 - Goal: Let the user exempt the app from battery optimization and show when
@@ -2194,7 +2194,7 @@ memory-only, so the stop reason is lost with the process.
   - TASK-151
 - Estimated risk: low
 
-### TASK-218: Persist The Last VPN Stop Reason And Process Exit Info
+### ✅ TASK-218: Persist The Last VPN Stop Reason And Process Exit Info
 
 - Status: done
 - Goal: Make it visible after the fact why the VPN stopped, including system
@@ -2246,7 +2246,7 @@ memory-only, so the stop reason is lost with the process.
   - TASK-160
 - Estimated risk: low
 
-### TASK-219: Support System Always-on VPN (IMP-08)
+### ✅ TASK-219: Support System Always-on VPN (IMP-08)
 
 - Status: done
 - Goal: Let Android restart the VPN after process kills and on boot through
@@ -2294,7 +2294,7 @@ memory-only, so the stop reason is lost with the process.
   - TASK-185
 - Estimated risk: medium
 
-### TASK-220: Reduce VPN Process Memory Footprint
+### ✅ TASK-220: Reduce VPN Process Memory Footprint
 
 - Status: done
 - Goal: Lower the process memory that makes it a likely low-memory-killer
@@ -2343,7 +2343,7 @@ memory-only, so the stop reason is lost with the process.
   - TASK-186
 - Estimated risk: medium
 
-### TASK-221: Bind IP-literal Proxy Probes To The Non-VPN Network
+### ✅ TASK-221: Bind IP-literal Proxy Probes To The Non-VPN Network
 
 - Status: done
 - Goal: Keep upstream health probes outside the app's own tunnel when the
@@ -2377,7 +2377,7 @@ memory-only, so the stop reason is lost with the process.
   - TASK-160
 - Estimated risk: medium
 
-### TASK-222: Restore The VPN After The System Kills The Process
+### ✅ TASK-222: Restore The VPN After The System Kills The Process
 
 - Status: done
 - Goal: Bring the VPN back when Android SIGKILLs the app while it is
@@ -2482,7 +2482,7 @@ memory-only, so the stop reason is lost with the process.
   - TASK-190
 - Estimated risk: medium
 
-### TASK-203: Add Compatible Proxy Import And Export
+### ✅ TASK-203: Add Compatible Proxy Import And Export
 
 - Status: done
 - Goal: Add proxy list import/export that can read JSON exported by the reference
@@ -2530,7 +2530,7 @@ memory-only, so the stop reason is lost with the process.
   - TASK-131
 - Estimated risk: medium
 
-### TASK-204: Add Reference-Style Makefile
+### ✅ TASK-204: Add Reference-Style Makefile
 
 - Status: done
 - Goal: Add a root Makefile similar to the reference `proxy_switcher` project,
