@@ -297,4 +297,10 @@
     <string name="proxy_saved">プロキシを保存しました。</string>
     <string name="proxy_testing_message">プロキシをテストしています…</string>
     <string name="proxy_editor_unavailable">プロキシエディタはまだ利用できません。</string>
+    <string name="proxy_deleted">プロキシを削除しました</string>
+    <string name="action_undo">元に戻す</string>
+    <string name="proxy_delete_blocked">使用中のプロキシを削除する前に、VPN を停止するか別の経路を選択してください。</string>
+    <string name="proxy_delete_confirm_title">選択中のプロキシを削除しますか？</string>
+    <string name="proxy_delete_confirm_body">このプロキシは選択中です。削除すると経路は「直接接続」に切り替わります。</string>
+    <string name="action_delete">削除</string>
 </resources>

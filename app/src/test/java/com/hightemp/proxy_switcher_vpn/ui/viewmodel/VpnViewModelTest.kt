@@ -184,6 +184,50 @@ class VpnViewModelTest {
     }
 
     @Test
+    fun deletedProxyCanBeRestoredWithItsSelection() = runTest {
+        val proxyDao = FakeProxyDao()
+        val viewModel = newViewModel(proxyDao = proxyDao)
+        backgroundScope.launch { viewModel.settings.collect() }
+        backgroundScope.launch { viewModel.proxyList.collect() }
+        val proxy = ProxyEntity(id = 7L, host = "proxy.example", port = 1080, type = ProxyType.SOCKS5)
+        proxyDao.insertProxy(proxy)
+        viewModel.onProxySelected(proxy)
+        advanceUntilIdle()
+        var deleted: DeletedProxy? = null
+
+        viewModel.onProxyDeleted(proxy) { deleted = it }
+        advanceUntilIdle()
+
+        assertEquals(emptyList<ProxyEntity>(), proxyDao.snapshot())
+        assertNull(viewModel.settings.value.selectedProxyId)
+        assertEquals(DeletedProxy(proxy, wasSelected = true), deleted)
+
+        viewModel.onProxyDeleteUndone(deleted!!)
+        advanceUntilIdle()
+
+        assertEquals(listOf(proxy), proxyDao.snapshot())
+        assertEquals(7L, viewModel.settings.value.selectedProxyId)
+    }
+
+    @Test
+    fun deletingSelectedProxyNeedsConfirmationAndActiveVpnProxyIsBlocked() = runTest {
+        val viewModel = newViewModel()
+        backgroundScope.launch { viewModel.settings.collect() }
+        val selected = ProxyEntity(id = 1L, host = "a.example", port = 1080, type = ProxyType.SOCKS5)
+        val other = ProxyEntity(id = 2L, host = "b.example", port = 1080, type = ProxyType.SOCKS5)
+        viewModel.onProxySelected(selected)
+        advanceUntilIdle()
+
+        assertEquals(ProxyDeleteCheck.ALLOWED, viewModel.proxyDeleteCheck(other))
+        assertEquals(ProxyDeleteCheck.NEEDS_CONFIRMATION, viewModel.proxyDeleteCheck(selected))
+
+        VpnRuntimeState.markRunning(UserText.raw("running"))
+
+        assertEquals(ProxyDeleteCheck.BLOCKED_ACTIVE_VPN, viewModel.proxyDeleteCheck(selected))
+        assertEquals(ProxyDeleteCheck.ALLOWED, viewModel.proxyDeleteCheck(other))
+    }
+
+    @Test
     fun refreshBackgroundHealthReadsRestrictionsAndLastExit() = runTest {
         val checker = FakeRestrictionChecker(
             BackgroundRestrictionStatus(batteryOptimizationIgnored = false)

@@ -300,4 +300,10 @@
     <string name="proxy_saved">Проксі збережено.</string>
     <string name="proxy_testing_message">Перевірка проксі…</string>
     <string name="proxy_editor_unavailable">Редактор проксі поки недоступний.</string>
+    <string name="proxy_deleted">Проксі видалено</string>
+    <string name="action_undo">Скасувати</string>
+    <string name="proxy_delete_blocked">Зупиніть VPN або виберіть інший маршрут, перш ніж видаляти проксі, що використовується.</string>
+    <string name="proxy_delete_confirm_title">Видалити вибраний проксі?</string>
+    <string name="proxy_delete_confirm_body">Цей проксі вибрано. Після видалення маршрут перемкнеться на «Напряму».</string>
+    <string name="action_delete">Видалити</string>
 </resources>

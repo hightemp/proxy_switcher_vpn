@@ -144,6 +144,8 @@ class MainActivity : AppCompatActivity() {
                                 }
                             },
                             onDeleteProxy = viewModel::onProxyDeleted,
+                            proxyDeleteCheck = viewModel::proxyDeleteCheck,
+                            onUndoDeleteProxy = viewModel::onProxyDeleteUndone,
                             onTestProxy = viewModel::onProxyTestRequested,
                             onExportProxies = viewModel::exportProxiesToText,
                             onImportProxies = viewModel::importProxiesFromText

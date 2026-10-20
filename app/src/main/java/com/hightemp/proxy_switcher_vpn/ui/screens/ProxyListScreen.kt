@@ -35,6 +35,10 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -42,6 +46,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -59,8 +64,11 @@ import com.hightemp.proxy_switcher_vpn.i18n.UserText
 import com.hightemp.proxy_switcher_vpn.i18n.asString
 import com.hightemp.proxy_switcher_vpn.i18n.resolve
 import com.hightemp.proxy_switcher_vpn.ui.theme.Proxy_switcher_vpnTheme
+import com.hightemp.proxy_switcher_vpn.ui.viewmodel.DeletedProxy
+import com.hightemp.proxy_switcher_vpn.ui.viewmodel.ProxyDeleteCheck
 import com.hightemp.proxy_switcher_vpn.ui.viewmodel.ProxyTestStatus
 import com.hightemp.proxy_switcher_vpn.ui.viewmodel.ProxyTestUiState
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -72,13 +80,45 @@ fun ProxyListScreen(
     onAddProxy: () -> Unit,
     onEditProxy: (ProxyEntity) -> Unit,
     onSelectProxy: (ProxyEntity) -> Unit,
-    onDeleteProxy: (ProxyEntity) -> Unit,
+    onDeleteProxy: (ProxyEntity, (DeletedProxy) -> Unit) -> Unit,
     onTestProxy: (ProxyEntity) -> Unit,
     onExportProxies: () -> String,
     onImportProxies: (String, (Int, UserText?) -> Unit) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    proxyDeleteCheck: (ProxyEntity) -> ProxyDeleteCheck = { ProxyDeleteCheck.ALLOWED },
+    onUndoDeleteProxy: (DeletedProxy) -> Unit = {}
 ) {
     val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
+    var proxyPendingDelete by remember { mutableStateOf<ProxyEntity?>(null) }
+    val deleteProxy = { proxy: ProxyEntity ->
+        onDeleteProxy(proxy) { deleted ->
+            coroutineScope.launch {
+                snackbarHostState.currentSnackbarData?.dismiss()
+                val result = snackbarHostState.showSnackbar(
+                    message = context.getString(R.string.proxy_deleted),
+                    actionLabel = context.getString(R.string.action_undo),
+                    duration = SnackbarDuration.Long
+                )
+                if (result == SnackbarResult.ActionPerformed) {
+                    onUndoDeleteProxy(deleted)
+                }
+            }
+        }
+    }
+    val requestDelete = { proxy: ProxyEntity ->
+        when (proxyDeleteCheck(proxy)) {
+            ProxyDeleteCheck.ALLOWED -> deleteProxy(proxy)
+            ProxyDeleteCheck.NEEDS_CONFIRMATION -> proxyPendingDelete = proxy
+            ProxyDeleteCheck.BLOCKED_ACTIVE_VPN -> {
+                coroutineScope.launch {
+                    snackbarHostState.currentSnackbarData?.dismiss()
+                    snackbarHostState.showSnackbar(context.getString(R.string.proxy_delete_blocked))
+                }
+            }
+        }
+    }
     var showExportDialog by remember { mutableStateOf(false) }
     var showImportDialog by remember { mutableStateOf(false) }
     var exportText by remember { mutableStateOf("") }
@@ -156,6 +196,7 @@ fun ProxyListScreen(
                 }
             )
         },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
             FloatingActionButton(onClick = onAddProxy) {
                 Icon(Icons.Default.Add, contentDescription = stringResource(R.string.proxy_list_add))
@@ -187,12 +228,35 @@ fun ProxyListScreen(
                         testState = proxyTestResults[proxy.id],
                         onSelect = { onSelectProxy(proxy) },
                         onEdit = { onEditProxy(proxy) },
-                        onDelete = { onDeleteProxy(proxy) },
+                        onDelete = { requestDelete(proxy) },
                         onTest = { onTestProxy(proxy) }
                     )
                 }
             }
         }
+    }
+
+    proxyPendingDelete?.let { proxy ->
+        AlertDialog(
+            onDismissRequest = { proxyPendingDelete = null },
+            title = { Text(stringResource(R.string.proxy_delete_confirm_title)) },
+            text = { Text(stringResource(R.string.proxy_delete_confirm_body)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        proxyPendingDelete = null
+                        deleteProxy(proxy)
+                    }
+                ) {
+                    Text(stringResource(R.string.action_delete))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { proxyPendingDelete = null }) {
+                    Text(stringResource(R.string.action_cancel))
+                }
+            }
+        )
     }
 
     if (showExportDialog) {
@@ -485,7 +549,7 @@ private fun ProxyListScreenPreview() {
             onAddProxy = {},
             onEditProxy = {},
             onSelectProxy = {},
-            onDeleteProxy = {},
+            onDeleteProxy = { _, _ -> },
             onTestProxy = {},
             onExportProxies = { "[]" },
             onImportProxies = { _, onResult -> onResult(0, null) }

@@ -300,4 +300,10 @@
     <string name="proxy_saved">Zapisano proxy.</string>
     <string name="proxy_testing_message">Testowanie proxy…</string>
     <string name="proxy_editor_unavailable">Edytor proxy nie jest jeszcze dostępny.</string>
+    <string name="proxy_deleted">Usunięto proxy</string>
+    <string name="action_undo">Cofnij</string>
+    <string name="proxy_delete_blocked">Zatrzymaj VPN lub wybierz inną trasę, zanim usuniesz używane proxy.</string>
+    <string name="proxy_delete_confirm_title">Usunąć wybrane proxy?</string>
+    <string name="proxy_delete_confirm_body">To proxy jest wybrane. Po jego usunięciu trasa zmieni się na „Połączenie bezpośrednie”.</string>
+    <string name="action_delete">Usuń</string>
 </resources>

@@ -298,4 +298,10 @@
     <string name="proxy_saved">Proxy gespeichert.</string>
     <string name="proxy_testing_message">Proxy wird getestet…</string>
     <string name="proxy_editor_unavailable">Der Proxy-Editor ist noch nicht verfügbar.</string>
+    <string name="proxy_deleted">Proxy gelöscht</string>
+    <string name="action_undo">Rückgängig</string>
+    <string name="proxy_delete_blocked">Stoppe das VPN oder wähle eine andere Route, bevor du den verwendeten Proxy löschst.</string>
+    <string name="proxy_delete_confirm_title">Ausgewählten Proxy löschen?</string>
+    <string name="proxy_delete_confirm_body">Dieser Proxy ist ausgewählt. Nach dem Löschen wechselt die Route zu „Direktverbindung“.</string>
+    <string name="action_delete">Löschen</string>
 </resources>

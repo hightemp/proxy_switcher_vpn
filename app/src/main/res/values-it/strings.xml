@@ -299,4 +299,10 @@
     <string name="proxy_saved">Proxy salvato.</string>
     <string name="proxy_testing_message">Test del proxy…</string>
     <string name="proxy_editor_unavailable">L’editor dei proxy non è ancora disponibile.</string>
+    <string name="proxy_deleted">Proxy eliminato</string>
+    <string name="action_undo">Annulla</string>
+    <string name="proxy_delete_blocked">Arresta la VPN o seleziona un altro percorso prima di eliminare il proxy in uso.</string>
+    <string name="proxy_delete_confirm_title">Eliminare il proxy selezionato?</string>
+    <string name="proxy_delete_confirm_body">Questo proxy è selezionato. Dopo l’eliminazione il percorso passa a «Connessione diretta».</string>
+    <string name="action_delete">Elimina</string>
 </resources>

@@ -297,4 +297,10 @@
     <string name="proxy_saved">代理已保存。</string>
     <string name="proxy_testing_message">正在测试代理…</string>
     <string name="proxy_editor_unavailable">代理编辑器暂不可用。</string>
+    <string name="proxy_deleted">代理已删除</string>
+    <string name="action_undo">撤销</string>
+    <string name="proxy_delete_blocked">删除正在使用的代理前，请先停止 VPN 或选择其他线路。</string>
+    <string name="proxy_delete_confirm_title">删除所选代理？</string>
+    <string name="proxy_delete_confirm_body">此代理当前已选中。删除后，线路将切换为“直连”。</string>
+    <string name="action_delete">删除</string>
 </resources>

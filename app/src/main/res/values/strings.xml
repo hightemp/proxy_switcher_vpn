@@ -307,4 +307,10 @@
     <string name="proxy_saved">Proxy saved.</string>
     <string name="proxy_testing_message">Testing proxy…</string>
     <string name="proxy_editor_unavailable">Proxy editor is not available yet.</string>
+    <string name="proxy_deleted">Proxy deleted</string>
+    <string name="action_undo">Undo</string>
+    <string name="proxy_delete_blocked">Stop the VPN or select another route before deleting the proxy in use.</string>
+    <string name="proxy_delete_confirm_title">Delete selected proxy?</string>
+    <string name="proxy_delete_confirm_body">This proxy is selected. After deleting it, the route switches to Direct Connection.</string>
+    <string name="action_delete">Delete</string>
 </resources>

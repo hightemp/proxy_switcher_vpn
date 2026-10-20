@@ -66,6 +66,17 @@ data class ProxyTestUiState(
     val message: UserText
 )
 
+enum class ProxyDeleteCheck {
+    ALLOWED,
+    NEEDS_CONFIRMATION,
+    BLOCKED_ACTIVE_VPN
+}
+
+data class DeletedProxy(
+    val proxy: ProxyEntity,
+    val wasSelected: Boolean
+)
+
 @HiltViewModel
 class VpnViewModel @Inject constructor(
     private val proxyRepository: ProxyRepository,
@@ -256,13 +267,43 @@ class VpnViewModel @Inject constructor(
         }
     }
 
-    fun onProxyDeleted(proxy: ProxyEntity) {
+    /**
+     * The proxy the running VPN uses cannot be deleted, and deleting the
+     * selected proxy switches the route to Direct, so it needs confirmation.
+     */
+    fun proxyDeleteCheck(proxy: ProxyEntity): ProxyDeleteCheck {
+        val selected = settings.value.selectedProxyId == proxy.id
+        return when {
+            selected && VpnRuntimeState.state.value.isForegroundServiceActive ->
+                ProxyDeleteCheck.BLOCKED_ACTIVE_VPN
+            selected -> ProxyDeleteCheck.NEEDS_CONFIRMATION
+            else -> ProxyDeleteCheck.ALLOWED
+        }
+    }
+
+    fun onProxyDeleted(
+        proxy: ProxyEntity,
+        onDeleted: (DeletedProxy) -> Unit = {}
+    ) {
+        if (proxyDeleteCheck(proxy) == ProxyDeleteCheck.BLOCKED_ACTIVE_VPN) return
         viewModelScope.launch {
-            if (settings.value.selectedProxyId == proxy.id) {
+            val wasSelected = settings.value.selectedProxyId == proxy.id
+            if (wasSelected) {
                 settingsRepository.setSelectedProxyId(null)
             }
             proxyRepository.deleteProxy(proxy)
             _proxyTestResults.update { results -> results - proxy.id }
+            onDeleted(DeletedProxy(proxy, wasSelected))
+        }
+    }
+
+    /** Restores a deleted proxy with its id and, if it was selected, the selection. */
+    fun onProxyDeleteUndone(deleted: DeletedProxy) {
+        viewModelScope.launch {
+            proxyRepository.insertProxy(deleted.proxy)
+            if (deleted.wasSelected && settings.value.selectedProxyId == null) {
+                settingsRepository.setSelectedProxyId(deleted.proxy.id)
+            }
         }
     }
 

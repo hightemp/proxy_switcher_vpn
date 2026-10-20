@@ -2562,6 +2562,40 @@ Decisions (agreed with the user on 2026-10-20):
   - TASK-223
 - Estimated risk: low
 
+### ✅ TASK-227: Confirm Or Undo Proxy Deletion (IMP-04)
+
+- Status: done
+- Goal: Prevent accidental proxy deletion and silent route changes.
+- Files likely to create/change:
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/ui/viewmodel/VpnViewModel.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/ui/screens/ProxyListScreen.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/MainActivity.kt`
+  - `app/src/main/res/values*/strings.xml`
+  - `app/src/test/java/com/hightemp/proxy_switcher_vpn/ui/viewmodel/VpnViewModelTest.kt`
+- Decisions:
+  - A non-selected proxy is deleted immediately and a "Proxy deleted"
+    snackbar offers Undo, which restores it with the same id.
+  - Deleting the selected proxy while the VPN is off asks for confirmation,
+    because the route then becomes Direct Connection; Undo also restores the
+    selection.
+  - The proxy used by the running VPN cannot be deleted; the snackbar asks
+    to stop the VPN or choose another route first.
+- Implementation notes:
+  - Completed on 2026-10-20 test-first (`deletedProxyCanBeRestoredWithItsSelection`,
+    `deletingSelectedProxyNeedsConfirmationAndActiveVpnProxyIsBlocked`).
+  - Added `ProxyDeleteCheck`, `DeletedProxy`, `proxyDeleteCheck`,
+    `onProxyDeleteUndone`; six new strings in all 12 languages.
+  - Emulator API 35: undo of a non-selected proxy, confirmation and undo of
+    the selected proxy (selection restored), and the blocked case with the
+    VPN running were checked.
+- Acceptance criteria:
+  - No deletion without a way back; no silent switch to Direct.
+- Test/smoke commands:
+  - `./gradlew test assembleDebug`
+- Dependencies:
+  - TASK-203, TASK-223
+- Estimated risk: low
+
 ## Phase 20: Post-MVP Improvements
 
 ### TASK-200: Evaluate Full UDP Proxying
