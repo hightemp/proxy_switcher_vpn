@@ -305,4 +305,5 @@
     <string name="proxy_delete_confirm_title">Eliminare il proxy selezionato?</string>
     <string name="proxy_delete_confirm_body">Questo proxy è selezionato. Dopo l’eliminazione il percorso passa a «Connessione diretta».</string>
     <string name="action_delete">Elimina</string>
+    <string name="tile_off">Disattivata</string>
 </resources>

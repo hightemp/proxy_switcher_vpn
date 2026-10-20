@@ -303,4 +303,5 @@
     <string name="proxy_delete_confirm_title">選択中のプロキシを削除しますか？</string>
     <string name="proxy_delete_confirm_body">このプロキシは選択中です。削除すると経路は「直接接続」に切り替わります。</string>
     <string name="action_delete">削除</string>
+    <string name="tile_off">オフ</string>
 </resources>

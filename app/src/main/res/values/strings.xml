@@ -313,4 +313,6 @@
     <string name="proxy_delete_confirm_title">Delete selected proxy?</string>
     <string name="proxy_delete_confirm_body">This proxy is selected. After deleting it, the route switches to Direct Connection.</string>
     <string name="action_delete">Delete</string>
+    <string name="tile_label" translatable="false">Proxy VPN</string>
+    <string name="tile_off">Off</string>
 </resources>

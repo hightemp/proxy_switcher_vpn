@@ -306,4 +306,5 @@
     <string name="proxy_delete_confirm_title">Удалить выбранный прокси?</string>
     <string name="proxy_delete_confirm_body">Этот прокси выбран. После удаления маршрут переключится на «Напрямую».</string>
     <string name="action_delete">Удалить</string>
+    <string name="tile_off">Выключен</string>
 </resources>

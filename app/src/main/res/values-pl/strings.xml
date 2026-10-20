@@ -306,4 +306,5 @@
     <string name="proxy_delete_confirm_title">Usunąć wybrane proxy?</string>
     <string name="proxy_delete_confirm_body">To proxy jest wybrane. Po jego usunięciu trasa zmieni się na „Połączenie bezpośrednie”.</string>
     <string name="action_delete">Usuń</string>
+    <string name="tile_off">Wyłączony</string>
 </resources>

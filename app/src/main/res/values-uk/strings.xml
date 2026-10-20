@@ -306,4 +306,5 @@
     <string name="proxy_delete_confirm_title">Видалити вибраний проксі?</string>
     <string name="proxy_delete_confirm_body">Цей проксі вибрано. Після видалення маршрут перемкнеться на «Напряму».</string>
     <string name="action_delete">Видалити</string>
+    <string name="tile_off">Вимкнено</string>
 </resources>

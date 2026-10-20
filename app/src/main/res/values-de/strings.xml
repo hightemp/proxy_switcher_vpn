@@ -304,4 +304,5 @@
     <string name="proxy_delete_confirm_title">Ausgewählten Proxy löschen?</string>
     <string name="proxy_delete_confirm_body">Dieser Proxy ist ausgewählt. Nach dem Löschen wechselt die Route zu „Direktverbindung“.</string>
     <string name="action_delete">Löschen</string>
+    <string name="tile_off">Aus</string>
 </resources>

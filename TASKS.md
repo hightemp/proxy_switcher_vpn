@@ -2596,6 +2596,47 @@ Decisions (agreed with the user on 2026-10-20):
   - TASK-203, TASK-223
 - Estimated risk: low
 
+### ✅ TASK-228: Add A Quick Settings Tile (IMP-07)
+
+- Status: done
+- Goal: Start and stop the VPN from Quick Settings without opening the app.
+- Files likely to create/change:
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/vpn/tile/VpnTileModel.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/vpn/tile/VpnTileService.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/vpn/ProxyVpnService.kt`
+  - `app/src/main/AndroidManifest.xml`
+  - `app/src/main/res/drawable/ic_tile_vpn.xml`
+  - `app/src/main/res/values*/strings.xml`
+  - `app/src/test/java/com/hightemp/proxy_switcher_vpn/vpn/tile/VpnTileModelTest.kt`
+- Decisions:
+  - The tile is active while the VPN service is starting or running; the
+    subtitle (Android 10+) shows the selected route, "Starting", "Error" or
+    "Off".
+  - Click: active VPN → stop; inactive with VPN permission → start the
+    selected route; without permission → open the app, because the system
+    permission dialog needs an activity.
+  - The VPN service asks the tile to refresh on every status change.
+  - Clicks on a locked device run after unlocking (`unlockAndRun`), so the
+    VPN cannot be turned off from the lock screen.
+- Implementation notes:
+  - Completed on 2026-10-20 test-first (`VpnTileModelTest`, 7 tests).
+  - Added `VpnTileModel`/`VpnTileAction`, `VpnTileService` (Hilt, follows
+    the in-app language), a monochrome `ic_tile_vpn` icon, the manifest
+    entry with `TOGGLEABLE_TILE`, and `tile_label` ("Proxy VPN",
+    non-translatable) plus `tile_off` in all languages.
+  - Emulator API 35: without VPN permission the tile opened the app; with
+    permission it started the VPN (tile "Proxy VPN, Direct Connection",
+    VPN connected) and stopped it again (tile "Off").
+- Acceptance criteria:
+  - Tile reflects VPN state and starts/stops the VPN.
+  - Without permission the app opens instead of failing silently.
+- Test/smoke commands:
+  - `./gradlew test assembleDebug`
+  - Manual: add the tile, toggle it with the app closed.
+- Dependencies:
+  - TASK-185, TASK-223
+- Estimated risk: low
+
 ## Phase 20: Post-MVP Improvements
 
 ### TASK-200: Evaluate Full UDP Proxying

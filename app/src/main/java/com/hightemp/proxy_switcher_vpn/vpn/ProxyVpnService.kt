@@ -36,6 +36,7 @@ import com.hightemp.proxy_switcher_vpn.vpn.background.VpnStopReason
 import com.hightemp.proxy_switcher_vpn.vpn.platform.ActiveVpnService
 import com.hightemp.proxy_switcher_vpn.vpn.platform.ActiveVpnServiceBridge
 import com.hightemp.proxy_switcher_vpn.vpn.routing.VpnRouteSelection
+import com.hightemp.proxy_switcher_vpn.vpn.tile.VpnTileService
 import com.hightemp.proxy_switcher_vpn.vpn.routing.isValidForStart
 import com.hightemp.proxy_switcher_vpn.vpn.routing.proxyOrNull
 import com.hightemp.proxy_switcher_vpn.vpn.routing.sensitiveValues
@@ -717,6 +718,7 @@ class ProxyVpnService : VpnService(), ActiveVpnService {
             putExtra(EXTRA_STATUS_MESSAGE, message.english())
         }
         sendBroadcast(intent)
+        VpnTileService.requestRefresh(this)
     }
 
     private fun ProxyEntity.sensitiveValues(): List<String> {

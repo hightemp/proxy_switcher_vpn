@@ -305,4 +305,5 @@
     <string name="proxy_delete_confirm_title">Excluir o proxy selecionado?</string>
     <string name="proxy_delete_confirm_body">Este proxy está selecionado. Depois de excluí-lo, a rota muda para \"Conexão direta\".</string>
     <string name="action_delete">Excluir</string>
+    <string name="tile_off">Desativada</string>
 </resources>
