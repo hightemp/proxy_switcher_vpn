@@ -15,7 +15,10 @@ import com.hightemp.proxy_switcher_vpn.data.settings.SettingsRepository
 import com.hightemp.proxy_switcher_vpn.i18n.UserText
 import com.hightemp.proxy_switcher_vpn.proxy.ExitInfo
 import com.hightemp.proxy_switcher_vpn.proxy.ParsedProxyString
+import com.hightemp.proxy_switcher_vpn.proxy.ProxyFieldOrder
 import com.hightemp.proxy_switcher_vpn.proxy.ProxyInspector
+import com.hightemp.proxy_switcher_vpn.proxy.ProxyLineImport
+import com.hightemp.proxy_switcher_vpn.proxy.ProxyLineImportOptions
 import com.hightemp.proxy_switcher_vpn.proxy.ProxyReachabilityTester
 import com.hightemp.proxy_switcher_vpn.proxy.ProxyTestResult
 import com.hightemp.proxy_switcher_vpn.proxy.SpeedTestResult
@@ -283,6 +286,52 @@ class VpnViewModelTest {
     }
 
     @Test
+    fun importProxyLinesAddsNewAndUpdatesExisting() = runTest {
+        val proxyDao = FakeProxyDao()
+        val existing = ProxyEntity(host = "192.0.2.1", port = 1080, type = ProxyType.HTTP, username = "u", password = "old", label = "Main")
+        proxyDao.insertProxy(existing)
+        val viewModel = newViewModel(proxyDao = proxyDao)
+        val preview = ProxyLineImport.preview(
+            text = "socks5://u:new@192.0.2.1:1080\nhttp://192.0.2.2:3128\nnot a proxy",
+            options = ProxyLineImportOptions(protocol = null, fieldOrder = ProxyFieldOrder.HOST_FIRST),
+            existing = proxyDao.snapshot()
+        )
+        var result: ProxyLineImportResult? = null
+
+        viewModel.onImportProxyLines(preview.lines) { result = it }
+        advanceUntilIdle()
+
+        assertEquals(ProxyLineImportResult(added = 1, updated = 1, failedLines = emptyList()), result)
+        val saved = proxyDao.snapshot().associateBy { it.host }
+        assertEquals(existing.copy(id = 1L, type = ProxyType.SOCKS5, password = "new"), saved["192.0.2.1"])
+        assertEquals(ProxyType.HTTP, saved.getValue("192.0.2.2").type)
+        assertEquals(2, saved.size)
+        assertNull(viewModel.lineImportProgress.value)
+    }
+
+    @Test
+    fun importProxyLinesDetectsProtocolAndReportsFailures() = runTest {
+        val proxyDao = FakeProxyDao()
+        val viewModel = newViewModel(
+            proxyDao = proxyDao,
+            proxyTester = FakeReachabilityTester(unreachableHosts = setOf("192.0.2.99"))
+        )
+        val preview = ProxyLineImport.preview(
+            text = "192.0.2.10:8080\n192.0.2.99:8080",
+            options = ProxyLineImportOptions(protocol = null, fieldOrder = ProxyFieldOrder.HOST_FIRST),
+            existing = emptyList()
+        )
+        var result: ProxyLineImportResult? = null
+
+        viewModel.onImportProxyLines(preview.lines) { result = it }
+        advanceUntilIdle()
+
+        assertEquals(1, result?.added)
+        assertEquals(listOf(2), result?.failedLines?.map { it.lineNumber })
+        assertEquals(listOf("192.0.2.10" to ProxyType.HTTPS), proxyDao.snapshot().map { it.host to it.type })
+    }
+
+    @Test
     fun refreshBackgroundHealthReadsRestrictionsAndLastExit() = runTest {
         val checker = FakeRestrictionChecker(
             BackgroundRestrictionStatus(batteryOptimizationIgnored = false)
@@ -327,13 +376,14 @@ class VpnViewModelTest {
         restrictionChecker: BackgroundRestrictionChecker = FakeRestrictionChecker(),
         processExitHistory: ProcessExitHistory = FakeProcessExitHistory(),
         checkDao: FakeProxyCheckDao = FakeProxyCheckDao(),
-        inspector: ProxyInspector = FakeInspector(ExitInfo("192.0.2.1", "US"))
+        inspector: ProxyInspector = FakeInspector(ExitInfo("192.0.2.1", "US")),
+        proxyTester: ProxyReachabilityTester = FakeReachabilityTester()
     ): VpnViewModel {
         val dataStore = FakePreferencesDataStore()
         return VpnViewModel(
             proxyRepository = ProxyRepository(proxyDao),
             settingsRepository = SettingsRepository(dataStore),
-            proxyTester = FakeReachabilityTester(),
+            proxyTester = proxyTester,
             statsStore = VpnStatsStore(),
             diagnosticsRepository = VpnDiagnosticsRepository(),
             stopHistory = VpnStopHistory(dataStore),
@@ -381,7 +431,9 @@ class VpnViewModelTest {
         override fun recentExits(): List<ProcessExitRecord> = records
     }
 
-    private class FakeReachabilityTester : ProxyReachabilityTester {
+    private class FakeReachabilityTester(
+        private val unreachableHosts: Set<String> = emptySet()
+    ) : ProxyReachabilityTester {
         override suspend fun test(
             proxy: ProxyEntity,
             targetHost: String,
@@ -389,7 +441,7 @@ class VpnViewModelTest {
             timeoutMillis: Int
         ): ProxyTestResult {
             return ProxyTestResult(
-                success = true,
+                success = proxy.host !in unreachableHosts,
                 message = UserText.of(R.string.proxy_test_succeeded),
                 latencyMillis = 42L
             )
@@ -420,6 +472,14 @@ class VpnViewModelTest {
 
         override suspend fun deleteProxy(proxy: ProxyEntity) {
             proxies.value = proxies.value.filterNot { existing -> existing.id == proxy.id }
+        }
+
+        override suspend fun insertProxies(proxies: List<ProxyEntity>): List<Long> {
+            return proxies.map { insertProxy(it) }
+        }
+
+        override suspend fun updateProxies(proxies: List<ProxyEntity>) {
+            proxies.forEach { updateProxy(it) }
         }
 
         fun snapshot(): List<ProxyEntity> = proxies.value

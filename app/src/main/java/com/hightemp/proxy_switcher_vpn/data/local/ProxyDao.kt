@@ -5,6 +5,7 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
@@ -24,4 +25,17 @@ interface ProxyDao {
 
     @Delete
     suspend fun deleteProxy(proxy: ProxyEntity)
+
+    @Insert
+    suspend fun insertProxies(proxies: List<ProxyEntity>): List<Long>
+
+    @Update
+    suspend fun updateProxies(proxies: List<ProxyEntity>)
+
+    /** Saves a bulk import in one transaction, so the list refreshes once. */
+    @Transaction
+    suspend fun saveImported(newProxies: List<ProxyEntity>, updatedProxies: List<ProxyEntity>) {
+        insertProxies(newProxies)
+        updateProxies(updatedProxies)
+    }
 }

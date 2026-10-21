@@ -2711,6 +2711,68 @@ Decisions (agreed with the user on 2026-10-20):
   - TASK-132, TASK-221
 - Estimated risk: medium
 
+### ✅ TASK-230: Bulk Import Of Proxy Strings (IMP-10)
+
+- Status: done
+- Goal: Import many proxy strings at once (pasted text or a .txt/.csv file),
+  one record per line, with a per-line preview before saving.
+- Decisions (agreed with the user on 2026-10-21):
+  - A separate "Import lines" screen, opened from the Import menu on the
+    proxy list; the JSON import stays as it is.
+  - Every line goes through `ProxyStringParser`; blank lines and `#`
+    comments are skipped; at most 1000 records per import.
+  - Protocol for lines without one: auto-detection (network probes, 4 in
+    parallel, with progress) or one protocol chosen for the whole batch.
+    Lines whose protocol cannot be detected are not imported and stay in
+    the text field.
+  - Ambiguous `a:b:c:d` lines use one field order chosen for the whole
+    batch; the choice is shown only when such lines exist.
+  - Duplicates (host + port + username): an existing proxy gets the
+    password and protocol from the line (a line without a protocol keeps
+    the existing protocol in auto mode); unchanged proxies are skipped;
+    within the batch the last line wins.
+  - The preview masks credentials and never shows passwords.
+- Files likely to create/change:
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/proxy/ProxyLineImport.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/ui/screens/ImportProxyLinesScreen.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/ui/screens/ProxyListScreen.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/ui/viewmodel/VpnViewModel.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/data/local/ProxyDao.kt`,
+    `data/repository/ProxyRepository.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/MainActivity.kt`
+  - `app/src/main/res/values*/strings.xml`
+  - unit tests for the line import planner and the ViewModel.
+- Implementation notes:
+  - Completed on 2026-10-21 test-first: `ProxyLineImportTest` (10) and two
+    `VpnViewModelTest` cases; 212 unit tests pass, lint has no new issues.
+  - `ProxyLineImport` is a pure planner (parse, field order, batch protocol,
+    duplicates against the list and within the batch, 1000-record limit);
+    `VpnViewModel.onImportProxyLines` detects missing protocols 4 at a time
+    and saves new and updated proxies in one Room transaction
+    (`ProxyDao.saveImported`).
+  - Import icon on the proxy list opens a menu: proxy strings or JSON. The
+    text field is kept out of saved instance state because it holds
+    credentials; files are read up to 1 MB, a UTF-8 BOM is dropped.
+  - Emulator API 35: a .txt with comments, a blank line, a duplicate, an
+    ambiguous line and two invalid lines showed the expected preview; auto
+    mode detected SOCKS5 for a local test proxy and left two TEST-NET lines
+    in the field; importing them with HTTP worked; a second file updated a
+    password and a protocol and marked an unchanged proxy. No credentials
+    in logcat.
+- Acceptance criteria:
+  - The preview shows per line: new / update / unchanged / duplicate /
+    error with the parser message, plus totals.
+  - Import adds new proxies and updates existing ones in one batch;
+    detection failures are reported and kept for editing.
+  - No credentials in logs or the preview.
+- Test/smoke commands:
+  - `./gradlew test assembleDebug`
+  - Manual: emulator, paste a mixed list, import with auto and fixed
+    protocol.
+- Dependencies:
+  - TASK-215
+- Estimated risk: low
+
 ## Phase 20: Post-MVP Improvements
 
 ### TASK-200: Evaluate Full UDP Proxying

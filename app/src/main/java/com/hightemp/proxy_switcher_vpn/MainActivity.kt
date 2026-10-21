@@ -26,6 +26,7 @@ import com.hightemp.proxy_switcher_vpn.i18n.AppLanguages
 import com.hightemp.proxy_switcher_vpn.service.VpnRuntimeState
 import com.hightemp.proxy_switcher_vpn.ui.screens.AddEditProxyScreen
 import com.hightemp.proxy_switcher_vpn.ui.screens.HomeScreen
+import com.hightemp.proxy_switcher_vpn.ui.screens.ImportProxyLinesScreen
 import com.hightemp.proxy_switcher_vpn.ui.screens.LogsScreen
 import com.hightemp.proxy_switcher_vpn.ui.screens.ProxyListScreen
 import com.hightemp.proxy_switcher_vpn.ui.screens.VpnDiagnosticsScreen
@@ -68,6 +69,7 @@ class MainActivity : AppCompatActivity() {
                 val proxyChecks by viewModel.proxyChecks.collectAsState()
                 val speedTestStates by viewModel.speedTestStates.collectAsState()
                 val bulkTestProgress by viewModel.bulkTestProgress.collectAsState()
+                val lineImportProgress by viewModel.lineImportProgress.collectAsState()
                 var languageTag by remember { mutableStateOf(AppLanguages.current(this)) }
                 NavHost(
                     navController = navController,
@@ -156,7 +158,16 @@ class MainActivity : AppCompatActivity() {
                             onSpeedTestProxy = viewModel::onProxySpeedTestRequested,
                             onTestProxy = viewModel::onProxyTestRequested,
                             onExportProxies = viewModel::exportProxiesToText,
-                            onImportProxies = viewModel::importProxiesFromText
+                            onImportProxies = viewModel::importProxiesFromText,
+                            onImportLines = { navController.navigate("import_lines") }
+                        )
+                    }
+                    composable("import_lines") {
+                        ImportProxyLinesScreen(
+                            proxies = proxyList,
+                            progress = lineImportProgress,
+                            onBack = { navController.popBackStack() },
+                            onImport = viewModel::onImportProxyLines
                         )
                     }
                     composable("add_proxy") {

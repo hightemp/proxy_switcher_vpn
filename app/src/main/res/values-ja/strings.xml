@@ -315,4 +315,36 @@
     <string name="proxy_check_unavailable">利用不可</string>
     <string name="proxy_speed_test">速度をテスト</string>
     <string name="proxy_check_checked_just_now">たった今確認</string>
+    <string name="proxy_import_menu_json">JSON から</string>
+    <string name="proxy_import_menu_lines">プロキシ文字列から</string>
+    <string name="import_lines_title">プロキシ文字列をインポート</string>
+    <string name="import_lines_hint">1 行に 1 つのプロキシを、対応する任意の形式で記述します。空行と # で始まる行はスキップされます。1 回のインポート上限：%1$d。</string>
+    <string name="import_lines_text_label">プロキシ文字列</string>
+    <string name="import_lines_protocol">プロトコルのない行のプロトコル</string>
+    <string name="import_lines_protocol_auto">自動</string>
+    <string name="import_lines_auto_note">自動では、該当するプロキシをネットワーク経由で HTTPS、SOCKS5、HTTP の順に確認します。</string>
+    <string name="import_lines_field_order">一部の行は両方のフィールド順に当てはまります。すべてに適用する順序：</string>
+    <string name="import_lines_count_new">新規：%1$d</string>
+    <string name="import_lines_count_update">更新：%1$d</string>
+    <string name="import_lines_count_unchanged">変更なし：%1$d</string>
+    <string name="import_lines_count_duplicate">重複：%1$d</string>
+    <string name="import_lines_count_error">エラー：%1$d</string>
+    <string name="import_lines_dropped">上限に達しました（%1$d）。無視した行数：%2$d。</string>
+    <string name="import_line_number">%1$d 行目</string>
+    <string name="import_line_status_new">新規</string>
+    <string name="import_line_status_update">保存済みのプロキシを更新</string>
+    <string name="import_line_status_unchanged">すでにリストにあります</string>
+    <string name="import_line_status_duplicate">後の行で重複しています</string>
+    <string name="import_line_protocol_auto">プロトコル：自動</string>
+    <string name="import_line_with_login">ログイン情報あり</string>
+    <plurals name="import_lines_button">
+        <item quantity="other">%d 件のプロキシをインポート</item>
+    </plurals>
+    <string name="import_lines_detecting">プロトコルを検出中：%1$d / %2$d…</string>
+    <string name="import_lines_result">追加：%1$d、更新：%2$d</string>
+    <plurals name="import_lines_failed">
+        <item quantity="other">%d 行のプロトコルを検出できませんでした。入力欄に残しています。</item>
+    </plurals>
+    <string name="import_lines_file_too_large">ファイルが大きすぎます。</string>
+    <string name="import_lines_preview_empty">プロキシ文字列を貼り付けるかファイルを読み込むと、プレビューが表示されます。</string>
 </resources>

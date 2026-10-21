@@ -6,6 +6,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -34,6 +35,8 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -99,7 +102,8 @@ fun ProxyListScreen(
     speedTestStates: Map<Long, ProxyTestUiState> = emptyMap(),
     bulkTestProgress: BulkTestProgress? = null,
     onTestAllProxies: () -> Unit = {},
-    onSpeedTestProxy: (ProxyEntity) -> Unit = {}
+    onSpeedTestProxy: (ProxyEntity) -> Unit = {},
+    onImportLines: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
@@ -134,6 +138,7 @@ fun ProxyListScreen(
     }
     var showExportDialog by remember { mutableStateOf(false) }
     var showImportDialog by remember { mutableStateOf(false) }
+    var showImportMenu by remember { mutableStateOf(false) }
     var exportText by remember { mutableStateOf("") }
     val showImportResult = { count: Int, error: UserText? ->
         if (error != null) {
@@ -201,8 +206,29 @@ fun ProxyListScreen(
                     ) {
                         Icon(Icons.Default.DoneAll, contentDescription = stringResource(R.string.proxy_list_test_all))
                     }
-                    IconButton(onClick = { showImportDialog = true }) {
-                        Icon(Icons.Default.Download, contentDescription = stringResource(R.string.proxy_list_import))
+                    Box {
+                        IconButton(onClick = { showImportMenu = true }) {
+                            Icon(Icons.Default.Download, contentDescription = stringResource(R.string.proxy_list_import))
+                        }
+                        DropdownMenu(
+                            expanded = showImportMenu,
+                            onDismissRequest = { showImportMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.proxy_import_menu_lines)) },
+                                onClick = {
+                                    showImportMenu = false
+                                    onImportLines()
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.proxy_import_menu_json)) },
+                                onClick = {
+                                    showImportMenu = false
+                                    showImportDialog = true
+                                }
+                            )
+                        }
                     }
                     IconButton(
                         onClick = {

@@ -315,4 +315,36 @@
     <string name="proxy_check_unavailable">사용 불가</string>
     <string name="proxy_speed_test">속도 테스트</string>
     <string name="proxy_check_checked_just_now">방금 확인함</string>
+    <string name="proxy_import_menu_json">JSON에서</string>
+    <string name="proxy_import_menu_lines">프록시 문자열에서</string>
+    <string name="import_lines_title">프록시 문자열 가져오기</string>
+    <string name="import_lines_hint">한 줄에 프록시 하나씩, 지원되는 형식으로 입력하세요. 빈 줄과 #으로 시작하는 줄은 건너뜁니다. 가져오기 1회 한도: %1$d.</string>
+    <string name="import_lines_text_label">프록시 문자열</string>
+    <string name="import_lines_protocol">프로토콜이 없는 줄의 프로토콜</string>
+    <string name="import_lines_protocol_auto">자동</string>
+    <string name="import_lines_auto_note">자동은 해당 프록시를 네트워크로 HTTPS, SOCKS5, HTTP 순서로 확인합니다.</string>
+    <string name="import_lines_field_order">일부 줄은 두 필드 순서 모두에 맞습니다. 모든 줄에 적용할 순서:</string>
+    <string name="import_lines_count_new">신규: %1$d</string>
+    <string name="import_lines_count_update">업데이트: %1$d</string>
+    <string name="import_lines_count_unchanged">변경 없음: %1$d</string>
+    <string name="import_lines_count_duplicate">중복: %1$d</string>
+    <string name="import_lines_count_error">오류: %1$d</string>
+    <string name="import_lines_dropped">한도에 도달했습니다(%1$d). 무시된 줄 수: %2$d.</string>
+    <string name="import_line_number">%1$d번째 줄</string>
+    <string name="import_line_status_new">신규</string>
+    <string name="import_line_status_update">저장된 프록시를 업데이트</string>
+    <string name="import_line_status_unchanged">이미 목록에 있음</string>
+    <string name="import_line_status_duplicate">아래 줄에서 반복됨</string>
+    <string name="import_line_protocol_auto">프로토콜: 자동</string>
+    <string name="import_line_with_login">로그인 정보 포함</string>
+    <plurals name="import_lines_button">
+        <item quantity="other">프록시 %d개 가져오기</item>
+    </plurals>
+    <string name="import_lines_detecting">프로토콜 감지 중: %1$d / %2$d…</string>
+    <string name="import_lines_result">추가: %1$d, 업데이트: %2$d</string>
+    <plurals name="import_lines_failed">
+        <item quantity="other">%d개 줄의 프로토콜을 감지하지 못했습니다. 입력란에 남겨 두었습니다.</item>
+    </plurals>
+    <string name="import_lines_file_too_large">파일이 너무 큽니다.</string>
+    <string name="import_lines_preview_empty">프록시 문자열을 붙여넣거나 파일을 불러오면 미리보기가 표시됩니다.</string>
 </resources>

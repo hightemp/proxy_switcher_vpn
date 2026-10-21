@@ -315,4 +315,36 @@
     <string name="proxy_check_unavailable">不可用</string>
     <string name="proxy_speed_test">测速</string>
     <string name="proxy_check_checked_just_now">刚刚检查</string>
+    <string name="proxy_import_menu_json">从 JSON</string>
+    <string name="proxy_import_menu_lines">从代理字符串</string>
+    <string name="import_lines_title">导入代理字符串</string>
+    <string name="import_lines_hint">每行一个代理，可使用任何受支持的格式。空行和以 # 开头的行会被跳过。每次导入上限：%1$d。</string>
+    <string name="import_lines_text_label">代理字符串</string>
+    <string name="import_lines_protocol">未指定协议的行使用的协议</string>
+    <string name="import_lines_protocol_auto">自动</string>
+    <string name="import_lines_auto_note">自动模式会通过网络逐个检测此类代理：HTTPS、SOCKS5，然后 HTTP。</string>
+    <string name="import_lines_field_order">有些行同时符合两种字段顺序。为所有这些行选择顺序：</string>
+    <string name="import_lines_count_new">新增：%1$d</string>
+    <string name="import_lines_count_update">更新：%1$d</string>
+    <string name="import_lines_count_unchanged">未变：%1$d</string>
+    <string name="import_lines_count_duplicate">重复：%1$d</string>
+    <string name="import_lines_count_error">错误：%1$d</string>
+    <string name="import_lines_dropped">已达上限（%1$d）。忽略的行数：%2$d。</string>
+    <string name="import_line_number">第 %1$d 行</string>
+    <string name="import_line_status_new">新增</string>
+    <string name="import_line_status_update">将更新已保存的代理</string>
+    <string name="import_line_status_unchanged">已在列表中</string>
+    <string name="import_line_status_duplicate">在后面的行中重复</string>
+    <string name="import_line_protocol_auto">协议：自动</string>
+    <string name="import_line_with_login">含登录信息</string>
+    <plurals name="import_lines_button">
+        <item quantity="other">导入 %d 个代理</item>
+    </plurals>
+    <string name="import_lines_detecting">正在检测协议：%1$d / %2$d…</string>
+    <string name="import_lines_result">已添加：%1$d，已更新：%2$d</string>
+    <plurals name="import_lines_failed">
+        <item quantity="other">有 %d 行未能检测到协议，已保留在输入框中。</item>
+    </plurals>
+    <string name="import_lines_file_too_large">文件太大。</string>
+    <string name="import_lines_preview_empty">粘贴代理字符串或加载文件以查看预览。</string>
 </resources>

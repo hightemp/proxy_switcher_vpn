@@ -326,4 +326,38 @@
     <string name="proxy_check_unavailable">Unavailable</string>
     <string name="proxy_speed_test">Test speed</string>
     <string name="proxy_check_checked_just_now">Checked just now</string>
+    <string name="proxy_import_menu_json">From JSON</string>
+    <string name="proxy_import_menu_lines">From proxy strings</string>
+    <string name="import_lines_title">Import proxy strings</string>
+    <string name="import_lines_hint">One proxy per line in any supported format. Empty lines and lines starting with # are skipped. Limit per import: %1$d.</string>
+    <string name="import_lines_text_label">Proxy strings</string>
+    <string name="import_lines_protocol">Protocol for lines without one</string>
+    <string name="import_lines_protocol_auto">Auto</string>
+    <string name="import_lines_auto_note">Auto checks each such proxy over the network: HTTPS, SOCKS5, then HTTP.</string>
+    <string name="import_lines_field_order">Some lines fit both field orders. Order for all of them:</string>
+    <string name="import_lines_count_new">New: %1$d</string>
+    <string name="import_lines_count_update">Update: %1$d</string>
+    <string name="import_lines_count_unchanged">Unchanged: %1$d</string>
+    <string name="import_lines_count_duplicate">Repeated: %1$d</string>
+    <string name="import_lines_count_error">Errors: %1$d</string>
+    <string name="import_lines_dropped">Limit reached (%1$d). Lines ignored: %2$d.</string>
+    <string name="import_line_number">Line %1$d</string>
+    <string name="import_line_status_new">New</string>
+    <string name="import_line_status_update">Updates the saved proxy</string>
+    <string name="import_line_status_unchanged">Already in the list</string>
+    <string name="import_line_status_duplicate">Repeated in a later line</string>
+    <string name="import_line_protocol_auto">protocol: auto</string>
+    <string name="import_line_with_login">with login</string>
+    <plurals name="import_lines_button">
+        <item quantity="one">Import %d proxy</item>
+        <item quantity="other">Import %d proxies</item>
+    </plurals>
+    <string name="import_lines_detecting">Detecting protocol: %1$d of %2$d…</string>
+    <string name="import_lines_result">Added: %1$d, updated: %2$d</string>
+    <plurals name="import_lines_failed">
+        <item quantity="one">Protocol not detected for %d line; it is left in the field.</item>
+        <item quantity="other">Protocol not detected for %d lines; they are left in the field.</item>
+    </plurals>
+    <string name="import_lines_file_too_large">The file is too large.</string>
+    <string name="import_lines_preview_empty">Paste proxy strings or load a file to see the preview.</string>
 </resources>

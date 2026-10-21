@@ -318,4 +318,42 @@
     <string name="proxy_check_unavailable">Недоступний</string>
     <string name="proxy_speed_test">Тест швидкості</string>
     <string name="proxy_check_checked_just_now">Перевірено щойно</string>
+    <string name="proxy_import_menu_json">З JSON</string>
+    <string name="proxy_import_menu_lines">З рядків проксі</string>
+    <string name="import_lines_title">Імпорт рядків проксі</string>
+    <string name="import_lines_hint">По одному проксі в рядку, у будь-якому підтримуваному форматі. Порожні рядки та рядки, що починаються з #, пропускаються. Ліміт за один імпорт: %1$d.</string>
+    <string name="import_lines_text_label">Рядки проксі</string>
+    <string name="import_lines_protocol">Протокол для рядків без протоколу</string>
+    <string name="import_lines_protocol_auto">Авто</string>
+    <string name="import_lines_auto_note">«Авто» перевіряє кожен такий проксі через мережу: HTTPS, SOCKS5, потім HTTP.</string>
+    <string name="import_lines_field_order">Деякі рядки підходять під обидва порядки полів. Порядок для всіх:</string>
+    <string name="import_lines_count_new">Нові: %1$d</string>
+    <string name="import_lines_count_update">Оновити: %1$d</string>
+    <string name="import_lines_count_unchanged">Без змін: %1$d</string>
+    <string name="import_lines_count_duplicate">Повтори: %1$d</string>
+    <string name="import_lines_count_error">Помилки: %1$d</string>
+    <string name="import_lines_dropped">Досягнуто ліміту (%1$d). Пропущено рядків: %2$d.</string>
+    <string name="import_line_number">Рядок %1$d</string>
+    <string name="import_line_status_new">Новий</string>
+    <string name="import_line_status_update">Оновить збережений проксі</string>
+    <string name="import_line_status_unchanged">Вже в списку</string>
+    <string name="import_line_status_duplicate">Повторюється нижче</string>
+    <string name="import_line_protocol_auto">протокол: авто</string>
+    <string name="import_line_with_login">з логіном</string>
+    <plurals name="import_lines_button">
+        <item quantity="one">Імпортувати %d проксі</item>
+        <item quantity="few">Імпортувати %d проксі</item>
+        <item quantity="many">Імпортувати %d проксі</item>
+        <item quantity="other">Імпортувати %d проксі</item>
+    </plurals>
+    <string name="import_lines_detecting">Визначення протоколу: %1$d з %2$d…</string>
+    <string name="import_lines_result">Додано: %1$d, оновлено: %2$d</string>
+    <plurals name="import_lines_failed">
+        <item quantity="one">Протокол не визначено для %d рядка; його залишено в полі.</item>
+        <item quantity="few">Протокол не визначено для %d рядків; їх залишено в полі.</item>
+        <item quantity="many">Протокол не визначено для %d рядків; їх залишено в полі.</item>
+        <item quantity="other">Протокол не визначено для %d рядка; їх залишено в полі.</item>
+    </plurals>
+    <string name="import_lines_file_too_large">Файл завеликий.</string>
+    <string name="import_lines_preview_empty">Вставте рядки проксі або завантажте файл, щоб побачити попередній перегляд.</string>
 </resources>

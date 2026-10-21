@@ -316,4 +316,38 @@
     <string name="proxy_check_unavailable">Nicht erreichbar</string>
     <string name="proxy_speed_test">Geschwindigkeit testen</string>
     <string name="proxy_check_checked_just_now">Gerade geprüft</string>
+    <string name="proxy_import_menu_json">Aus JSON</string>
+    <string name="proxy_import_menu_lines">Aus Proxy-Zeilen</string>
+    <string name="import_lines_title">Proxy-Zeilen importieren</string>
+    <string name="import_lines_hint">Ein Proxy pro Zeile in einem beliebigen unterstützten Format. Leere Zeilen und Zeilen, die mit # beginnen, werden übersprungen. Limit pro Import: %1$d.</string>
+    <string name="import_lines_text_label">Proxy-Zeilen</string>
+    <string name="import_lines_protocol">Protokoll für Zeilen ohne Protokoll</string>
+    <string name="import_lines_protocol_auto">Auto</string>
+    <string name="import_lines_auto_note">Auto prüft jeden solchen Proxy über das Netzwerk: HTTPS, SOCKS5, dann HTTP.</string>
+    <string name="import_lines_field_order">Einige Zeilen passen zu beiden Feldreihenfolgen. Reihenfolge für alle:</string>
+    <string name="import_lines_count_new">Neu: %1$d</string>
+    <string name="import_lines_count_update">Aktualisieren: %1$d</string>
+    <string name="import_lines_count_unchanged">Unverändert: %1$d</string>
+    <string name="import_lines_count_duplicate">Wiederholt: %1$d</string>
+    <string name="import_lines_count_error">Fehler: %1$d</string>
+    <string name="import_lines_dropped">Limit erreicht (%1$d). Ignorierte Zeilen: %2$d.</string>
+    <string name="import_line_number">Zeile %1$d</string>
+    <string name="import_line_status_new">Neu</string>
+    <string name="import_line_status_update">Aktualisiert den gespeicherten Proxy</string>
+    <string name="import_line_status_unchanged">Bereits in der Liste</string>
+    <string name="import_line_status_duplicate">Wird weiter unten wiederholt</string>
+    <string name="import_line_protocol_auto">Protokoll: auto</string>
+    <string name="import_line_with_login">mit Anmeldung</string>
+    <plurals name="import_lines_button">
+        <item quantity="one">%d Proxy importieren</item>
+        <item quantity="other">%d Proxys importieren</item>
+    </plurals>
+    <string name="import_lines_detecting">Protokoll wird erkannt: %1$d von %2$d…</string>
+    <string name="import_lines_result">Hinzugefügt: %1$d, aktualisiert: %2$d</string>
+    <plurals name="import_lines_failed">
+        <item quantity="one">Protokoll für %d Zeile nicht erkannt; sie bleibt im Feld.</item>
+        <item quantity="other">Protokoll für %d Zeilen nicht erkannt; sie bleiben im Feld.</item>
+    </plurals>
+    <string name="import_lines_file_too_large">Die Datei ist zu groß.</string>
+    <string name="import_lines_preview_empty">Füge Proxy-Zeilen ein oder lade eine Datei, um die Vorschau zu sehen.</string>
 </resources>

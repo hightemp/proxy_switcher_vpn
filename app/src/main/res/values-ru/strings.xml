@@ -318,4 +318,42 @@
     <string name="proxy_check_unavailable">Недоступен</string>
     <string name="proxy_speed_test">Тест скорости</string>
     <string name="proxy_check_checked_just_now">Проверено только что</string>
+    <string name="proxy_import_menu_json">Из JSON</string>
+    <string name="proxy_import_menu_lines">Из строк прокси</string>
+    <string name="import_lines_title">Импорт строк прокси</string>
+    <string name="import_lines_hint">По одному прокси в строке, в любом поддерживаемом формате. Пустые строки и строки, начинающиеся с #, пропускаются. Лимит за один импорт: %1$d.</string>
+    <string name="import_lines_text_label">Строки прокси</string>
+    <string name="import_lines_protocol">Протокол для строк без протокола</string>
+    <string name="import_lines_protocol_auto">Авто</string>
+    <string name="import_lines_auto_note">«Авто» проверяет каждый такой прокси по сети: HTTPS, SOCKS5, затем HTTP.</string>
+    <string name="import_lines_field_order">Некоторые строки подходят под оба порядка полей. Порядок для всех:</string>
+    <string name="import_lines_count_new">Новые: %1$d</string>
+    <string name="import_lines_count_update">Обновить: %1$d</string>
+    <string name="import_lines_count_unchanged">Без изменений: %1$d</string>
+    <string name="import_lines_count_duplicate">Повторы: %1$d</string>
+    <string name="import_lines_count_error">Ошибки: %1$d</string>
+    <string name="import_lines_dropped">Достигнут лимит (%1$d). Пропущено строк: %2$d.</string>
+    <string name="import_line_number">Строка %1$d</string>
+    <string name="import_line_status_new">Новый</string>
+    <string name="import_line_status_update">Обновит сохранённый прокси</string>
+    <string name="import_line_status_unchanged">Уже в списке</string>
+    <string name="import_line_status_duplicate">Повторяется ниже</string>
+    <string name="import_line_protocol_auto">протокол: авто</string>
+    <string name="import_line_with_login">с логином</string>
+    <plurals name="import_lines_button">
+        <item quantity="one">Импортировать %d прокси</item>
+        <item quantity="few">Импортировать %d прокси</item>
+        <item quantity="many">Импортировать %d прокси</item>
+        <item quantity="other">Импортировать %d прокси</item>
+    </plurals>
+    <string name="import_lines_detecting">Определение протокола: %1$d из %2$d…</string>
+    <string name="import_lines_result">Добавлено: %1$d, обновлено: %2$d</string>
+    <plurals name="import_lines_failed">
+        <item quantity="one">Протокол не определён для %d строки; она оставлена в поле.</item>
+        <item quantity="few">Протокол не определён для %d строк; они оставлены в поле.</item>
+        <item quantity="many">Протокол не определён для %d строк; они оставлены в поле.</item>
+        <item quantity="other">Протокол не определён для %d строки; они оставлены в поле.</item>
+    </plurals>
+    <string name="import_lines_file_too_large">Файл слишком большой.</string>
+    <string name="import_lines_preview_empty">Вставьте строки прокси или загрузите файл, чтобы увидеть предпросмотр.</string>
 </resources>

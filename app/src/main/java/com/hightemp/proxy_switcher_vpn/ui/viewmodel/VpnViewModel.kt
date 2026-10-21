@@ -12,7 +12,10 @@ import com.hightemp.proxy_switcher_vpn.data.settings.AppSettings
 import com.hightemp.proxy_switcher_vpn.data.settings.SettingsRepository
 import com.hightemp.proxy_switcher_vpn.i18n.UserText
 import com.hightemp.proxy_switcher_vpn.proxy.ParsedProxyString
+import com.hightemp.proxy_switcher_vpn.proxy.ProxyImportLine
+import com.hightemp.proxy_switcher_vpn.proxy.ProxyImportStatus
 import com.hightemp.proxy_switcher_vpn.proxy.ProxyInspector
+import com.hightemp.proxy_switcher_vpn.proxy.ProxyLineImport
 import com.hightemp.proxy_switcher_vpn.proxy.ProxyProtocolDetector
 import com.hightemp.proxy_switcher_vpn.proxy.ProxyReachabilityTester
 import com.hightemp.proxy_switcher_vpn.proxy.SpeedTestResult
@@ -43,6 +46,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
@@ -84,6 +89,13 @@ data class BulkTestProgress(
     val done: Int,
     val total: Int,
     val running: Boolean
+)
+
+data class ProxyLineImportResult(
+    val added: Int,
+    val updated: Int,
+    /** Lines whose protocol could not be detected; nothing was saved for them. */
+    val failedLines: List<ProxyImportLine>
 )
 
 data class DeletedProxy(
@@ -162,6 +174,9 @@ class VpnViewModel @Inject constructor(
         )
     private val _bulkTestProgress = MutableStateFlow<BulkTestProgress?>(null)
     val bulkTestProgress: StateFlow<BulkTestProgress?> = _bulkTestProgress.asStateFlow()
+    private val _lineImportProgress = MutableStateFlow<BulkTestProgress?>(null)
+    /** Protocol detection progress of a running line import. */
+    val lineImportProgress: StateFlow<BulkTestProgress?> = _lineImportProgress.asStateFlow()
     private val _speedTestStates = MutableStateFlow<Map<Long, ProxyTestUiState>>(emptyMap())
     /** Running or failed speed tests; a finished test is shown from [proxyChecks]. */
     val speedTestStates: StateFlow<Map<Long, ProxyTestUiState>> = _speedTestStates.asStateFlow()
@@ -457,6 +472,54 @@ class VpnViewModel @Inject constructor(
                 )
             }
             onResult(result.proxies.size, null)
+        }
+    }
+
+    /**
+     * Saves the new and updated lines of a bulk import. Lines without a
+     * protocol are probed first, 4 at a time; lines that no protocol answers
+     * are returned as failed and not saved.
+     */
+    fun onImportProxyLines(
+        lines: List<ProxyImportLine>,
+        onResult: (ProxyLineImportResult) -> Unit
+    ) {
+        if (_lineImportProgress.value?.running == true) return
+        val importable = lines.filter { line ->
+            line.status == ProxyImportStatus.NEW || line.status == ProxyImportStatus.UPDATE
+        }
+        val toDetect = importable.filter { it.needsDetection }
+        _lineImportProgress.value = BulkTestProgress(done = 0, total = toDetect.size, running = true)
+        viewModelScope.launch {
+            val permits = Semaphore(BULK_TEST_PARALLELISM)
+            val detected = toDetect.map { line ->
+                async {
+                    val type = permits.withPermit { protocolDetector.detect(line.proxy!!) }
+                    _lineImportProgress.update { progress -> progress?.copy(done = progress.done + 1) }
+                    line.lineNumber to type
+                }
+            }.awaitAll().toMap()
+            val existing = proxyRepository.getAllProxies().first().associateBy { it.id }
+            val newProxies = mutableListOf<ProxyEntity>()
+            val updatedProxies = mutableListOf<ProxyEntity>()
+            val failedLines = mutableListOf<ProxyImportLine>()
+            importable.forEach { line ->
+                val parsed = line.proxy!!
+                val type = parsed.type ?: detected[line.lineNumber]
+                if (type == null) {
+                    failedLines += line
+                    return@forEach
+                }
+                val current = line.existingId?.let(existing::get)
+                if (current != null) {
+                    updatedProxies += ProxyLineImport.updatedProxy(current, parsed.copy(type = type))
+                } else {
+                    newProxies += ProxyLineImport.newProxy(parsed, type)
+                }
+            }
+            proxyRepository.saveImported(newProxies, updatedProxies)
+            _lineImportProgress.value = null
+            onResult(ProxyLineImportResult(newProxies.size, updatedProxies.size, failedLines))
         }
     }
 

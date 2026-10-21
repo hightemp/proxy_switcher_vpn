@@ -17,4 +17,7 @@ class ProxyRepository @Inject constructor(
     suspend fun updateProxy(proxy: ProxyEntity) = proxyDao.updateProxy(proxy)
 
     suspend fun deleteProxy(proxy: ProxyEntity) = proxyDao.deleteProxy(proxy)
+
+    suspend fun saveImported(newProxies: List<ProxyEntity>, updatedProxies: List<ProxyEntity>) =
+        proxyDao.saveImported(newProxies, updatedProxies)
 }

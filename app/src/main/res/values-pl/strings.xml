@@ -318,4 +318,42 @@
     <string name="proxy_check_unavailable">Niedostępne</string>
     <string name="proxy_speed_test">Testuj prędkość</string>
     <string name="proxy_check_checked_just_now">Sprawdzono przed chwilą</string>
+    <string name="proxy_import_menu_json">Z JSON</string>
+    <string name="proxy_import_menu_lines">Z wierszy proxy</string>
+    <string name="import_lines_title">Importuj wiersze proxy</string>
+    <string name="import_lines_hint">Jeden proxy w wierszu, w dowolnym obsługiwanym formacie. Puste wiersze i wiersze zaczynające się od # są pomijane. Limit na jeden import: %1$d.</string>
+    <string name="import_lines_text_label">Wiersze proxy</string>
+    <string name="import_lines_protocol">Protokół dla wierszy bez protokołu</string>
+    <string name="import_lines_protocol_auto">Auto</string>
+    <string name="import_lines_auto_note">Auto sprawdza każdy taki proxy przez sieć: HTTPS, SOCKS5, potem HTTP.</string>
+    <string name="import_lines_field_order">Niektóre wiersze pasują do obu kolejności pól. Kolejność dla wszystkich:</string>
+    <string name="import_lines_count_new">Nowe: %1$d</string>
+    <string name="import_lines_count_update">Do aktualizacji: %1$d</string>
+    <string name="import_lines_count_unchanged">Bez zmian: %1$d</string>
+    <string name="import_lines_count_duplicate">Powtórzone: %1$d</string>
+    <string name="import_lines_count_error">Błędy: %1$d</string>
+    <string name="import_lines_dropped">Osiągnięto limit (%1$d). Pominięte wiersze: %2$d.</string>
+    <string name="import_line_number">Wiersz %1$d</string>
+    <string name="import_line_status_new">Nowy</string>
+    <string name="import_line_status_update">Zaktualizuje zapisany proxy</string>
+    <string name="import_line_status_unchanged">Już na liście</string>
+    <string name="import_line_status_duplicate">Powtarza się niżej</string>
+    <string name="import_line_protocol_auto">protokół: auto</string>
+    <string name="import_line_with_login">z loginem</string>
+    <plurals name="import_lines_button">
+        <item quantity="one">Importuj %d proxy</item>
+        <item quantity="few">Importuj %d proxy</item>
+        <item quantity="many">Importuj %d proxy</item>
+        <item quantity="other">Importuj %d proxy</item>
+    </plurals>
+    <string name="import_lines_detecting">Wykrywanie protokołu: %1$d z %2$d…</string>
+    <string name="import_lines_result">Dodano: %1$d, zaktualizowano: %2$d</string>
+    <plurals name="import_lines_failed">
+        <item quantity="one">Nie wykryto protokołu dla %d wiersza; pozostał w polu.</item>
+        <item quantity="few">Nie wykryto protokołu dla %d wierszy; pozostały w polu.</item>
+        <item quantity="many">Nie wykryto protokołu dla %d wierszy; pozostały w polu.</item>
+        <item quantity="other">Nie wykryto protokołu dla %d wiersza; pozostały w polu.</item>
+    </plurals>
+    <string name="import_lines_file_too_large">Plik jest za duży.</string>
+    <string name="import_lines_preview_empty">Wklej wiersze proxy lub wczytaj plik, aby zobaczyć podgląd.</string>
 </resources>

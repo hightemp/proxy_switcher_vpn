@@ -317,4 +317,40 @@
     <string name="proxy_check_unavailable">Indisponible</string>
     <string name="proxy_speed_test">Tester le débit</string>
     <string name="proxy_check_checked_just_now">Vérifié à l’instant</string>
+    <string name="proxy_import_menu_json">Depuis JSON</string>
+    <string name="proxy_import_menu_lines">Depuis des lignes de proxy</string>
+    <string name="import_lines_title">Importer des lignes de proxy</string>
+    <string name="import_lines_hint">Un proxy par ligne, dans n’importe quel format pris en charge. Les lignes vides et celles commençant par # sont ignorées. Limite par import : %1$d.</string>
+    <string name="import_lines_text_label">Lignes de proxy</string>
+    <string name="import_lines_protocol">Protocole pour les lignes sans protocole</string>
+    <string name="import_lines_protocol_auto">Auto</string>
+    <string name="import_lines_auto_note">Auto vérifie chacun de ces proxys sur le réseau : HTTPS, SOCKS5, puis HTTP.</string>
+    <string name="import_lines_field_order">Certaines lignes correspondent aux deux ordres de champs. Ordre pour toutes :</string>
+    <string name="import_lines_count_new">Nouveaux : %1$d</string>
+    <string name="import_lines_count_update">À mettre à jour : %1$d</string>
+    <string name="import_lines_count_unchanged">Inchangés : %1$d</string>
+    <string name="import_lines_count_duplicate">Répétés : %1$d</string>
+    <string name="import_lines_count_error">Erreurs : %1$d</string>
+    <string name="import_lines_dropped">Limite atteinte (%1$d). Lignes ignorées : %2$d.</string>
+    <string name="import_line_number">Ligne %1$d</string>
+    <string name="import_line_status_new">Nouveau</string>
+    <string name="import_line_status_update">Met à jour le proxy enregistré</string>
+    <string name="import_line_status_unchanged">Déjà dans la liste</string>
+    <string name="import_line_status_duplicate">Répété plus bas</string>
+    <string name="import_line_protocol_auto">protocole : auto</string>
+    <string name="import_line_with_login">avec identifiant</string>
+    <plurals name="import_lines_button">
+        <item quantity="one">Importer %d proxy</item>
+        <item quantity="many">Importer %d proxys</item>
+        <item quantity="other">Importer %d proxys</item>
+    </plurals>
+    <string name="import_lines_detecting">Détection du protocole : %1$d sur %2$d…</string>
+    <string name="import_lines_result">Ajoutés : %1$d, mis à jour : %2$d</string>
+    <plurals name="import_lines_failed">
+        <item quantity="one">Protocole non détecté pour %d ligne ; elle reste dans le champ.</item>
+        <item quantity="many">Protocole non détecté pour %d lignes ; elles restent dans le champ.</item>
+        <item quantity="other">Protocole non détecté pour %d lignes ; elles restent dans le champ.</item>
+    </plurals>
+    <string name="import_lines_file_too_large">Le fichier est trop volumineux.</string>
+    <string name="import_lines_preview_empty">Collez des lignes de proxy ou chargez un fichier pour voir l’aperçu.</string>
 </resources>
