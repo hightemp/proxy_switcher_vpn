@@ -353,7 +353,7 @@
     </plurals>
     <string name="import_lines_file_too_large">Il file è troppo grande.</string>
     <string name="import_lines_preview_empty">Incolla righe proxy o carica un file per vedere l’anteprima.</string>
-    <string name="proxy_list_search">Cerca nome, host, paese, IP</string>
+    <string name="proxy_list_search">Cerca</string>
     <string name="proxy_list_search_clear">Cancella ricerca</string>
     <string name="proxy_list_sort">Ordina</string>
     <string name="proxy_sort_newest">Prima i più recenti</string>

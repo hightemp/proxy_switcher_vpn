@@ -360,7 +360,7 @@
     </plurals>
     <string name="import_lines_file_too_large">The file is too large.</string>
     <string name="import_lines_preview_empty">Paste proxy strings or load a file to see the preview.</string>
-    <string name="proxy_list_search">Search name, host, country, IP</string>
+    <string name="proxy_list_search">Search</string>
     <string name="proxy_list_search_clear">Clear search</string>
     <string name="proxy_list_sort">Sort</string>
     <string name="proxy_sort_newest">Newest first</string>

@@ -2891,6 +2891,28 @@ Decisions (agreed with the user on 2026-10-20):
   - TASK-140, TASK-151
 - Estimated risk: low
 
+### ✅ TASK-233: Proxy List Visual Fixes
+
+- Status: done
+- Goal: Fix three issues reported by the user on the proxy list.
+- Changes:
+  - The selected card is marked with a 2 dp primary border and the check
+    icon instead of a `primaryContainer` fill; with Samsung dynamic colors
+    the fill clashed with the red "Unavailable" text.
+  - The list has 96 dp bottom padding, so the add button no longer covers
+    the delete button of the last card.
+  - The search placeholder is a single word ("Search"/"Поиск" in all
+    languages) and is limited to one line with an ellipsis.
+- Files changed:
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/ui/screens/ProxyListScreen.kt`
+  - `app/src/main/res/values*/strings.xml`
+- Verification:
+  - `./gradlew test assembleDebug lintDebug`: 234 tests pass, no new lint
+    issues.
+  - Emulator API 35 in Russian, light and dark theme: the selected
+    unavailable proxy is readable, the last card's actions are clear of the
+    add button after scrolling to the end, the placeholder fits one line.
+
 ## Phase 20: Post-MVP Improvements
 
 ### TASK-200: Evaluate Full UDP Proxying

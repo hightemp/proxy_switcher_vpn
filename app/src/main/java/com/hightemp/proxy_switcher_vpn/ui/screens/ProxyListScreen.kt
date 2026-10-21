@@ -4,6 +4,9 @@ import android.text.format.DateUtils
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.clickable
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.material3.FilterChip
@@ -275,8 +278,9 @@ fun ProxyListScreen(
             LazyColumn(
                 modifier = Modifier
                     .padding(innerPadding)
-                    .fillMaxSize()
-                    .padding(vertical = 8.dp)
+                    .fillMaxSize(),
+                // Bottom space so the add button never covers the last card's actions.
+                contentPadding = PaddingValues(top = 8.dp, bottom = 96.dp)
             ) {
                 item(key = "list-controls") {
                     ProxyListControls(
@@ -519,7 +523,13 @@ private fun ProxyListControls(
             OutlinedTextField(
                 value = query,
                 onValueChange = onQueryChange,
-                placeholder = { Text(stringResource(R.string.proxy_list_search)) },
+                placeholder = {
+                    Text(
+                        text = stringResource(R.string.proxy_list_search),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                },
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                 trailingIcon = {
                     if (query.isNotEmpty()) {
@@ -621,13 +631,9 @@ private fun ProxyListItem(
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 6.dp)
             .clickable(onClick = onSelect),
-        colors = CardDefaults.cardColors(
-            containerColor = if (selected) {
-                MaterialTheme.colorScheme.primaryContainer
-            } else {
-                MaterialTheme.colorScheme.surfaceVariant
-            }
-        )
+        // Selection is a border, not a fill: a dynamic primaryContainer can clash with error text.
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        border = if (selected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null
     ) {
         Column(
             modifier = Modifier

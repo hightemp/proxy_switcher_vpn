@@ -350,7 +350,7 @@
     </plurals>
     <string name="import_lines_file_too_large">Die Datei ist zu groß.</string>
     <string name="import_lines_preview_empty">Füge Proxy-Zeilen ein oder lade eine Datei, um die Vorschau zu sehen.</string>
-    <string name="proxy_list_search">Name, Host, Land, IP suchen</string>
+    <string name="proxy_list_search">Suchen</string>
     <string name="proxy_list_search_clear">Suche löschen</string>
     <string name="proxy_list_sort">Sortieren</string>
     <string name="proxy_sort_newest">Neueste zuerst</string>

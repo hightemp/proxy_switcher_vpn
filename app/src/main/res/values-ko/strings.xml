@@ -347,7 +347,7 @@
     </plurals>
     <string name="import_lines_file_too_large">파일이 너무 큽니다.</string>
     <string name="import_lines_preview_empty">프록시 문자열을 붙여넣거나 파일을 불러오면 미리보기가 표시됩니다.</string>
-    <string name="proxy_list_search">이름, 호스트, 국가, IP 검색</string>
+    <string name="proxy_list_search">검색</string>
     <string name="proxy_list_search_clear">검색 지우기</string>
     <string name="proxy_list_sort">정렬</string>
     <string name="proxy_sort_newest">최신순</string>

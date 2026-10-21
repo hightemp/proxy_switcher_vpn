@@ -356,7 +356,7 @@
     </plurals>
     <string name="import_lines_file_too_large">Файл завеликий.</string>
     <string name="import_lines_preview_empty">Вставте рядки проксі або завантажте файл, щоб побачити попередній перегляд.</string>
-    <string name="proxy_list_search">Пошук: ім’я, хост, країна, IP</string>
+    <string name="proxy_list_search">Пошук</string>
     <string name="proxy_list_search_clear">Очистити пошук</string>
     <string name="proxy_list_sort">Сортування</string>
     <string name="proxy_sort_newest">Спочатку нові</string>
