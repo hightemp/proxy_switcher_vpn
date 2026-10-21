@@ -75,12 +75,13 @@ fun ImportProxyLinesScreen(
     var text by remember { mutableStateOf("") }
     var protocol by remember { mutableStateOf<ProxyType?>(null) }
     var fieldOrder by remember { mutableStateOf(ProxyFieldOrder.HOST_FIRST) }
+    var group by remember { mutableStateOf("") }
     var resultMessage by remember { mutableStateOf<UserText?>(null) }
     val importing = progress?.running == true
-    val preview by produceState(ProxyImportPreview(emptyList()), text, protocol, fieldOrder, proxies) {
+    val preview by produceState(ProxyImportPreview(emptyList()), text, protocol, fieldOrder, group, proxies) {
         delay(PREVIEW_DEBOUNCE_MILLIS)
         value = withContext(Dispatchers.Default) {
-            ProxyLineImport.preview(text, ProxyLineImportOptions(protocol, fieldOrder), proxies)
+            ProxyLineImport.preview(text, ProxyLineImportOptions(protocol, fieldOrder, group), proxies)
         }
     }
     val openFileLauncher = rememberLauncherForActivityResult(
@@ -179,6 +180,14 @@ fun ImportProxyLinesScreen(
                         fieldOrder = fieldOrder,
                         onFieldOrderSelected = { fieldOrder = it },
                         enabled = !importing
+                    )
+                    OutlinedTextField(
+                        value = group,
+                        onValueChange = { group = it },
+                        label = { Text(stringResource(R.string.import_lines_group)) },
+                        enabled = !importing,
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
                     )
                     resultMessage?.let { message ->
                         Text(

@@ -76,6 +76,17 @@ class ProxyTransferTest {
     }
 
     @Test
+    fun groupRoundTripsAndIsOptional() {
+        val grouped = ProxyEntity(host = "192.0.2.1", port = 1080, type = ProxyType.SOCKS5, groupName = "Work")
+        val plain = ProxyEntity(host = "192.0.2.2", port = 8080, type = ProxyType.HTTP)
+
+        val text = ProxyTransfer.export(listOf(grouped, plain))
+
+        assertEquals(1, Regex("\"group\"").findAll(text).count())
+        assertEquals(listOf("Work", null), ProxyTransfer.import(text).proxies.map { it.groupName })
+    }
+
+    @Test
     fun invalidOrEmptyInputReturnsUsefulError() {
         assertEquals(UserText.of(R.string.import_error_empty), ProxyTransfer.import("  ").errorMessage)
 

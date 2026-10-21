@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -27,6 +29,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -61,7 +64,8 @@ fun AddEditProxyScreen(
     onBack: () -> Unit,
     onSave: (ProxyEntity) -> Unit,
     onDetectProtocol: (ParsedProxyString, (ProxyType?) -> Unit) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    groups: List<String> = emptyList()
 ) {
     Scaffold(
         topBar = {
@@ -95,6 +99,7 @@ fun AddEditProxyScreen(
                 onSave = onSave,
                 onDetectProtocol = onDetectProtocol,
                 onCancel = onBack,
+                groups = groups,
                 modifier = Modifier
                     .padding(innerPadding)
                     .fillMaxSize()
@@ -130,9 +135,11 @@ private fun ProxyForm(
     onSave: (ProxyEntity) -> Unit,
     onDetectProtocol: (ParsedProxyString, (ProxyType?) -> Unit) -> Unit,
     onCancel: () -> Unit,
+    groups: List<String>,
     modifier: Modifier = Modifier
 ) {
     var label by remember(proxy?.id) { mutableStateOf(proxy?.label.orEmpty()) }
+    var groupName by remember(proxy?.id) { mutableStateOf(proxy?.groupName.orEmpty()) }
     var host by remember(proxy?.id) { mutableStateOf(proxy?.host.orEmpty()) }
     var port by remember(proxy?.id) { mutableStateOf(proxy?.port?.toString().orEmpty()) }
     var type by remember(proxy?.id) { mutableStateOf<ProxyType?>(proxy?.type ?: ProxyType.SOCKS5) }
@@ -227,6 +234,11 @@ private fun ProxyForm(
             label = { Text(stringResource(R.string.proxy_field_label)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
+        )
+        GroupField(
+            value = groupName,
+            onValueChange = { groupName = it },
+            groups = groups
         )
         OutlinedTextField(
             value = host,
@@ -333,7 +345,8 @@ private fun ProxyForm(
                                 username = validation.username,
                                 password = validation.password,
                                 label = label.trim().ifBlank { null },
-                                isEnabled = isEnabled
+                                isEnabled = isEnabled,
+                                groupName = groupName.trim().ifBlank { null }
                             )
                         )
                     } else {
@@ -443,6 +456,38 @@ private fun FieldOrderSelector(
                         Text(title, style = MaterialTheme.typography.labelSmall)
                     }
                 }
+        }
+    }
+}
+
+/** Free-text group with suggestions from the groups already in use. */
+@Composable
+private fun GroupField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    groups: List<String>
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            label = { Text(stringResource(R.string.proxy_field_group)) },
+            supportingText = { Text(stringResource(R.string.proxy_field_group_hint)) },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth()
+        )
+        val suggestions = groups.filter { group ->
+            group != value.trim() && group.contains(value.trim(), ignoreCase = true)
+        }
+        if (suggestions.isNotEmpty()) {
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(suggestions) { group ->
+                    SuggestionChip(
+                        onClick = { onValueChange(group) },
+                        label = { Text(group) }
+                    )
+                }
+            }
         }
     }
 }

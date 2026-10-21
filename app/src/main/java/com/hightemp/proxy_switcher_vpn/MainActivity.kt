@@ -27,6 +27,9 @@ import com.hightemp.proxy_switcher_vpn.service.VpnRuntimeState
 import com.hightemp.proxy_switcher_vpn.ui.screens.AddEditProxyScreen
 import com.hightemp.proxy_switcher_vpn.ui.screens.HomeScreen
 import com.hightemp.proxy_switcher_vpn.ui.screens.ImportProxyLinesScreen
+import com.hightemp.proxy_switcher_vpn.ui.screens.ProxyGroupFilter
+import com.hightemp.proxy_switcher_vpn.ui.screens.ProxyListQuery
+import com.hightemp.proxy_switcher_vpn.ui.screens.ProxySort
 import com.hightemp.proxy_switcher_vpn.ui.screens.LogsScreen
 import com.hightemp.proxy_switcher_vpn.ui.screens.ProxyListScreen
 import com.hightemp.proxy_switcher_vpn.ui.screens.VpnDiagnosticsScreen
@@ -159,7 +162,11 @@ class MainActivity : AppCompatActivity() {
                             onTestProxy = viewModel::onProxyTestRequested,
                             onExportProxies = viewModel::exportProxiesToText,
                             onImportProxies = viewModel::importProxiesFromText,
-                            onImportLines = { navController.navigate("import_lines") }
+                            onImportLines = { navController.navigate("import_lines") },
+                            sort = ProxySort.entries.firstOrNull { it.name == settings.proxyListSort }
+                                ?: ProxySort.NEWEST,
+                            groupFilter = ProxyGroupFilter.decode(settings.proxyListGroup),
+                            onListViewChanged = viewModel::onProxyListViewChanged
                         )
                     }
                     composable("import_lines") {
@@ -179,7 +186,8 @@ class MainActivity : AppCompatActivity() {
                                 viewModel.onProxySaved(proxy)
                                 navController.popBackStack()
                             },
-                            onDetectProtocol = viewModel::detectProxyProtocol
+                            onDetectProtocol = viewModel::detectProxyProtocol,
+                            groups = ProxyListQuery.groups(proxyList)
                         )
                     }
                     composable(
@@ -198,7 +206,8 @@ class MainActivity : AppCompatActivity() {
                                 viewModel.onProxySaved(updatedProxy)
                                 navController.popBackStack()
                             },
-                            onDetectProtocol = viewModel::detectProxyProtocol
+                            onDetectProtocol = viewModel::detectProxyProtocol,
+                            groups = ProxyListQuery.groups(proxyList)
                         )
                     }
                 }

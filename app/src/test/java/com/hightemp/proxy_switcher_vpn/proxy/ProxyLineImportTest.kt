@@ -120,6 +120,23 @@ class ProxyLineImportTest {
     }
 
     @Test
+    fun groupIsAssignedToNewAndUpdatedProxies() {
+        val existing = ProxyEntity(id = 7L, host = "192.0.2.1", port = 1080, type = ProxyType.SOCKS5, groupName = "Old")
+        val options = auto.copy(group = "  Work ")
+
+        val preview = ProxyLineImport.preview("socks5://192.0.2.1:1080\nhttp://192.0.2.2:80", options, listOf(existing))
+
+        assertEquals(listOf(ProxyImportStatus.UPDATE, ProxyImportStatus.NEW), preview.lines.map { it.status })
+        assertEquals("Work", preview.lines[0].group)
+        assertEquals("Work", ProxyLineImport.updatedProxy(existing, preview.lines[0].proxy!!, preview.lines[0].group).groupName)
+        assertEquals("Work", ProxyLineImport.newProxy(preview.lines[1].proxy!!, ProxyType.HTTP, preview.lines[1].group).groupName)
+        assertEquals(
+            ProxyImportStatus.UNCHANGED,
+            ProxyLineImport.preview("socks5://192.0.2.1:1080", auto, listOf(existing)).lines.single().status
+        )
+    }
+
+    @Test
     fun recordsAboveTheLimitAreDropped() {
         val text = (1..ProxyLineImport.MAX_RECORDS + 5).joinToString("\n") { "http://192.0.2.1:${it}" }
 

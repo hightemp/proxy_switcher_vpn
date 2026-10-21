@@ -20,6 +20,8 @@ import com.hightemp.proxy_switcher_vpn.proxy.ProxyProtocolDetector
 import com.hightemp.proxy_switcher_vpn.proxy.ProxyReachabilityTester
 import com.hightemp.proxy_switcher_vpn.proxy.SpeedTestResult
 import com.hightemp.proxy_switcher_vpn.service.VpnRuntimeState
+import com.hightemp.proxy_switcher_vpn.ui.screens.ProxyGroupFilter
+import com.hightemp.proxy_switcher_vpn.ui.screens.ProxySort
 import com.hightemp.proxy_switcher_vpn.utils.ProxyTransfer
 import com.hightemp.proxy_switcher_vpn.vpn.background.AlwaysOnVpnState
 import com.hightemp.proxy_switcher_vpn.vpn.background.BackgroundHealth
@@ -372,11 +374,14 @@ class VpnViewModel @Inject constructor(
         viewModelScope.launch { checkProxy(proxy) }
     }
 
-    /** Checks every proxy: reachability, latency, exit IP and country, 4 at a time. */
-    fun onTestAllProxies() {
+    /**
+     * Checks [visible] proxies, or all when null: reachability, latency, exit
+     * IP and country, 4 at a time.
+     */
+    fun onTestAllProxies(visible: List<ProxyEntity>? = null) {
         if (_bulkTestProgress.value?.running == true) return
         viewModelScope.launch {
-            val proxies = proxyRepository.getAllProxies().first()
+            val proxies = visible ?: proxyRepository.getAllProxies().first()
             if (proxies.isEmpty()) return@launch
             _bulkTestProgress.value = BulkTestProgress(done = 0, total = proxies.size, running = true)
             val permits = Semaphore(BULK_TEST_PARALLELISM)
@@ -512,14 +517,20 @@ class VpnViewModel @Inject constructor(
                 }
                 val current = line.existingId?.let(existing::get)
                 if (current != null) {
-                    updatedProxies += ProxyLineImport.updatedProxy(current, parsed.copy(type = type))
+                    updatedProxies += ProxyLineImport.updatedProxy(current, parsed.copy(type = type), line.group)
                 } else {
-                    newProxies += ProxyLineImport.newProxy(parsed, type)
+                    newProxies += ProxyLineImport.newProxy(parsed, type, line.group)
                 }
             }
             proxyRepository.saveImported(newProxies, updatedProxies)
             _lineImportProgress.value = null
             onResult(ProxyLineImportResult(newProxies.size, updatedProxies.size, failedLines))
+        }
+    }
+
+    fun onProxyListViewChanged(sort: ProxySort, group: ProxyGroupFilter) {
+        viewModelScope.launch {
+            settingsRepository.setProxyListView(sort.name, group.encode())
         }
     }
 

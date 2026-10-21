@@ -73,6 +73,22 @@ class SettingsRepositoryTest {
         }
     }
 
+    @Test
+    fun proxyListViewPersistsAcrossRepositoryRecreation() = runTest {
+        val holder = createRepository("proxy-list-view.preferences_pb")
+
+        try {
+            assertNull(holder.repository.settings.first().proxyListSort)
+            holder.repository.setProxyListView(sort = "LATENCY", group = "group:Work")
+
+            val settings = SettingsRepository(holder.dataStore).settings.first()
+            assertEquals("LATENCY", settings.proxyListSort)
+            assertEquals("group:Work", settings.proxyListGroup)
+        } finally {
+            holder.scope.cancel()
+        }
+    }
+
     private fun createRepository(fileName: String): RepositoryHolder {
         return createRepository(temporaryFolder.newFile(fileName))
     }

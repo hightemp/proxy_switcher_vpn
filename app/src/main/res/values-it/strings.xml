@@ -353,4 +353,17 @@
     </plurals>
     <string name="import_lines_file_too_large">Il file è troppo grande.</string>
     <string name="import_lines_preview_empty">Incolla righe proxy o carica un file per vedere l’anteprima.</string>
+    <string name="proxy_list_search">Cerca nome, host, paese, IP</string>
+    <string name="proxy_list_search_clear">Cancella ricerca</string>
+    <string name="proxy_list_sort">Ordina</string>
+    <string name="proxy_sort_newest">Prima i più recenti</string>
+    <string name="proxy_sort_name">Nome</string>
+    <string name="proxy_sort_latency">Latenza</string>
+    <string name="proxy_sort_type_country">Protocollo e paese</string>
+    <string name="proxy_group_all">Tutti</string>
+    <string name="proxy_group_none">Senza gruppo</string>
+    <string name="proxy_list_nothing_found">Nessun proxy corrisponde alla ricerca o al filtro.</string>
+    <string name="proxy_field_group">Gruppo</string>
+    <string name="proxy_field_group_hint">Facoltativo. Serve a filtrare l’elenco dei proxy.</string>
+    <string name="import_lines_group">Gruppo per i proxy importati (facoltativo)</string>
 </resources>

@@ -11,10 +11,14 @@ enum class ProxyFieldOrder {
     CREDENTIALS_FIRST
 }
 
-/** [protocol] is used for lines without one; null means network auto-detection. */
+/**
+ * [protocol] is used for lines without one; null means network auto-detection.
+ * A non-blank [group] is assigned to every new and updated proxy.
+ */
 data class ProxyLineImportOptions(
     val protocol: ProxyType?,
-    val fieldOrder: ProxyFieldOrder
+    val fieldOrder: ProxyFieldOrder,
+    val group: String? = null
 )
 
 enum class ProxyImportStatus {
@@ -34,14 +38,15 @@ data class ProxyImportLine(
     val proxy: ParsedProxyString? = null,
     val existingId: Long? = null,
     val ambiguous: Boolean = false,
-    val message: UserText? = null
+    val message: UserText? = null,
+    val group: String? = null
 ) {
     val needsDetection: Boolean
         get() = proxy?.type == null && (status == ProxyImportStatus.NEW || status == ProxyImportStatus.UPDATE)
 
     override fun toString(): String {
         return "ProxyImportLine(lineNumber=$lineNumber, status=$status, proxy=$proxy, " +
-            "existingId=$existingId, ambiguous=$ambiguous)"
+            "existingId=$existingId, ambiguous=$ambiguous, group=$group)"
     }
 }
 
@@ -90,18 +95,23 @@ object ProxyLineImport {
         return ProxyImportPreview(lines, droppedCount = (records.size - MAX_RECORDS).coerceAtLeast(0))
     }
 
-    /** Applies a line to an existing proxy: new password and protocol, the rest is kept. */
-    fun updatedProxy(existing: ProxyEntity, line: ParsedProxyString): ProxyEntity {
-        return existing.copy(type = line.type ?: existing.type, password = line.password)
+    /** Applies a line to an existing proxy: new password, protocol and group if given; the rest is kept. */
+    fun updatedProxy(existing: ProxyEntity, line: ParsedProxyString, group: String? = null): ProxyEntity {
+        return existing.copy(
+            type = line.type ?: existing.type,
+            password = line.password,
+            groupName = group ?: existing.groupName
+        )
     }
 
-    fun newProxy(line: ParsedProxyString, type: ProxyType): ProxyEntity {
+    fun newProxy(line: ParsedProxyString, type: ProxyType, group: String? = null): ProxyEntity {
         return ProxyEntity(
             host = line.host,
             port = line.port,
             type = type,
             username = line.username,
-            password = line.password
+            password = line.password,
+            groupName = group
         )
     }
 
@@ -128,12 +138,13 @@ object ProxyLineImport {
         }
         val existing = existingByKey[parsed.key()]
         val proxy = parsed.copy(type = parsed.type ?: options.protocol ?: existing?.type)
+        val group = options.group?.trim()?.takeIf { it.isNotEmpty() }
         val status = when {
             existing == null -> ProxyImportStatus.NEW
-            existing == updatedProxy(existing, proxy) -> ProxyImportStatus.UNCHANGED
+            existing == updatedProxy(existing, proxy, group) -> ProxyImportStatus.UNCHANGED
             else -> ProxyImportStatus.UPDATE
         }
-        return ProxyImportLine(lineNumber, line, status, proxy, existing?.id, ambiguous)
+        return ProxyImportLine(lineNumber, line, status, proxy, existing?.id, ambiguous, group = group)
     }
 
     private fun ParsedProxyString.key(): String = key(host, port, username)

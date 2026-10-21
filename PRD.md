@@ -164,6 +164,10 @@ New project should keep these conventions, but replace system proxy management w
   1000): per-line preview without credentials, auto-detected or batch-wide
   protocol, one field order for ambiguous lines; existing proxies (host +
   port + username) get the new password and protocol.
+- Proxy list search (label, host:port, group, exit country and IP; never
+  credentials), sort (newest, name, latency, protocol and country) and one
+  optional group per proxy with filter chips; sort and group filter persist.
+  JSON export/import carries an optional `group` field.
 - A Quick Settings tile starts and stops the VPN with the selected route;
   without VPN permission it opens the app.
 - Upstream health probes for IP-literal and domain proxy hosts are bound to

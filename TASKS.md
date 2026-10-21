@@ -2773,6 +2773,68 @@ Decisions (agreed with the user on 2026-10-20):
   - TASK-215
 - Estimated risk: low
 
+### ✅ TASK-231: Search, Sort And Groups In The Proxy List (IMP-11)
+
+- Status: done
+- Goal: Keep long proxy lists manageable: search, sort and one optional
+  group per proxy with a group filter.
+- Decisions (agreed with the user on 2026-10-21):
+  - One optional group per proxy (Room v2 → v3, nullable `groupName`
+    column). Add/Edit has a Group field with suggestions from existing
+    groups; the line import can assign a group to the imported proxies;
+    JSON export/import carries an optional `group` field.
+  - Group filter chips above the list: All, each group, Without group.
+  - Search matches label, host, host:port, group, exit country code and
+    exit IP from the last check; never username or password.
+  - Sort: newest first (default), name, latency (fastest first, failed and
+    unchecked last), protocol then exit country.
+  - Sort and group filter are kept in DataStore; the search text is not.
+  - "Test all" checks the proxies currently shown.
+- Files likely to create/change:
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/data/local/ProxyEntity.kt`,
+    `AppDatabase.kt`, `app/schemas/`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/data/settings/AppSettings.kt`,
+    `SettingsRepository.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/ui/screens/ProxyListQuery.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/ui/screens/ProxyListScreen.kt`,
+    `AddEditProxyScreen.kt`, `ImportProxyLinesScreen.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/proxy/ProxyLineImport.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/utils/ProxyTransfer.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/ui/viewmodel/VpnViewModel.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/MainActivity.kt`
+  - `app/src/main/res/values*/strings.xml`
+  - unit tests for the query, migration, settings, transfer and import.
+- Implementation notes:
+  - Completed on 2026-10-21 test-first: `ProxyListQueryTest` (10), a v2 → v3
+    schema test, settings, JSON transfer and line import group tests;
+    226 unit tests pass, lint has no new issues.
+  - `ProxyListQuery` (pure) filters by group and search text and sorts;
+    a stored group that no longer exists falls back to All. Room v3 adds
+    `proxies.groupName` via `MIGRATION_2_3` (`ALTER TABLE ... ADD COLUMN`).
+  - Proxy list: search field with clear button, sort menu, group chips
+    (shown only when groups exist), "nothing found" message, group shown
+    on the card; "Test all" checks the proxies currently shown.
+  - Add/Edit has a Group field with suggestion chips; the line import has
+    an optional group for imported proxies.
+  - Emulator API 35: installed the previous build (database v2) with three
+    proxies and a check result and upgraded in place: proxies and checks
+    survived. Assigned a group by typing and by a suggestion chip, filtered
+    by it, sorted by latency, searched by country code, saw the empty
+    result message; sort and group filter survived force-stop. The upgrade
+    needed space: updates of four preinstalled Google apps were removed on
+    the read-only emulator session.
+- Acceptance criteria:
+  - Upgrading from database v2 keeps proxies and checks.
+  - Search, sort and group filter combine; an empty result shows a message.
+  - Sort and group filter survive an app restart.
+  - No credentials are searched or shown.
+- Test/smoke commands:
+  - `./gradlew test assembleDebug lintDebug`
+  - Manual: emulator upgrade over the previous build; search, sort, groups.
+- Dependencies:
+  - TASK-229, TASK-230
+- Estimated risk: low
+
 ## Phase 20: Post-MVP Improvements
 
 ### TASK-200: Evaluate Full UDP Proxying

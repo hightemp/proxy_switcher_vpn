@@ -347,4 +347,17 @@
     </plurals>
     <string name="import_lines_file_too_large">ファイルが大きすぎます。</string>
     <string name="import_lines_preview_empty">プロキシ文字列を貼り付けるかファイルを読み込むと、プレビューが表示されます。</string>
+    <string name="proxy_list_search">名前・ホスト・国・IP を検索</string>
+    <string name="proxy_list_search_clear">検索をクリア</string>
+    <string name="proxy_list_sort">並べ替え</string>
+    <string name="proxy_sort_newest">新しい順</string>
+    <string name="proxy_sort_name">名前</string>
+    <string name="proxy_sort_latency">レイテンシ</string>
+    <string name="proxy_sort_type_country">プロトコルと国</string>
+    <string name="proxy_group_all">すべて</string>
+    <string name="proxy_group_none">グループなし</string>
+    <string name="proxy_list_nothing_found">検索またはフィルターに一致するプロキシはありません。</string>
+    <string name="proxy_field_group">グループ</string>
+    <string name="proxy_field_group_hint">任意。プロキシリストの絞り込みに使います。</string>
+    <string name="import_lines_group">インポートするプロキシのグループ（任意）</string>
 </resources>

@@ -7,7 +7,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
     entities = [ProxyEntity::class, ProxyCheckEntity::class],
-    version = 2,
+    version = 3,
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -22,6 +22,15 @@ abstract class AppDatabase : RoomDatabase() {
                 db.execSQL(CREATE_PROXY_CHECKS_V2)
             }
         }
+
+        /** Adds the optional proxy group. */
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(ADD_PROXY_GROUP_V3)
+            }
+        }
+
+        const val ADD_PROXY_GROUP_V3 = "ALTER TABLE `proxies` ADD COLUMN `groupName` TEXT"
 
         /** Matches `app/schemas/.../2.json`; Room validates it when the database opens. */
         const val CREATE_PROXY_CHECKS_V2 = "CREATE TABLE IF NOT EXISTS `proxy_checks` (" +

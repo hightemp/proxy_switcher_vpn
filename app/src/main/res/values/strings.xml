@@ -360,4 +360,17 @@
     </plurals>
     <string name="import_lines_file_too_large">The file is too large.</string>
     <string name="import_lines_preview_empty">Paste proxy strings or load a file to see the preview.</string>
+    <string name="proxy_list_search">Search name, host, country, IP</string>
+    <string name="proxy_list_search_clear">Clear search</string>
+    <string name="proxy_list_sort">Sort</string>
+    <string name="proxy_sort_newest">Newest first</string>
+    <string name="proxy_sort_name">Name</string>
+    <string name="proxy_sort_latency">Latency</string>
+    <string name="proxy_sort_type_country">Protocol and country</string>
+    <string name="proxy_group_all">All</string>
+    <string name="proxy_group_none">Without group</string>
+    <string name="proxy_list_nothing_found">No proxies match the search or filter.</string>
+    <string name="proxy_field_group">Group</string>
+    <string name="proxy_field_group_hint">Optional. Used to filter the proxy list.</string>
+    <string name="import_lines_group">Group for imported proxies (optional)</string>
 </resources>

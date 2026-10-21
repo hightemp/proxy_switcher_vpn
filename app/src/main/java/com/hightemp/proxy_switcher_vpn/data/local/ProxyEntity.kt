@@ -18,7 +18,9 @@ data class ProxyEntity(
     val username: String? = null,
     val password: String? = null,
     val label: String? = null,
-    val isEnabled: Boolean = true
+    val isEnabled: Boolean = true,
+    /** Optional user-defined group, shown as a filter on the proxy list. */
+    val groupName: String? = null
 ) {
     override fun toString(): String {
         return "ProxyEntity(" +
@@ -29,7 +31,8 @@ data class ProxyEntity(
             "username=${username?.let { "'***'" }}, " +
             "password=${password?.let { "'***'" }}, " +
             "label=${label?.let { "'$it'" }}, " +
-            "isEnabled=$isEnabled" +
+            "isEnabled=$isEnabled, " +
+            "groupName=${groupName?.let { "'$it'" }}" +
             ")"
     }
 }

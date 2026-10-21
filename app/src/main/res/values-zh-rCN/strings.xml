@@ -347,4 +347,17 @@
     </plurals>
     <string name="import_lines_file_too_large">文件太大。</string>
     <string name="import_lines_preview_empty">粘贴代理字符串或加载文件以查看预览。</string>
+    <string name="proxy_list_search">搜索名称、主机、国家/地区、IP</string>
+    <string name="proxy_list_search_clear">清除搜索</string>
+    <string name="proxy_list_sort">排序</string>
+    <string name="proxy_sort_newest">最新优先</string>
+    <string name="proxy_sort_name">名称</string>
+    <string name="proxy_sort_latency">延迟</string>
+    <string name="proxy_sort_type_country">协议和国家/地区</string>
+    <string name="proxy_group_all">全部</string>
+    <string name="proxy_group_none">无分组</string>
+    <string name="proxy_list_nothing_found">没有符合搜索或筛选条件的代理。</string>
+    <string name="proxy_field_group">分组</string>
+    <string name="proxy_field_group_hint">可选。用于筛选代理列表。</string>
+    <string name="import_lines_group">导入代理的分组（可选）</string>
 </resources>

@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.longPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import java.io.IOException
 import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
@@ -33,7 +34,9 @@ class SettingsRepository @Inject constructor(
                         privacyDisclosureAccepted,
                 privacyDisclosureAccepted = privacyDisclosureAccepted,
                 vpnEnabled = preferences[VPN_ENABLED] ?: false,
-                infiniteReconnectEnabled = preferences[INFINITE_RECONNECT_ENABLED] ?: true
+                infiniteReconnectEnabled = preferences[INFINITE_RECONNECT_ENABLED] ?: true,
+                proxyListSort = preferences[PROXY_LIST_SORT],
+                proxyListGroup = preferences[PROXY_LIST_GROUP]
             )
         }
 
@@ -46,6 +49,13 @@ class SettingsRepository @Inject constructor(
     suspend fun setInfiniteReconnectEnabled(enabled: Boolean) {
         dataStore.edit { preferences ->
             preferences[INFINITE_RECONNECT_ENABLED] = enabled
+        }
+    }
+
+    suspend fun setProxyListView(sort: String, group: String) {
+        dataStore.edit { preferences ->
+            preferences[PROXY_LIST_SORT] = sort
+            preferences[PROXY_LIST_GROUP] = group
         }
     }
 
@@ -86,5 +96,7 @@ class SettingsRepository @Inject constructor(
         val VPN_ENABLED = booleanPreferencesKey("vpn_enabled")
         val INFINITE_RECONNECT_ENABLED =
             booleanPreferencesKey("infinite_reconnect_enabled")
+        val PROXY_LIST_SORT = stringPreferencesKey("proxy_list_sort")
+        val PROXY_LIST_GROUP = stringPreferencesKey("proxy_list_group")
     }
 }

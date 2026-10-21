@@ -5,6 +5,13 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.material3.FilterChip
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.automirrored.filled.Sort
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -101,9 +108,12 @@ fun ProxyListScreen(
     proxyChecks: Map<Long, ProxyCheckEntity> = emptyMap(),
     speedTestStates: Map<Long, ProxyTestUiState> = emptyMap(),
     bulkTestProgress: BulkTestProgress? = null,
-    onTestAllProxies: () -> Unit = {},
+    onTestAllProxies: (List<ProxyEntity>) -> Unit = {},
     onSpeedTestProxy: (ProxyEntity) -> Unit = {},
-    onImportLines: () -> Unit = {}
+    onImportLines: () -> Unit = {},
+    sort: ProxySort = ProxySort.NEWEST,
+    groupFilter: ProxyGroupFilter = ProxyGroupFilter.All,
+    onListViewChanged: (ProxySort, ProxyGroupFilter) -> Unit = { _, _ -> }
 ) {
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
@@ -139,6 +149,11 @@ fun ProxyListScreen(
     var showExportDialog by remember { mutableStateOf(false) }
     var showImportDialog by remember { mutableStateOf(false) }
     var showImportMenu by remember { mutableStateOf(false) }
+    var query by rememberSaveable { mutableStateOf("") }
+    val groups = remember(proxies) { ProxyListQuery.groups(proxies) }
+    val visibleProxies = remember(proxies, proxyChecks, query, sort, groupFilter) {
+        ProxyListQuery.apply(proxies, proxyChecks, query, sort, groupFilter)
+    }
     var exportText by remember { mutableStateOf("") }
     val showImportResult = { count: Int, error: UserText? ->
         if (error != null) {
@@ -201,8 +216,8 @@ fun ProxyListScreen(
                 title = { Text(stringResource(R.string.proxy_list_title)) },
                 actions = {
                     IconButton(
-                        onClick = onTestAllProxies,
-                        enabled = proxies.isNotEmpty() && bulkTestProgress?.running != true
+                        onClick = { onTestAllProxies(visibleProxies) },
+                        enabled = visibleProxies.isNotEmpty() && bulkTestProgress?.running != true
                     ) {
                         Icon(Icons.Default.DoneAll, contentDescription = stringResource(R.string.proxy_list_test_all))
                     }
@@ -263,6 +278,17 @@ fun ProxyListScreen(
                     .fillMaxSize()
                     .padding(vertical = 8.dp)
             ) {
+                item(key = "list-controls") {
+                    ProxyListControls(
+                        query = query,
+                        onQueryChange = { query = it },
+                        sort = sort,
+                        onSortSelected = { onListViewChanged(it, groupFilter) },
+                        groups = groups,
+                        groupFilter = groupFilter,
+                        onGroupSelected = { onListViewChanged(sort, it) }
+                    )
+                }
                 bulkTestProgress?.takeIf { it.running }?.let { progress ->
                     item(key = "bulk-progress") {
                         Column(
@@ -282,8 +308,18 @@ fun ProxyListScreen(
                         }
                     }
                 }
+                if (visibleProxies.isEmpty()) {
+                    item(key = "nothing-found") {
+                        Text(
+                            text = stringResource(R.string.proxy_list_nothing_found),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 24.dp)
+                        )
+                    }
+                }
                 items(
-                    items = proxies,
+                    items = visibleProxies,
                     key = { proxy -> proxy.id }
                 ) { proxy ->
                     ProxyListItem(
@@ -461,6 +497,92 @@ private fun ImportProxyDialog(
     )
 }
 
+/** Search field, sort menu and group filter chips above the proxy list. */
+@Composable
+private fun ProxyListControls(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    sort: ProxySort,
+    onSortSelected: (ProxySort) -> Unit,
+    groups: List<String>,
+    groupFilter: ProxyGroupFilter,
+    onGroupSelected: (ProxyGroupFilter) -> Unit
+) {
+    var showSortMenu by remember { mutableStateOf(false) }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            OutlinedTextField(
+                value = query,
+                onValueChange = onQueryChange,
+                placeholder = { Text(stringResource(R.string.proxy_list_search)) },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                trailingIcon = {
+                    if (query.isNotEmpty()) {
+                        IconButton(onClick = { onQueryChange("") }) {
+                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.proxy_list_search_clear))
+                        }
+                    }
+                },
+                singleLine = true,
+                modifier = Modifier.weight(1f)
+            )
+            Box {
+                IconButton(onClick = { showSortMenu = true }) {
+                    Icon(Icons.AutoMirrored.Filled.Sort, contentDescription = stringResource(R.string.proxy_list_sort))
+                }
+                DropdownMenu(expanded = showSortMenu, onDismissRequest = { showSortMenu = false }) {
+                    ProxySort.entries.forEach { option ->
+                        DropdownMenuItem(
+                            text = { Text(stringResource(option.label())) },
+                            leadingIcon = {
+                                if (option == sort) Icon(Icons.Default.Check, contentDescription = null)
+                            },
+                            onClick = {
+                                showSortMenu = false
+                                onSortSelected(option)
+                            }
+                        )
+                    }
+                }
+            }
+        }
+        if (groups.isNotEmpty()) {
+            val selected = groupFilter.takeUnless { it is ProxyGroupFilter.Named && it.name !in groups }
+                ?: ProxyGroupFilter.All
+            val filters = listOf(ProxyGroupFilter.All) + groups.map(ProxyGroupFilter::Named) + ProxyGroupFilter.Ungrouped
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(filters) { filter ->
+                    FilterChip(
+                        selected = filter == selected,
+                        onClick = { onGroupSelected(filter) },
+                        label = {
+                            Text(
+                                when (filter) {
+                                    ProxyGroupFilter.All -> stringResource(R.string.proxy_group_all)
+                                    ProxyGroupFilter.Ungrouped -> stringResource(R.string.proxy_group_none)
+                                    is ProxyGroupFilter.Named -> filter.name
+                                }
+                            )
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
+private fun ProxySort.label(): Int = when (this) {
+    ProxySort.NEWEST -> R.string.proxy_sort_newest
+    ProxySort.NAME -> R.string.proxy_sort_name
+    ProxySort.LATENCY -> R.string.proxy_sort_latency
+    ProxySort.TYPE_COUNTRY -> R.string.proxy_sort_type_country
+}
+
 @Composable
 private fun EmptyProxyList(
     modifier: Modifier = Modifier
@@ -532,7 +654,10 @@ private fun ProxyListItem(
                     }
                 }
                 Text(
-                    text = "${proxy.type}  ${proxy.host}:${proxy.port}",
+                    text = listOfNotNull(
+                        "${proxy.type}  ${proxy.host}:${proxy.port}",
+                        proxy.groupName?.takeIf { it.isNotBlank() }
+                    ).joinToString(" · "),
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Text(

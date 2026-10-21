@@ -19,7 +19,8 @@ import kotlinx.serialization.json.put
  * Compatible proxy list transfer format shared with the reference proxy_switcher app.
  *
  * The format is a JSON array of proxy objects containing host, port, type,
- * optional username/password/label, and isEnabled.
+ * optional username/password/label, and isEnabled. The optional `group` field
+ * is specific to this app; the reference app ignores it.
  */
 object ProxyTransfer {
     private val json = Json {
@@ -39,6 +40,7 @@ object ProxyTransfer {
                         proxy.password?.let { put("password", it) }
                         proxy.label?.let { put("label", it) }
                         put("isEnabled", proxy.isEnabled)
+                        proxy.groupName?.let { put("group", it) }
                     }
                 )
             }
@@ -93,7 +95,8 @@ object ProxyTransfer {
             username = optionalString("username"),
             password = optionalString("password"),
             label = optionalString("label"),
-            isEnabled = booleanValue("isEnabled") ?: true
+            isEnabled = booleanValue("isEnabled") ?: true,
+            groupName = optionalString("group")?.trim()
         )
     }
 
