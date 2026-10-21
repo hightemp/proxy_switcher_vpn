@@ -369,4 +369,14 @@
     <string name="proxy_field_group">Група</string>
     <string name="proxy_field_group_hint">Необов’язково. Використовується для фільтра списку проксі.</string>
     <string name="import_lines_group">Група для імпортованих проксі (необов’язково)</string>
+    <string name="logs_export">Експорт логів</string>
+    <string name="logs_export_title">Експорт логів</string>
+    <string name="logs_export_body">Файл містить діагностику та всі записи журналу англійською. Логіни й паролі проксі завжди замінюються на ***.</string>
+    <string name="logs_export_hide_addresses">Приховати адреси й домени</string>
+    <string name="logs_export_hide_addresses_hint">Хости й назви проксі, публічні IP-адреси та домени замінюються мітками на кшталт proxy-1, ip-1, domain-1.</string>
+    <string name="logs_export_share">Поділитися</string>
+    <string name="logs_export_save">Зберегти у файл</string>
+    <string name="logs_export_share_title">Поділитися логами</string>
+    <string name="logs_export_saved">Логи збережено</string>
+    <string name="logs_export_failed">Не вдалося експортувати логи</string>
 </resources>

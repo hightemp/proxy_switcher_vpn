@@ -363,4 +363,14 @@
     <string name="proxy_field_group">Gruppe</string>
     <string name="proxy_field_group_hint">Optional. Dient zum Filtern der Proxy-Liste.</string>
     <string name="import_lines_group">Gruppe für importierte Proxys (optional)</string>
+    <string name="logs_export">Logs exportieren</string>
+    <string name="logs_export_title">Logs exportieren</string>
+    <string name="logs_export_body">Die Datei enthält die Diagnose und alle Logeinträge auf Englisch. Proxy-Benutzernamen und -Passwörter werden immer durch *** ersetzt.</string>
+    <string name="logs_export_hide_addresses">Adressen und Domains ausblenden</string>
+    <string name="logs_export_hide_addresses_hint">Proxy-Hosts und -Namen, öffentliche IP-Adressen und Domains werden zu Markierungen wie proxy-1, ip-1, domain-1.</string>
+    <string name="logs_export_share">Teilen</string>
+    <string name="logs_export_save">In Datei speichern</string>
+    <string name="logs_export_share_title">Logs teilen</string>
+    <string name="logs_export_saved">Logs gespeichert</string>
+    <string name="logs_export_failed">Logs konnten nicht exportiert werden</string>
 </resources>

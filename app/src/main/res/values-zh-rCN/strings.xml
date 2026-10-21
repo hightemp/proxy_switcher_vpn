@@ -360,4 +360,14 @@
     <string name="proxy_field_group">分组</string>
     <string name="proxy_field_group_hint">可选。用于筛选代理列表。</string>
     <string name="import_lines_group">导入代理的分组（可选）</string>
+    <string name="logs_export">导出日志</string>
+    <string name="logs_export_title">导出日志</string>
+    <string name="logs_export_body">文件包含诊断信息和全部英文日志。代理用户名和密码始终替换为 ***。</string>
+    <string name="logs_export_hide_addresses">隐藏地址和域名</string>
+    <string name="logs_export_hide_addresses_hint">代理主机和名称、公网 IP 地址及域名会替换为 proxy-1、ip-1、domain-1 这样的标记。</string>
+    <string name="logs_export_share">分享</string>
+    <string name="logs_export_save">保存到文件</string>
+    <string name="logs_export_share_title">分享日志</string>
+    <string name="logs_export_saved">日志已保存</string>
+    <string name="logs_export_failed">无法导出日志</string>
 </resources>

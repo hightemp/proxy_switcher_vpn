@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Intent
 import android.net.Uri
 import android.net.VpnService
+import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import androidx.activity.compose.setContent
@@ -36,6 +37,7 @@ import com.hightemp.proxy_switcher_vpn.ui.screens.VpnDiagnosticsScreen
 import com.hightemp.proxy_switcher_vpn.ui.theme.Proxy_switcher_vpnTheme
 import com.hightemp.proxy_switcher_vpn.ui.viewmodel.VpnViewModel
 import com.hightemp.proxy_switcher_vpn.utils.AppLogger
+import com.hightemp.proxy_switcher_vpn.utils.LogExportHeader
 import com.hightemp.proxy_switcher_vpn.vpn.ProxyVpnService
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -126,7 +128,10 @@ class MainActivity : AppCompatActivity() {
                         LogsScreen(
                             logs = logs,
                             onBack = { navController.popBackStack() },
-                            onClearLogs = AppLogger::clear
+                            onClearLogs = AppLogger::clear,
+                            onBuildReport = { hideAddresses, onReady ->
+                                viewModel.buildLogReport(logExportHeader(), hideAddresses, onReady)
+                            }
                         )
                     }
                     composable("diagnostics") {
@@ -243,6 +248,20 @@ class MainActivity : AppCompatActivity() {
             listOf(appDetails)
         }
         startFirstAvailable(intents)
+    }
+
+    private fun logExportHeader(): LogExportHeader {
+        @Suppress("DEPRECATION")
+        val packageInfo = packageManager.getPackageInfo(packageName, 0)
+        @Suppress("DEPRECATION")
+        val versionCode = packageInfo.versionCode
+        return LogExportHeader(
+            appVersion = "${packageInfo.versionName} ($versionCode)",
+            androidVersion = "${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})",
+            device = "${Build.MANUFACTURER} ${Build.MODEL}",
+            language = AppLanguages.current(this).ifEmpty { "system" },
+            generatedAtMillis = System.currentTimeMillis()
+        )
     }
 
     private fun openVpnSettings() {

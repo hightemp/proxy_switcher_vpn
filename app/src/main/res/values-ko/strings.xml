@@ -360,4 +360,14 @@
     <string name="proxy_field_group">그룹</string>
     <string name="proxy_field_group_hint">선택 사항. 프록시 목록 필터에 사용됩니다.</string>
     <string name="import_lines_group">가져온 프록시의 그룹(선택 사항)</string>
+    <string name="logs_export">로그 내보내기</string>
+    <string name="logs_export_title">로그 내보내기</string>
+    <string name="logs_export_body">파일에는 진단 정보와 모든 영문 로그가 포함됩니다. 프록시 사용자 이름과 비밀번호는 항상 ***로 바뀝니다.</string>
+    <string name="logs_export_hide_addresses">주소와 도메인 숨기기</string>
+    <string name="logs_export_hide_addresses_hint">프록시 호스트와 이름, 공인 IP 주소, 도메인은 proxy-1, ip-1, domain-1 같은 태그로 바뀝니다.</string>
+    <string name="logs_export_share">공유</string>
+    <string name="logs_export_save">파일로 저장</string>
+    <string name="logs_export_share_title">로그 공유</string>
+    <string name="logs_export_saved">로그를 저장했습니다</string>
+    <string name="logs_export_failed">로그를 내보내지 못했습니다</string>
 </resources>

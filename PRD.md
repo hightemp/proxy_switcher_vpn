@@ -168,6 +168,12 @@ New project should keep these conventions, but replace system proxy management w
   credentials), sort (newest, name, latency, protocol and country) and one
   optional group per proxy with filter chips; sort and group filter persist.
   JSON export/import carries an optional `group` field.
+- Log export from the Logs screen (share sheet or save to file): a plain-text
+  report with app/device header, English diagnostics and all log entries.
+  Saved proxy usernames and passwords are always replaced with `***`; a
+  switch (on by default) also turns saved proxy hosts and labels, public
+  IPv4 addresses and domain names into stable `proxy-N`, `ip-N`,
+  `domain-N` tags. Logs stay memory-only.
 - A Quick Settings tile starts and stops the VPN with the selected route;
   without VPN permission it opens the app.
 - Upstream health probes for IP-literal and domain proxy hosts are bound to

@@ -22,6 +22,10 @@ import com.hightemp.proxy_switcher_vpn.proxy.SpeedTestResult
 import com.hightemp.proxy_switcher_vpn.service.VpnRuntimeState
 import com.hightemp.proxy_switcher_vpn.ui.screens.ProxyGroupFilter
 import com.hightemp.proxy_switcher_vpn.ui.screens.ProxySort
+import com.hightemp.proxy_switcher_vpn.utils.AppLogger
+import com.hightemp.proxy_switcher_vpn.utils.LogExport
+import com.hightemp.proxy_switcher_vpn.utils.LogExportHeader
+import com.hightemp.proxy_switcher_vpn.utils.LogRedactor
 import com.hightemp.proxy_switcher_vpn.utils.ProxyTransfer
 import com.hightemp.proxy_switcher_vpn.vpn.background.AlwaysOnVpnState
 import com.hightemp.proxy_switcher_vpn.vpn.background.BackgroundHealth
@@ -525,6 +529,25 @@ class VpnViewModel @Inject constructor(
             proxyRepository.saveImported(newProxies, updatedProxies)
             _lineImportProgress.value = null
             onResult(ProxyLineImportResult(newProxies.size, updatedProxies.size, failedLines))
+        }
+    }
+
+    /** Builds a redacted plain-text report of the diagnostics and in-app logs. */
+    fun buildLogReport(
+        header: LogExportHeader,
+        hideAddresses: Boolean,
+        onReady: (String) -> Unit
+    ) {
+        viewModelScope.launch {
+            val proxies = proxyRepository.getAllProxies().first()
+            onReady(
+                LogExport.build(
+                    header = header,
+                    diagnostics = diagnostics.value.exportFields(),
+                    entries = AppLogger.logs.value,
+                    redactor = LogRedactor(proxies, hideAddresses)
+                )
+            )
         }
     }
 

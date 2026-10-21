@@ -24,6 +24,8 @@ import com.hightemp.proxy_switcher_vpn.proxy.ProxyTestResult
 import com.hightemp.proxy_switcher_vpn.proxy.SpeedTestResult
 import com.hightemp.proxy_switcher_vpn.service.VpnRuntimeState
 import com.hightemp.proxy_switcher_vpn.service.VpnServiceStatus
+import com.hightemp.proxy_switcher_vpn.utils.AppLogger
+import com.hightemp.proxy_switcher_vpn.utils.LogExportHeader
 import com.hightemp.proxy_switcher_vpn.vpn.background.BackgroundRestrictionChecker
 import com.hightemp.proxy_switcher_vpn.vpn.background.BackgroundRestrictionStatus
 import com.hightemp.proxy_switcher_vpn.vpn.background.ProcessExitHistory
@@ -329,6 +331,27 @@ class VpnViewModelTest {
         assertEquals(1, result?.added)
         assertEquals(listOf(2), result?.failedLines?.map { it.lineNumber })
         assertEquals(listOf("192.0.2.10" to ProxyType.HTTPS), proxyDao.snapshot().map { it.host to it.type })
+    }
+
+    @Test
+    fun logReportHidesCredentialsAndProxyAddresses() = runTest {
+        val proxyDao = FakeProxyDao()
+        proxyDao.insertProxy(ProxyEntity(host = "proxy.example", port = 1080, type = ProxyType.SOCKS5, username = "alice", password = "s3cret"))
+        val viewModel = newViewModel(proxyDao = proxyDao)
+        AppLogger.clear()
+        AppLogger.info("Connecting alice:s3cret@proxy.example:1080")
+        val header = LogExportHeader("0.3.1 (301)", "15 (API 35)", "Test device", "en", 0L)
+        var hidden: String? = null
+        var shown: String? = null
+
+        viewModel.buildLogReport(header, hideAddresses = true) { hidden = it }
+        viewModel.buildLogReport(header, hideAddresses = false) { shown = it }
+        advanceUntilIdle()
+        AppLogger.clear()
+
+        assertTrue(hidden!!, hidden!!.contains("Connecting ***:***@proxy-1:1080"))
+        assertTrue(shown!!, shown!!.contains("Connecting ***:***@proxy.example:1080"))
+        assertFalse(shown!!.contains("s3cret") || shown!!.contains("alice"))
     }
 
     @Test

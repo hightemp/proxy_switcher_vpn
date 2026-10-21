@@ -2835,6 +2835,62 @@ Decisions (agreed with the user on 2026-10-20):
   - TASK-229, TASK-230
 - Estimated risk: low
 
+### ✅ TASK-232: Export Logs With Redaction (IMP-12)
+
+- Status: done
+- Goal: Let the user share or save the in-app logs for a bug report without
+  leaking credentials.
+- Decisions (agreed with the user on 2026-10-21):
+  - Logs screen gets an Export action: a dialog with "Share" (system share
+    sheet, file through a `FileProvider`) and "Save to file" (system file
+    picker).
+  - Plain text report: header (app version, Android version, device model,
+    app language, time), the diagnostics section in English, then all log
+    entries in English.
+  - A switch "Hide addresses and domains", on by default: saved proxy hosts
+    and labels become `proxy-N`, public IPv4 addresses `ip-N`, domain names
+    `domain-N` (the same value always gets the same tag). Proxy usernames
+    and passwords are always replaced with `***`, even with the switch off.
+  - Logs stay memory-only; persisting them is out of scope.
+- Files likely to create/change:
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/utils/LogExport.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/ui/screens/LogsScreen.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/ui/viewmodel/VpnViewModel.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/MainActivity.kt`
+  - `app/src/main/AndroidManifest.xml`, `app/src/main/res/xml/file_paths.xml`
+  - `app/src/main/res/values*/strings.xml`
+  - unit tests for the redactor and the report.
+- Implementation notes:
+  - Completed on 2026-10-21 test-first: `LogExportTest` (7) and a
+    `VpnViewModelTest` case; 234 unit tests pass, lint has no new issues.
+  - `LogRedactor` replaces saved values as whole words (longest first) and,
+    with the switch on, tags public IPv4 addresses and domain names.
+    Private, loopback and CGNAT addresses, CIDR routes (`128.0.0.0/1`),
+    class and package names (`java.net...`, `io....`) and file names
+    (`.kt`, `.log`, `.json`, ...) are left readable.
+  - `VpnDiagnostics.exportFields()` renders diagnostics in English,
+    including counters and the masked config preview. The header uses
+    `PackageManager` for the version.
+  - Share writes `cacheDir/exports/<name>.txt` (older exports are deleted)
+    and shares it through a `FileProvider` limited to that directory.
+  - Emulator API 35: with a running VPN through a proxy with a login, Save
+    with the switch on produced a report without logins, passwords, proxy
+    hosts, the test domain or public IPs; the first run showed the route
+    `128.0.0.0/1` tagged, so CIDR routes were excluded and retested. Save
+    with the switch off showed hosts and routes, still without
+    credentials. Share opened the system share sheet with the file.
+- Acceptance criteria:
+  - The exported file never contains saved usernames or passwords.
+  - With the switch on it contains no saved proxy hosts or labels, public
+    IPv4 addresses or domain names.
+  - Share and Save work on the emulator.
+- Test/smoke commands:
+  - `./gradlew test assembleDebug lintDebug`
+  - Manual: emulator, export with the switch on and off, inspect the file.
+- Dependencies:
+  - TASK-140, TASK-151
+- Estimated risk: low
+
 ## Phase 20: Post-MVP Improvements
 
 ### TASK-200: Evaluate Full UDP Proxying

@@ -3,6 +3,7 @@ package com.hightemp.proxy_switcher_vpn.vpn.diagnostics
 import com.hightemp.proxy_switcher_vpn.R
 import com.hightemp.proxy_switcher_vpn.data.local.ProxyEntity
 import com.hightemp.proxy_switcher_vpn.i18n.UserText
+import com.hightemp.proxy_switcher_vpn.i18n.english
 import com.hightemp.proxy_switcher_vpn.service.VpnServiceStatus
 import com.hightemp.proxy_switcher_vpn.vpn.background.AlwaysOnVpnStatus
 import com.hightemp.proxy_switcher_vpn.vpn.background.BackgroundRestrictionStatus
@@ -125,6 +126,26 @@ data class VpnDiagnostics(
         } else {
             "not_supported"
         }
+
+    /** English label/value pairs for exported bug reports; not redacted here. */
+    fun exportFields(): List<Pair<String, String>> {
+        val fields = listOf(
+            vpnPermission, foregroundService, singBoxCore, tunInterface, processMemory,
+            batteryOptimization, backgroundRestriction, alwaysOnVpn, lastVpnStop, lastProcessExit,
+            dns, ipv4Route, ipv6, udp, selectedProxy
+        ).map { field -> field.label.english() to field.value.english() }
+        return fields + listOf(
+            "UDP/443" to udp443Status,
+            "Non-DNS UDP" to nonDnsUdpStatus,
+            "Counters" to with(counters) {
+                "in=$bytesIn B, out=$bytesOut B, active=$activeConnections, total=$totalConnections, " +
+                    "failed=$failedConnections, dns=$dnsQueries, blockedUdp=$blockedUdp, bypassedUdp=$bypassedUdp"
+            },
+            "Traffic stats" to trafficStatsStatus,
+            "Last error" to (lastError?.english() ?: "none"),
+            "Config preview" to (maskedConfigPreview?.let { "\n$it" } ?: "none")
+        )
+    }
 
     companion object {
         fun fromStats(

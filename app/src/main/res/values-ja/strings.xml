@@ -360,4 +360,14 @@
     <string name="proxy_field_group">グループ</string>
     <string name="proxy_field_group_hint">任意。プロキシリストの絞り込みに使います。</string>
     <string name="import_lines_group">インポートするプロキシのグループ（任意）</string>
+    <string name="logs_export">ログをエクスポート</string>
+    <string name="logs_export_title">ログをエクスポート</string>
+    <string name="logs_export_body">ファイルには診断情報と英語のすべてのログが含まれます。プロキシのユーザー名とパスワードは常に *** に置き換えられます。</string>
+    <string name="logs_export_hide_addresses">アドレスとドメインを隠す</string>
+    <string name="logs_export_hide_addresses_hint">プロキシのホストと名前、パブリック IP アドレス、ドメインは proxy-1、ip-1、domain-1 のようなタグに置き換えられます。</string>
+    <string name="logs_export_share">共有</string>
+    <string name="logs_export_save">ファイルに保存</string>
+    <string name="logs_export_share_title">ログを共有</string>
+    <string name="logs_export_saved">ログを保存しました</string>
+    <string name="logs_export_failed">ログをエクスポートできませんでした</string>
 </resources>

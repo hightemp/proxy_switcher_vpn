@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Only exported log reports are shared; they are written to cacheDir/exports. -->
+<paths>
+    <cache-path name="exports" path="exports/" />
+</paths>
