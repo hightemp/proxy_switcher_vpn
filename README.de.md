@@ -25,8 +25,9 @@ Die App ändert keine Android-System-Proxy-Einstellungen. Sie nutzt
 
 ## Screenshots
 
-Aufgenommen mit der echten Debug-App unter Android API 35. Die Proxy-Profile
-verwenden nur reservierte TEST-NET-Adressen und enthalten keine Zugangsdaten.
+Aufgenommen mit der Debug-App (v0.4.1) unter Android API 35. Die Proxy-Profile
+verwenden nur reservierte TEST-NET-Adressen und enthalten keine Zugangsdaten; die
+Ergebnisse der Proxy-Prüfung sind Beispieldaten.
 
 <table>
   <tr>

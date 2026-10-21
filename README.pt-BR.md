@@ -24,8 +24,9 @@ O app não altera as configurações de proxy do sistema Android. Ele usa
 
 ## Capturas de tela
 
-Feitas no app de depuração real no Android API 35. Os perfis de proxy usam
-apenas endereços TEST-NET reservados e não contêm credenciais.
+Feitas no app de depuração (v0.4.1) no Android API 35. Os perfis de proxy usam
+apenas endereços TEST-NET reservados e não contêm credenciais; os resultados das
+verificações de proxy são dados de exemplo.
 
 <table>
   <tr>

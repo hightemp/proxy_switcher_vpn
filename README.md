@@ -24,8 +24,9 @@ and an embedded sing-box core.
 
 ## Screenshots
 
-Captured from the real debug app on Android API 35. Proxy profiles use only
-reserved TEST-NET addresses and contain no credentials.
+Captured from the debug app (v0.4.1) on Android API 35. Proxy profiles use only
+reserved TEST-NET addresses and contain no credentials; proxy check results are
+sample data.
 
 <table>
   <tr>

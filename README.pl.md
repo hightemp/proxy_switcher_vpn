@@ -24,8 +24,9 @@ i wbudowanego rdzenia sing-box.
 
 ## Zrzuty ekranu
 
-Wykonane w prawdziwej aplikacji debug na Android API 35. Profile proxy używają
-tylko zastrzeżonych adresów TEST-NET i nie zawierają danych logowania.
+Wykonane w aplikacji debug (v0.4.1) na Android API 35. Profile proxy używają
+tylko zastrzeżonych adresów TEST-NET i nie zawierają danych logowania; wyniki
+sprawdzania proxy są przykładowe.
 
 <table>
   <tr>

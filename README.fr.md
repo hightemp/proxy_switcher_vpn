@@ -25,9 +25,9 @@ utilise `VpnService` et un cœur sing-box intégré.
 
 ## Captures d’écran
 
-Prises sur la vraie application de débogage sous Android API 35. Les profils
-de proxy n’utilisent que des adresses TEST-NET réservées et ne contiennent
-aucun identifiant.
+Prises sur l’application de débogage (v0.4.1) sous Android API 35. Les profils
+de proxy n’utilisent que des adresses TEST-NET réservées et ne contiennent aucun
+identifiant ; les résultats de vérification des proxys sont des données d’exemple.
 
 <table>
   <tr>
