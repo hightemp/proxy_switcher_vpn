@@ -1,5 +1,6 @@
 package com.hightemp.proxy_switcher_vpn.ui.screens
 
+import android.text.format.DateUtils
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -22,8 +23,10 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
@@ -32,6 +35,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -51,6 +55,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
@@ -58,12 +63,15 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.hightemp.proxy_switcher_vpn.R
+import com.hightemp.proxy_switcher_vpn.data.local.ProxyCheckEntity
 import com.hightemp.proxy_switcher_vpn.data.local.ProxyEntity
 import com.hightemp.proxy_switcher_vpn.data.local.ProxyType
 import com.hightemp.proxy_switcher_vpn.i18n.UserText
 import com.hightemp.proxy_switcher_vpn.i18n.asString
 import com.hightemp.proxy_switcher_vpn.i18n.resolve
+import com.hightemp.proxy_switcher_vpn.proxy.ProxyCheckParsers
 import com.hightemp.proxy_switcher_vpn.ui.theme.Proxy_switcher_vpnTheme
+import com.hightemp.proxy_switcher_vpn.ui.viewmodel.BulkTestProgress
 import com.hightemp.proxy_switcher_vpn.ui.viewmodel.DeletedProxy
 import com.hightemp.proxy_switcher_vpn.ui.viewmodel.ProxyDeleteCheck
 import com.hightemp.proxy_switcher_vpn.ui.viewmodel.ProxyTestStatus
@@ -86,7 +94,12 @@ fun ProxyListScreen(
     onImportProxies: (String, (Int, UserText?) -> Unit) -> Unit,
     modifier: Modifier = Modifier,
     proxyDeleteCheck: (ProxyEntity) -> ProxyDeleteCheck = { ProxyDeleteCheck.ALLOWED },
-    onUndoDeleteProxy: (DeletedProxy) -> Unit = {}
+    onUndoDeleteProxy: (DeletedProxy) -> Unit = {},
+    proxyChecks: Map<Long, ProxyCheckEntity> = emptyMap(),
+    speedTestStates: Map<Long, ProxyTestUiState> = emptyMap(),
+    bulkTestProgress: BulkTestProgress? = null,
+    onTestAllProxies: () -> Unit = {},
+    onSpeedTestProxy: (ProxyEntity) -> Unit = {}
 ) {
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
@@ -182,6 +195,12 @@ fun ProxyListScreen(
                 },
                 title = { Text(stringResource(R.string.proxy_list_title)) },
                 actions = {
+                    IconButton(
+                        onClick = onTestAllProxies,
+                        enabled = proxies.isNotEmpty() && bulkTestProgress?.running != true
+                    ) {
+                        Icon(Icons.Default.DoneAll, contentDescription = stringResource(R.string.proxy_list_test_all))
+                    }
                     IconButton(onClick = { showImportDialog = true }) {
                         Icon(Icons.Default.Download, contentDescription = stringResource(R.string.proxy_list_import))
                     }
@@ -218,6 +237,25 @@ fun ProxyListScreen(
                     .fillMaxSize()
                     .padding(vertical = 8.dp)
             ) {
+                bulkTestProgress?.takeIf { it.running }?.let { progress ->
+                    item(key = "bulk-progress") {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 4.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = stringResource(R.string.proxy_list_bulk_progress, progress.done, progress.total),
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                            LinearProgressIndicator(
+                                progress = { progress.done.toFloat() / progress.total },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    }
+                }
                 items(
                     items = proxies,
                     key = { proxy -> proxy.id }
@@ -226,10 +264,13 @@ fun ProxyListScreen(
                         proxy = proxy,
                         selected = proxy.id == selectedProxyId,
                         testState = proxyTestResults[proxy.id],
+                        check = proxyChecks[proxy.id],
+                        speedState = speedTestStates[proxy.id],
                         onSelect = { onSelectProxy(proxy) },
                         onEdit = { onEditProxy(proxy) },
                         onDelete = { requestDelete(proxy) },
-                        onTest = { onTestProxy(proxy) }
+                        onTest = { onTestProxy(proxy) },
+                        onSpeedTest = { onSpeedTestProxy(proxy) }
                     )
                 }
             }
@@ -419,10 +460,13 @@ private fun ProxyListItem(
     proxy: ProxyEntity,
     selected: Boolean,
     testState: ProxyTestUiState?,
+    check: ProxyCheckEntity?,
+    speedState: ProxyTestUiState?,
     onSelect: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
-    onTest: () -> Unit
+    onTest: () -> Unit,
+    onSpeedTest: () -> Unit
 ) {
     Card(
         modifier = Modifier
@@ -471,7 +515,19 @@ private fun ProxyListItem(
                     ),
                     style = MaterialTheme.typography.bodySmall
                 )
-                testState?.let { state ->
+                check?.let { ProxyCheckSummary(it) }
+                speedState?.let { state ->
+                    Text(
+                        text = state.message.asString(),
+                        color = if (state.status == ProxyTestStatus.FAILURE) {
+                            MaterialTheme.colorScheme.error
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+                testState?.takeIf { it.status != ProxyTestStatus.SUCCESS }?.let { state ->
                     Text(
                         text = state.message.asString(),
                         color = when (state.status) {
@@ -507,6 +563,12 @@ private fun ProxyListItem(
                         )
                     )
                 }
+                IconButton(
+                    onClick = onSpeedTest,
+                    enabled = speedState?.status != ProxyTestStatus.TESTING
+                ) {
+                    Icon(Icons.Default.Speed, contentDescription = stringResource(R.string.proxy_speed_test))
+                }
                 IconButton(onClick = onEdit) {
                     Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.proxy_list_edit))
                 }
@@ -515,6 +577,54 @@ private fun ProxyListItem(
                 }
             }
         }
+    }
+}
+
+/** "🇩🇪 DE · 203.0.113.5 · 120 ms · 54.3 Mbit/s" and when it was checked. */
+@Composable
+private fun ProxyCheckSummary(check: ProxyCheckEntity) {
+    val locale = LocalConfiguration.current.locales[0]
+    val parts = buildList {
+        if (check.success == false) {
+            add(stringResource(R.string.proxy_check_unavailable))
+        }
+        check.countryCode?.let { code ->
+            add(listOfNotNull(ProxyCheckParsers.countryFlag(code), code).joinToString(" "))
+        }
+        check.exitIp?.let(::add)
+        check.latencyMillis?.takeIf { check.success == true }?.let {
+            add(stringResource(R.string.proxy_check_latency, it))
+        }
+        check.downloadBitsPerSecond?.let {
+            add(stringResource(R.string.proxy_check_speed, ProxyCheckParsers.formatMegabits(it, locale)))
+        }
+    }
+    if (parts.isNotEmpty()) {
+        Text(
+            text = parts.joinToString(" · "),
+            color = if (check.success == false) {
+                MaterialTheme.colorScheme.error
+            } else {
+                MaterialTheme.colorScheme.primary
+            },
+            style = MaterialTheme.typography.bodySmall
+        )
+    }
+    val checkedAt = listOfNotNull(check.checkedAtMillis, check.speedCheckedAtMillis).maxOrNull()
+    if (checkedAt != null) {
+        val now = System.currentTimeMillis()
+        Text(
+            text = if (now - checkedAt < DateUtils.MINUTE_IN_MILLIS) {
+                stringResource(R.string.proxy_check_checked_just_now)
+            } else {
+                stringResource(
+                    R.string.proxy_check_checked_at,
+                    DateUtils.getRelativeTimeSpanString(checkedAt, now, DateUtils.MINUTE_IN_MILLIS).toString()
+                )
+            },
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.labelSmall
+        )
     }
 }
 

@@ -157,6 +157,9 @@ New project should keep these conventions, but replace system proxy management w
     disable the VPN and cancel the alarm;
   - persist the last VPN stop reason (masked) and show the last app process
     exit reason in diagnostics.
+- Proxy checks: latency, exit IP and country (Cloudflare trace with
+  ipinfo.io fallback), on-demand download speed (speed.cloudflare.com), and
+  "Test all" with 4 parallel checks; results are stored in Room.
 - A Quick Settings tile starts and stops the VPN with the selected route;
   without VPN permission it opens the app.
 - Upstream health probes for IP-literal and domain proxy hosts are bound to

@@ -3,15 +3,19 @@ package com.hightemp.proxy_switcher_vpn.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.hightemp.proxy_switcher_vpn.R
+import com.hightemp.proxy_switcher_vpn.data.local.ProxyCheckEntity
 import com.hightemp.proxy_switcher_vpn.data.local.ProxyEntity
 import com.hightemp.proxy_switcher_vpn.data.local.ProxyType
+import com.hightemp.proxy_switcher_vpn.data.repository.ProxyCheckRepository
 import com.hightemp.proxy_switcher_vpn.data.repository.ProxyRepository
 import com.hightemp.proxy_switcher_vpn.data.settings.AppSettings
 import com.hightemp.proxy_switcher_vpn.data.settings.SettingsRepository
 import com.hightemp.proxy_switcher_vpn.i18n.UserText
 import com.hightemp.proxy_switcher_vpn.proxy.ParsedProxyString
+import com.hightemp.proxy_switcher_vpn.proxy.ProxyInspector
 import com.hightemp.proxy_switcher_vpn.proxy.ProxyProtocolDetector
 import com.hightemp.proxy_switcher_vpn.proxy.ProxyReachabilityTester
+import com.hightemp.proxy_switcher_vpn.proxy.SpeedTestResult
 import com.hightemp.proxy_switcher_vpn.service.VpnRuntimeState
 import com.hightemp.proxy_switcher_vpn.utils.ProxyTransfer
 import com.hightemp.proxy_switcher_vpn.vpn.background.AlwaysOnVpnState
@@ -30,15 +34,19 @@ import com.hightemp.proxy_switcher_vpn.vpn.stats.VpnStats
 import com.hightemp.proxy_switcher_vpn.vpn.stats.VpnStatsStore
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 
 enum class VpnPermissionStatus {
     UNKNOWN,
@@ -72,6 +80,12 @@ enum class ProxyDeleteCheck {
     BLOCKED_ACTIVE_VPN
 }
 
+data class BulkTestProgress(
+    val done: Int,
+    val total: Int,
+    val running: Boolean
+)
+
 data class DeletedProxy(
     val proxy: ProxyEntity,
     val wasSelected: Boolean
@@ -86,7 +100,9 @@ class VpnViewModel @Inject constructor(
     diagnosticsRepository: VpnDiagnosticsRepository,
     stopHistory: VpnStopHistory,
     private val restrictionChecker: BackgroundRestrictionChecker,
-    private val processExitHistory: ProcessExitHistory
+    private val processExitHistory: ProcessExitHistory,
+    private val proxyCheckRepository: ProxyCheckRepository,
+    private val proxyInspector: ProxyInspector
 ) : ViewModel() {
     private val protocolDetector = ProxyProtocolDetector(proxyTester)
     private val _uiState = MutableStateFlow(VpnPermissionUiState())
@@ -137,6 +153,18 @@ class VpnViewModel @Inject constructor(
             initialValue = false
         )
     val stats: StateFlow<VpnStats> = statsStore.stats
+    val proxyChecks: StateFlow<Map<Long, ProxyCheckEntity>> = proxyCheckRepository.getAllChecks()
+        .map { checks -> checks.associateBy { it.proxyId } }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = emptyMap()
+        )
+    private val _bulkTestProgress = MutableStateFlow<BulkTestProgress?>(null)
+    val bulkTestProgress: StateFlow<BulkTestProgress?> = _bulkTestProgress.asStateFlow()
+    private val _speedTestStates = MutableStateFlow<Map<Long, ProxyTestUiState>>(emptyMap())
+    /** Running or failed speed tests; a finished test is shown from [proxyChecks]. */
+    val speedTestStates: StateFlow<Map<Long, ProxyTestUiState>> = _speedTestStates.asStateFlow()
     private val _backgroundRestrictions = MutableStateFlow(BackgroundRestrictionStatus())
     val backgroundRestrictions: StateFlow<BackgroundRestrictionStatus> =
         _backgroundRestrictions.asStateFlow()
@@ -292,6 +320,7 @@ class VpnViewModel @Inject constructor(
                 settingsRepository.setSelectedProxyId(null)
             }
             proxyRepository.deleteProxy(proxy)
+            proxyCheckRepository.deleteCheck(proxy.id)
             _proxyTestResults.update { results -> results - proxy.id }
             onDeleted(DeletedProxy(proxy, wasSelected))
         }
@@ -325,7 +354,50 @@ class VpnViewModel @Inject constructor(
 
     fun onProxyTestRequested(proxy: ProxyEntity) {
         if (proxy.id == 0L) return
+        viewModelScope.launch { checkProxy(proxy) }
+    }
 
+    /** Checks every proxy: reachability, latency, exit IP and country, 4 at a time. */
+    fun onTestAllProxies() {
+        if (_bulkTestProgress.value?.running == true) return
+        viewModelScope.launch {
+            val proxies = proxyRepository.getAllProxies().first()
+            if (proxies.isEmpty()) return@launch
+            _bulkTestProgress.value = BulkTestProgress(done = 0, total = proxies.size, running = true)
+            val permits = Semaphore(BULK_TEST_PARALLELISM)
+            proxies.map { proxy ->
+                launch {
+                    permits.withPermit { checkProxy(proxy) }
+                    _bulkTestProgress.update { progress ->
+                        progress?.let {
+                            val done = it.done + 1
+                            it.copy(done = done, running = done < it.total)
+                        }
+                    }
+                }
+            }.joinAll()
+        }
+    }
+
+    fun onProxySpeedTestRequested(proxy: ProxyEntity) {
+        if (proxy.id == 0L || _speedTestStates.value[proxy.id]?.status == ProxyTestStatus.TESTING) return
+        _speedTestStates.update { states ->
+            states + (proxy.id to ProxyTestUiState(ProxyTestStatus.TESTING, UserText.of(R.string.speed_test_running)))
+        }
+        viewModelScope.launch {
+            when (val result = proxyInspector.downloadSpeed(proxy)) {
+                is SpeedTestResult.Success -> {
+                    proxyCheckRepository.recordSpeed(proxy.id, System.currentTimeMillis(), result.bitsPerSecond)
+                    _speedTestStates.update { states -> states - proxy.id }
+                }
+                is SpeedTestResult.Failure -> _speedTestStates.update { states ->
+                    states + (proxy.id to ProxyTestUiState(ProxyTestStatus.FAILURE, result.message))
+                }
+            }
+        }
+    }
+
+    private suspend fun checkProxy(proxy: ProxyEntity) {
         _proxyTestResults.update { results ->
             results + (
                 proxy.id to ProxyTestUiState(
@@ -334,20 +406,23 @@ class VpnViewModel @Inject constructor(
                 )
             )
         }
-        viewModelScope.launch {
-            val result = proxyTester.test(proxy)
-            _proxyTestResults.update { results ->
-                results + (
-                    proxy.id to ProxyTestUiState(
-                        status = if (result.success) {
-                            ProxyTestStatus.SUCCESS
-                        } else {
-                            ProxyTestStatus.FAILURE
-                        },
-                        message = result.message
-                    )
+        val result = proxyTester.test(proxy)
+        val exitInfo = if (result.success) proxyInspector.exitInfo(proxy) else null
+        proxyCheckRepository.recordCheck(
+            proxyId = proxy.id,
+            checkedAtMillis = System.currentTimeMillis(),
+            success = result.success,
+            latencyMillis = result.latencyMillis,
+            exitIp = exitInfo?.ip,
+            countryCode = exitInfo?.countryCode
+        )
+        _proxyTestResults.update { results ->
+            results + (
+                proxy.id to ProxyTestUiState(
+                    status = if (result.success) ProxyTestStatus.SUCCESS else ProxyTestStatus.FAILURE,
+                    message = result.message
                 )
-            }
+            )
         }
     }
 
@@ -420,5 +495,9 @@ class VpnViewModel @Inject constructor(
             VpnPermissionStatus.GRANTED -> VpnPermissionDiagnosticStatus.GRANTED
             VpnPermissionStatus.DENIED -> VpnPermissionDiagnosticStatus.DENIED
         }
+    }
+
+    private companion object {
+        const val BULK_TEST_PARALLELISM = 4
     }
 }

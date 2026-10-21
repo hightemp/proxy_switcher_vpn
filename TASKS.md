@@ -2637,6 +2637,80 @@ Decisions (agreed with the user on 2026-10-20):
   - TASK-185, TASK-223
 - Estimated risk: low
 
+### ✅ TASK-229: Proxy Latency, Exit IP, Country, Speed And Bulk Check (IMP-09)
+
+- Status: done
+- Goal: Show for every proxy whether it works, its latency, exit IP with
+  country flag, and on demand its download speed; check all proxies at once.
+- Decisions (agreed with the user on 2026-10-20):
+  - Latency: time until the tunnel through the proxy is open (TCP, proxy
+    handshake, CONNECT to example.com:443).
+  - Exit IP and country: `https://www.cloudflare.com/cdn-cgi/trace`
+    (`ip=`, `loc=`) through the proxy, falling back to
+    `https://ipinfo.io/json`. The flag is an emoji built from the country
+    code.
+  - Speed: download about 10 MB from `speed.cloudflare.com/__down` through
+    the proxy, reported in Mbit/s; only on demand per proxy.
+  - "Test all" checks reachability, latency, exit IP and country for every
+    proxy, 4 in parallel, without the speed test.
+  - Results are stored in Room with timestamps (database v1 → v2, schema
+    export enabled).
+  - All checks go through the non-VPN network while the VPN runs, like the
+    existing proxy test.
+- Files likely to create/change:
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/proxy/ProxyTester.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/proxy/ProxyInspector.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/proxy/ProxyCheckParsers.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/data/local/ProxyCheckEntity.kt`,
+    `ProxyCheckDao.kt`, `AppDatabase.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/data/repository/ProxyCheckRepository.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/di/DatabaseModule.kt`, `ProxyModule.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/ui/viewmodel/VpnViewModel.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/ui/screens/ProxyListScreen.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/MainActivity.kt`
+  - `app/build.gradle.kts`, `app/schemas/`
+  - `app/src/main/res/values*/strings.xml`
+  - unit tests for parsers, inspector HTTP handling and the ViewModel.
+- Implementation notes:
+  - Completed on 2026-10-20 test-first: `ProxyCheckParsersTest` (11),
+    `HttpsProxyInspectorTest` (4, local HTTP server, TLS stubbed),
+    `AppDatabaseSchemaTest`, three new `VpnViewModelTest` cases; 200 unit
+    tests pass.
+  - `ProxyTester` now exposes `openTunnel` (SOCKS5 or HTTP(S) CONNECT kept
+    open) and reports `latencyMillis`; the existing `test()` behaviour is
+    unchanged. `HttpsProxyInspector` does TLS with SNI and hostname
+    verification over the tunnel and parses plain, Content-Length and
+    chunked HTTP/1.1 responses.
+  - Room v2 adds `proxy_checks` (one row per proxy) through a hand-written
+    `MIGRATION_1_2`; schemas are exported to `app/schemas`, and a unit test
+    compares the migration SQL with the exported schema. Deleting a proxy
+    deletes its check row.
+  - Proxy list: "Test all" action with progress, per-proxy speed button,
+    summary line "flag code · exit IP · latency · speed" and the check time
+    ("just now" / relative time); Mbit/s uses the app locale's decimal
+    separator. 12 new strings in all languages; lint has no new issues.
+  - Emulator API 35: installed the previous build (database v1) with two
+    proxies and upgraded in place: both proxies survived and the app opened
+    without errors. "Test all" via a local SOCKS5 proxy showed flag,
+    country, exit IP and latency, the TEST-NET proxy showed "Unavailable";
+    the speed test reported about 300 Mbit/s; results persisted after
+    force-stop. Checked in English and Russian. The upgrade needed an
+    x86_64-only test APK (init script in the scratchpad) because the
+    emulator lacked space for two full APKs.
+- Acceptance criteria:
+  - Per proxy: status, latency, exit IP, country flag, check time; speed
+    after the speed test; results survive app restarts.
+  - "Test all" runs with bounded parallelism and shows progress.
+  - Upgrading from database v1 keeps all proxies.
+  - No credentials in logs or results.
+- Test/smoke commands:
+  - `./gradlew test assembleDebug`
+  - Manual: emulator with a local SOCKS5 proxy; upgrade over the previous
+    build.
+- Dependencies:
+  - TASK-132, TASK-221
+- Estimated risk: medium
+
 ## Phase 20: Post-MVP Improvements
 
 ### TASK-200: Evaluate Full UDP Proxying

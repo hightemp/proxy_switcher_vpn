@@ -65,6 +65,9 @@ class MainActivity : AppCompatActivity() {
                 val canStartVpn by viewModel.canStartVpn.collectAsState()
                 val backgroundRestrictions by viewModel.backgroundRestrictions.collectAsState()
                 val alwaysOnStatus by viewModel.alwaysOnStatus.collectAsState()
+                val proxyChecks by viewModel.proxyChecks.collectAsState()
+                val speedTestStates by viewModel.speedTestStates.collectAsState()
+                val bulkTestProgress by viewModel.bulkTestProgress.collectAsState()
                 var languageTag by remember { mutableStateOf(AppLanguages.current(this)) }
                 NavHost(
                     navController = navController,
@@ -146,6 +149,11 @@ class MainActivity : AppCompatActivity() {
                             onDeleteProxy = viewModel::onProxyDeleted,
                             proxyDeleteCheck = viewModel::proxyDeleteCheck,
                             onUndoDeleteProxy = viewModel::onProxyDeleteUndone,
+                            proxyChecks = proxyChecks,
+                            speedTestStates = speedTestStates,
+                            bulkTestProgress = bulkTestProgress,
+                            onTestAllProxies = viewModel::onTestAllProxies,
+                            onSpeedTestProxy = viewModel::onProxySpeedTestRequested,
                             onTestProxy = viewModel::onProxyTestRequested,
                             onExportProxies = viewModel::exportProxiesToText,
                             onImportProxies = viewModel::importProxiesFromText

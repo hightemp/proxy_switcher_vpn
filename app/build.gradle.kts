@@ -159,6 +159,10 @@ android {
     }
 }
 
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+}
+
 val downloadLibboxArtifact by tasks.registering {
     group = "build setup"
     description = "Downloads the pinned libbox AAR into the Gradle user cache."

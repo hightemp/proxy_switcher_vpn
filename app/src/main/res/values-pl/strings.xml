@@ -307,4 +307,15 @@
     <string name="proxy_delete_confirm_body">To proxy jest wybrane. Po jego usunięciu trasa zmieni się na „Połączenie bezpośrednie”.</string>
     <string name="action_delete">Usuń</string>
     <string name="tile_off">Wyłączony</string>
+    <string name="speed_test_http_status">Test prędkości nie powiódł się: HTTP %1$d.</string>
+    <string name="speed_test_failed">Test prędkości nie powiódł się.</string>
+    <string name="speed_test_running">Mierzenie prędkości…</string>
+    <string name="proxy_list_test_all">Testuj wszystkie proxy</string>
+    <string name="proxy_list_bulk_progress">Testowanie %1$d z %2$d…</string>
+    <string name="proxy_check_latency">%1$d ms</string>
+    <string name="proxy_check_speed">%1$s Mb/s</string>
+    <string name="proxy_check_checked_at">Sprawdzono %1$s</string>
+    <string name="proxy_check_unavailable">Niedostępne</string>
+    <string name="proxy_speed_test">Testuj prędkość</string>
+    <string name="proxy_check_checked_just_now">Sprawdzono przed chwilą</string>
 </resources>

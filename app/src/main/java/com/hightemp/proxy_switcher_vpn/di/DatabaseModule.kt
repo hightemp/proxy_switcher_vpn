@@ -3,6 +3,7 @@ package com.hightemp.proxy_switcher_vpn.di
 import android.content.Context
 import androidx.room.Room
 import com.hightemp.proxy_switcher_vpn.data.local.AppDatabase
+import com.hightemp.proxy_switcher_vpn.data.local.ProxyCheckDao
 import com.hightemp.proxy_switcher_vpn.data.local.ProxyDao
 import dagger.Module
 import dagger.Provides
@@ -21,11 +22,18 @@ object DatabaseModule {
             context,
             AppDatabase::class.java,
             "proxy_switcher_vpn.db"
-        ).build()
+        )
+            .addMigrations(AppDatabase.MIGRATION_1_2)
+            .build()
     }
 
     @Provides
     fun provideProxyDao(database: AppDatabase): ProxyDao {
         return database.proxyDao()
+    }
+
+    @Provides
+    fun provideProxyCheckDao(database: AppDatabase): ProxyCheckDao {
+        return database.proxyCheckDao()
     }
 }

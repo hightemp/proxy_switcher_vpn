@@ -307,4 +307,15 @@
     <string name="proxy_delete_confirm_body">Этот прокси выбран. После удаления маршрут переключится на «Напрямую».</string>
     <string name="action_delete">Удалить</string>
     <string name="tile_off">Выключен</string>
+    <string name="speed_test_http_status">Тест скорости не удался: HTTP %1$d.</string>
+    <string name="speed_test_failed">Тест скорости не удался.</string>
+    <string name="speed_test_running">Измерение скорости…</string>
+    <string name="proxy_list_test_all">Проверить все прокси</string>
+    <string name="proxy_list_bulk_progress">Проверка %1$d из %2$d…</string>
+    <string name="proxy_check_latency">%1$d мс</string>
+    <string name="proxy_check_speed">%1$s Мбит/с</string>
+    <string name="proxy_check_checked_at">Проверено %1$s</string>
+    <string name="proxy_check_unavailable">Недоступен</string>
+    <string name="proxy_speed_test">Тест скорости</string>
+    <string name="proxy_check_checked_just_now">Проверено только что</string>
 </resources>

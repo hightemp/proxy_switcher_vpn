@@ -4,15 +4,21 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.emptyPreferences
 import com.hightemp.proxy_switcher_vpn.R
+import com.hightemp.proxy_switcher_vpn.data.local.ProxyCheckDao
+import com.hightemp.proxy_switcher_vpn.data.local.ProxyCheckEntity
 import com.hightemp.proxy_switcher_vpn.data.local.ProxyDao
 import com.hightemp.proxy_switcher_vpn.data.local.ProxyEntity
 import com.hightemp.proxy_switcher_vpn.data.local.ProxyType
+import com.hightemp.proxy_switcher_vpn.data.repository.ProxyCheckRepository
 import com.hightemp.proxy_switcher_vpn.data.repository.ProxyRepository
 import com.hightemp.proxy_switcher_vpn.data.settings.SettingsRepository
 import com.hightemp.proxy_switcher_vpn.i18n.UserText
+import com.hightemp.proxy_switcher_vpn.proxy.ExitInfo
 import com.hightemp.proxy_switcher_vpn.proxy.ParsedProxyString
+import com.hightemp.proxy_switcher_vpn.proxy.ProxyInspector
 import com.hightemp.proxy_switcher_vpn.proxy.ProxyReachabilityTester
 import com.hightemp.proxy_switcher_vpn.proxy.ProxyTestResult
+import com.hightemp.proxy_switcher_vpn.proxy.SpeedTestResult
 import com.hightemp.proxy_switcher_vpn.service.VpnRuntimeState
 import com.hightemp.proxy_switcher_vpn.service.VpnServiceStatus
 import com.hightemp.proxy_switcher_vpn.vpn.background.BackgroundRestrictionChecker
@@ -27,6 +33,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestDispatcher
@@ -228,6 +235,54 @@ class VpnViewModelTest {
     }
 
     @Test
+    fun proxyTestRecordsLatencyAndExitInfo() = runTest {
+        val checkDao = FakeProxyCheckDao()
+        val inspector = FakeInspector(ExitInfo("203.0.113.5", "DE"))
+        val viewModel = newViewModel(checkDao = checkDao, inspector = inspector)
+        backgroundScope.launch { viewModel.proxyChecks.collect() }
+        val proxy = ProxyEntity(id = 3L, host = "proxy.example", port = 1080, type = ProxyType.SOCKS5)
+
+        viewModel.onProxyTestRequested(proxy)
+        advanceUntilIdle()
+
+        val check = viewModel.proxyChecks.value.getValue(3L)
+        assertEquals(true, check.success)
+        assertEquals(42L, check.latencyMillis)
+        assertEquals("203.0.113.5", check.exitIp)
+        assertEquals("DE", check.countryCode)
+        assertEquals(ProxyTestStatus.SUCCESS, viewModel.proxyTestResults.value.getValue(3L).status)
+    }
+
+    @Test
+    fun testAllChecksEveryProxyAndReportsProgress() = runTest {
+        val proxyDao = FakeProxyDao()
+        val checkDao = FakeProxyCheckDao()
+        val viewModel = newViewModel(proxyDao = proxyDao, checkDao = checkDao)
+        (1L..6L).forEach { id ->
+            proxyDao.insertProxy(ProxyEntity(id = id, host = "p$id.example", port = 1080, type = ProxyType.HTTP))
+        }
+
+        viewModel.onTestAllProxies()
+        advanceUntilIdle()
+
+        assertEquals((1L..6L).toSet(), checkDao.snapshot().keys)
+        assertEquals(BulkTestProgress(done = 6, total = 6, running = false), viewModel.bulkTestProgress.value)
+    }
+
+    @Test
+    fun speedTestStoresDownloadSpeed() = runTest {
+        val checkDao = FakeProxyCheckDao()
+        val viewModel = newViewModel(checkDao = checkDao)
+        val proxy = ProxyEntity(id = 4L, host = "proxy.example", port = 1080, type = ProxyType.SOCKS5)
+
+        viewModel.onProxySpeedTestRequested(proxy)
+        advanceUntilIdle()
+
+        assertEquals(54_000_000L, checkDao.snapshot().getValue(4L).downloadBitsPerSecond)
+        assertEquals(null, viewModel.speedTestStates.value[4L])
+    }
+
+    @Test
     fun refreshBackgroundHealthReadsRestrictionsAndLastExit() = runTest {
         val checker = FakeRestrictionChecker(
             BackgroundRestrictionStatus(batteryOptimizationIgnored = false)
@@ -270,7 +325,9 @@ class VpnViewModelTest {
     private fun newViewModel(
         proxyDao: ProxyDao = FakeProxyDao(),
         restrictionChecker: BackgroundRestrictionChecker = FakeRestrictionChecker(),
-        processExitHistory: ProcessExitHistory = FakeProcessExitHistory()
+        processExitHistory: ProcessExitHistory = FakeProcessExitHistory(),
+        checkDao: FakeProxyCheckDao = FakeProxyCheckDao(),
+        inspector: ProxyInspector = FakeInspector(ExitInfo("192.0.2.1", "US"))
     ): VpnViewModel {
         val dataStore = FakePreferencesDataStore()
         return VpnViewModel(
@@ -281,8 +338,35 @@ class VpnViewModelTest {
             diagnosticsRepository = VpnDiagnosticsRepository(),
             stopHistory = VpnStopHistory(dataStore),
             restrictionChecker = restrictionChecker,
-            processExitHistory = processExitHistory
+            processExitHistory = processExitHistory,
+            proxyCheckRepository = ProxyCheckRepository(checkDao),
+            proxyInspector = inspector
         )
+    }
+
+    private class FakeInspector(private val exitInfo: ExitInfo?) : ProxyInspector {
+        override suspend fun exitInfo(proxy: ProxyEntity): ExitInfo? = exitInfo
+
+        override suspend fun downloadSpeed(proxy: ProxyEntity, bytes: Long): SpeedTestResult =
+            SpeedTestResult.Success(bitsPerSecond = 54_000_000L, bytes = bytes, millis = 1_000L)
+    }
+
+    private class FakeProxyCheckDao : ProxyCheckDao {
+        private val checks = MutableStateFlow<Map<Long, ProxyCheckEntity>>(emptyMap())
+
+        override fun getAllChecks(): Flow<List<ProxyCheckEntity>> = checks.map { it.values.toList() }
+
+        override suspend fun getCheck(proxyId: Long): ProxyCheckEntity? = checks.value[proxyId]
+
+        override suspend fun upsertCheck(check: ProxyCheckEntity) {
+            checks.value = checks.value + (check.proxyId to check)
+        }
+
+        override suspend fun deleteCheck(proxyId: Long) {
+            checks.value = checks.value - proxyId
+        }
+
+        fun snapshot(): Map<Long, ProxyCheckEntity> = checks.value
     }
 
     private class FakeRestrictionChecker(
@@ -304,7 +388,11 @@ class VpnViewModelTest {
             targetPort: Int,
             timeoutMillis: Int
         ): ProxyTestResult {
-            return ProxyTestResult(success = true, message = UserText.of(R.string.proxy_test_succeeded))
+            return ProxyTestResult(
+                success = true,
+                message = UserText.of(R.string.proxy_test_succeeded),
+                latencyMillis = 42L
+            )
         }
     }
 

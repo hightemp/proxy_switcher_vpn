@@ -14,6 +14,7 @@ import java.io.BufferedOutputStream
 import java.io.Closeable
 import java.io.EOFException
 import java.io.IOException
+import java.io.InputStream
 import java.net.ConnectException
 import java.net.InetSocketAddress
 import java.net.Socket
@@ -40,8 +41,33 @@ private const val SOCKS_ADDRESS_DOMAIN = 0x03
 data class ProxyTestResult(
     val success: Boolean,
     val message: UserText,
-    val resolvedProxyHost: String? = null
+    val resolvedProxyHost: String? = null,
+    /** Time until the tunnel through the proxy was open; set on success. */
+    val latencyMillis: Long? = null
 )
+
+/** A connection through the proxy to a target host, ready for application data. */
+sealed interface ProxyTunnelResult {
+    class Opened(
+        val socket: Socket,
+        val resolvedProxyHost: String
+    ) : ProxyTunnelResult, Closeable {
+        override fun close() {
+            runCatching { socket.close() }
+        }
+    }
+
+    data class Failed(val result: ProxyTestResult) : ProxyTunnelResult
+}
+
+interface ProxyTunnelOpener {
+    suspend fun openTunnel(
+        proxy: ProxyEntity,
+        targetHost: String,
+        targetPort: Int,
+        timeoutMillis: Int
+    ): ProxyTunnelResult
+}
 
 interface ProxyReachabilityTester {
     suspend fun test(
@@ -55,7 +81,7 @@ interface ProxyReachabilityTester {
 class ProxyTester @Inject constructor(
     private val activeVpnServiceBridge: ActiveVpnServiceBridge,
     private val proxyNetworkResolver: ProxyNetworkResolver
-) : ProxyReachabilityTester {
+) : ProxyReachabilityTester, ProxyTunnelOpener {
     override suspend fun test(
         proxy: ProxyEntity,
         targetHost: String,
@@ -80,11 +106,18 @@ class ProxyTester @Inject constructor(
             sensitiveValues = proxy.sensitiveValues()
         )
 
+        val startedAtNanos = System.nanoTime()
         val result = runCatching {
-            when (proxy.type) {
-                ProxyType.SOCKS5 -> testSocks5(proxy, targetHost, targetPort, timeoutMillis)
-                ProxyType.HTTP -> testHttpConnect(proxy, targetHost, targetPort, timeoutMillis)
-                ProxyType.HTTPS -> testHttpsConnect(proxy, targetHost, targetPort, timeoutMillis)
+            when (val tunnel = openTunnelBlocking(proxy, targetHost, targetPort, timeoutMillis)) {
+                is ProxyTunnelResult.Opened -> tunnel.use {
+                    ProxyTestResult(
+                        success = true,
+                        message = UserText.of(R.string.proxy_test_succeeded),
+                        resolvedProxyHost = tunnel.resolvedProxyHost,
+                        latencyMillis = (System.nanoTime() - startedAtNanos) / 1_000_000L
+                    )
+                }
+                is ProxyTunnelResult.Failed -> tunnel.result
             }
         }.getOrElse { throwable ->
             throwable.toSanitizedFailure()
@@ -94,6 +127,7 @@ class ProxyTester @Inject constructor(
             AppLogger.debug(
                 message = "Proxy test succeeded for ${proxy.debugLabel()}; " +
                     "resolvedProxyHost=${result.resolvedProxyHost ?: "unresolved"}; " +
+                    "latency=${result.latencyMillis}ms; " +
                     "message=${result.message.english()}",
                 type = LogType.PROXY,
                 sensitiveValues = proxy.sensitiveValues()
@@ -125,24 +159,52 @@ class ProxyTester @Inject constructor(
         }
     }
 
-    private fun testHttpConnect(
+    override suspend fun openTunnel(
         proxy: ProxyEntity,
         targetHost: String,
         targetPort: Int,
         timeoutMillis: Int
-    ): ProxyTestResult = openProxySocket(proxy, useTls = false, timeoutMillis).use { connection ->
-        writeConnectRequest(connection.socket, proxy, targetHost, targetPort)
-        readConnectResponse(connection.socket).withResolvedProxyHost(connection.resolvedProxyHost)
+    ): ProxyTunnelResult = withContext(Dispatchers.IO) {
+        validate(proxy, targetHost, targetPort, timeoutMillis)?.let { error ->
+            return@withContext ProxyTunnelResult.Failed(ProxyTestResult(success = false, message = error))
+        }
+        runCatching { openTunnelBlocking(proxy, targetHost, targetPort, timeoutMillis) }
+            .getOrElse { throwable -> ProxyTunnelResult.Failed(throwable.toSanitizedFailure()) }
     }
 
-    private fun testHttpsConnect(
+    private fun openTunnelBlocking(
         proxy: ProxyEntity,
         targetHost: String,
         targetPort: Int,
         timeoutMillis: Int
-    ): ProxyTestResult = openProxySocket(proxy, useTls = true, timeoutMillis).use { connection ->
-        writeConnectRequest(connection.socket, proxy, targetHost, targetPort)
-        readConnectResponse(connection.socket).withResolvedProxyHost(connection.resolvedProxyHost)
+    ): ProxyTunnelResult {
+        return when (proxy.type) {
+            ProxyType.SOCKS5 -> openSocks5Tunnel(proxy, targetHost, targetPort, timeoutMillis)
+            ProxyType.HTTP -> openHttpTunnel(proxy, useTls = false, targetHost, targetPort, timeoutMillis)
+            ProxyType.HTTPS -> openHttpTunnel(proxy, useTls = true, targetHost, targetPort, timeoutMillis)
+        }
+    }
+
+    private fun openHttpTunnel(
+        proxy: ProxyEntity,
+        useTls: Boolean,
+        targetHost: String,
+        targetPort: Int,
+        timeoutMillis: Int
+    ): ProxyTunnelResult {
+        val connection = openProxySocket(proxy, useTls, timeoutMillis)
+        try {
+            writeConnectRequest(connection.socket, proxy, targetHost, targetPort)
+            val result = readConnectResponse(connection.socket)
+            if (!result.success) {
+                connection.close()
+                return ProxyTunnelResult.Failed(result)
+            }
+            return ProxyTunnelResult.Opened(connection.socket, connection.resolvedProxyHost)
+        } catch (throwable: Throwable) {
+            connection.close()
+            throw throwable
+        }
     }
 
     private fun openProxySocket(
@@ -214,8 +276,12 @@ class ProxyTester @Inject constructor(
     }
 
     private fun readConnectResponse(socket: Socket): ProxyTestResult {
-        val input = BufferedInputStream(socket.getInputStream())
+        // Unbuffered so no tunnel bytes are consumed past the response head.
+        val input = socket.getInputStream()
         val statusLine = input.readAsciiLine()
+        while (input.readAsciiLine().isNotEmpty()) {
+            // Skip response headers.
+        }
         val statusCode = statusLine.split(" ", limit = 3).getOrNull(1)?.toIntOrNull()
         return when {
             statusCode in 200..299 -> {
@@ -239,7 +305,28 @@ class ProxyTester @Inject constructor(
         }
     }
 
-    private fun testSocks5(
+    private fun openSocks5Tunnel(
+        proxy: ProxyEntity,
+        targetHost: String,
+        targetPort: Int,
+        timeoutMillis: Int
+    ): ProxyTunnelResult {
+        val socket = Socket()
+        try {
+            val result = socks5Connect(socket, proxy, targetHost, targetPort, timeoutMillis)
+            if (!result.success) {
+                socket.closeQuietly()
+                return ProxyTunnelResult.Failed(result)
+            }
+            return ProxyTunnelResult.Opened(socket, result.resolvedProxyHost.orEmpty())
+        } catch (throwable: Throwable) {
+            socket.closeQuietly()
+            throw throwable
+        }
+    }
+
+    private fun socks5Connect(
+        socket: Socket,
         proxy: ProxyEntity,
         targetHost: String,
         targetPort: Int,
@@ -250,7 +337,7 @@ class ProxyTester @Inject constructor(
             port = proxy.port,
             preferNonVpnNetwork = activeVpnServiceBridge.isActive()
         )
-        Socket().use { socket ->
+        run {
             activeVpnServiceBridge.protectSocketIfActive(socket)
             target.bindSocket(socket)
             socket.connect(target.socketAddress, timeoutMillis)
@@ -407,10 +494,6 @@ class ProxyTester @Inject constructor(
             .filter { it.isNotBlank() }
     }
 
-    private fun ProxyTestResult.withResolvedProxyHost(resolvedProxyHost: String): ProxyTestResult {
-        return if (success) copy(resolvedProxyHost = resolvedProxyHost) else this
-    }
-
     private fun socks5ReplyMessage(reply: Int): UserText {
         return when (reply) {
             0x01 -> UserText.of(R.string.proxy_test_socks_reply_general)
@@ -425,7 +508,7 @@ class ProxyTester @Inject constructor(
         }
     }
 
-    private fun BufferedInputStream.readAsciiLine(): String {
+    private fun InputStream.readAsciiLine(): String {
         val buffer = StringBuilder()
         while (true) {
             val value = read()

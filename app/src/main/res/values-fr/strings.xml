@@ -306,4 +306,15 @@
     <string name="proxy_delete_confirm_body">Ce proxy est sélectionné. Après sa suppression, l’itinéraire passe en « Connexion directe ».</string>
     <string name="action_delete">Supprimer</string>
     <string name="tile_off">Désactivé</string>
+    <string name="speed_test_http_status">Échec du test de débit avec HTTP %1$d.</string>
+    <string name="speed_test_failed">Échec du test de débit.</string>
+    <string name="speed_test_running">Mesure du débit…</string>
+    <string name="proxy_list_test_all">Tester tous les proxys</string>
+    <string name="proxy_list_bulk_progress">Test %1$d sur %2$d…</string>
+    <string name="proxy_check_latency">%1$d ms</string>
+    <string name="proxy_check_speed">%1$s Mbit/s</string>
+    <string name="proxy_check_checked_at">Vérifié %1$s</string>
+    <string name="proxy_check_unavailable">Indisponible</string>
+    <string name="proxy_speed_test">Tester le débit</string>
+    <string name="proxy_check_checked_just_now">Vérifié à l’instant</string>
 </resources>

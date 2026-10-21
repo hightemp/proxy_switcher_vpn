@@ -304,4 +304,15 @@
     <string name="proxy_delete_confirm_body">이 프록시가 선택되어 있습니다. 삭제하면 경로가 \"직접 연결\"로 바뀝니다.</string>
     <string name="action_delete">삭제</string>
     <string name="tile_off">꺼짐</string>
+    <string name="speed_test_http_status">속도 테스트 실패: HTTP %1$d.</string>
+    <string name="speed_test_failed">속도 테스트에 실패했습니다.</string>
+    <string name="speed_test_running">속도를 측정하는 중…</string>
+    <string name="proxy_list_test_all">모든 프록시 테스트</string>
+    <string name="proxy_list_bulk_progress">%2$d개 중 %1$d개 테스트 중…</string>
+    <string name="proxy_check_latency">%1$dms</string>
+    <string name="proxy_check_speed">%1$s Mbps</string>
+    <string name="proxy_check_checked_at">확인: %1$s</string>
+    <string name="proxy_check_unavailable">사용 불가</string>
+    <string name="proxy_speed_test">속도 테스트</string>
+    <string name="proxy_check_checked_just_now">방금 확인함</string>
 </resources>

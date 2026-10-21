@@ -306,4 +306,15 @@
     <string name="proxy_delete_confirm_body">Este proxy está selecionado. Depois de excluí-lo, a rota muda para \"Conexão direta\".</string>
     <string name="action_delete">Excluir</string>
     <string name="tile_off">Desativada</string>
+    <string name="speed_test_http_status">O teste de velocidade falhou com HTTP %1$d.</string>
+    <string name="speed_test_failed">O teste de velocidade falhou.</string>
+    <string name="speed_test_running">Medindo a velocidade…</string>
+    <string name="proxy_list_test_all">Testar todos os proxies</string>
+    <string name="proxy_list_bulk_progress">Testando %1$d de %2$d…</string>
+    <string name="proxy_check_latency">%1$d ms</string>
+    <string name="proxy_check_speed">%1$s Mbit/s</string>
+    <string name="proxy_check_checked_at">Verificado %1$s</string>
+    <string name="proxy_check_unavailable">Indisponível</string>
+    <string name="proxy_speed_test">Testar velocidade</string>
+    <string name="proxy_check_checked_just_now">Verificado agora</string>
 </resources>

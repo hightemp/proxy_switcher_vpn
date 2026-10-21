@@ -315,4 +315,15 @@
     <string name="action_delete">Delete</string>
     <string name="tile_label" translatable="false">Proxy VPN</string>
     <string name="tile_off">Off</string>
+    <string name="speed_test_http_status">Speed test failed with HTTP %1$d.</string>
+    <string name="speed_test_failed">Speed test failed.</string>
+    <string name="speed_test_running">Measuring speed…</string>
+    <string name="proxy_list_test_all">Test all proxies</string>
+    <string name="proxy_list_bulk_progress">Testing %1$d of %2$d…</string>
+    <string name="proxy_check_latency">%1$d ms</string>
+    <string name="proxy_check_speed">%1$s Mbit/s</string>
+    <string name="proxy_check_checked_at">Checked %1$s</string>
+    <string name="proxy_check_unavailable">Unavailable</string>
+    <string name="proxy_speed_test">Test speed</string>
+    <string name="proxy_check_checked_just_now">Checked just now</string>
 </resources>

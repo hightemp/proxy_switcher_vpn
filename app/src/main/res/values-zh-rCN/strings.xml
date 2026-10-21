@@ -304,4 +304,15 @@
     <string name="proxy_delete_confirm_body">此代理当前已选中。删除后，线路将切换为“直连”。</string>
     <string name="action_delete">删除</string>
     <string name="tile_off">已关闭</string>
+    <string name="speed_test_http_status">测速失败：HTTP %1$d。</string>
+    <string name="speed_test_failed">测速失败。</string>
+    <string name="speed_test_running">正在测速…</string>
+    <string name="proxy_list_test_all">测试所有代理</string>
+    <string name="proxy_list_bulk_progress">正在测试 %1$d/%2$d…</string>
+    <string name="proxy_check_latency">%1$d 毫秒</string>
+    <string name="proxy_check_speed">%1$s Mbit/s</string>
+    <string name="proxy_check_checked_at">检查于 %1$s</string>
+    <string name="proxy_check_unavailable">不可用</string>
+    <string name="proxy_speed_test">测速</string>
+    <string name="proxy_check_checked_just_now">刚刚检查</string>
 </resources>
