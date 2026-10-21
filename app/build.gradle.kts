@@ -115,8 +115,8 @@ android {
         applicationId = "com.hightemp.proxy_switcher_vpn"
         minSdk = 24
         targetSdk = 35
-        versionCode = 400
-        versionName = "0.4.0"
+        versionCode = 401
+        versionName = "0.4.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
