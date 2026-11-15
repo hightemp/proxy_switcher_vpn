@@ -11,6 +11,7 @@
   <a href="../LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue" alt="License: GPL-3.0-or-later" /></a>
   <a href="https://developer.android.com/about/versions/nougat"><img src="https://img.shields.io/badge/android-7.0%2B-3DDC84?logo=android&amp;logoColor=white" alt="Android 7.0+" /></a>
   <a href="https://kotlinlang.org/"><img src="https://img.shields.io/badge/kotlin-2.0.0-7F52FF?logo=kotlin&amp;logoColor=white" alt="Kotlin" /></a>
+  <a href="https://github.com/SagerNet/sing-box/tree/83b73048ff772b919af18653b78ffeaa2d48b66e"><img src="https://img.shields.io/badge/sing--box-1.13.13-2F80ED" alt="sing-box 1.13.13" /></a>
   <img src="https://asdertasd.site/counter/proxy_switcher_vpn" alt="Statistics" />
 </p>
 
@@ -52,6 +53,15 @@
 ## 语言
 
 应用支持英语、俄语、乌克兰语、德语、法语、西班牙语、意大利语、葡萄牙语（巴西）、波兰语、简体中文、日语和韩语。默认跟随系统语言；也可以在“设置 → 语言”中选择，或在 Android 13 及以上版本的系统“应用语言”设置中选择。日志条目和诊断中的技术值保持英文，方便阅读错误报告。
+
+## sing-box 内核
+
+应用内嵌的 `libbox.aar` 基于以下 sing-box 版本构建：
+
+- 版本: [`v1.13.13`](https://github.com/SagerNet/sing-box/releases/tag/v1.13.13)
+- 提交: [`83b73048ff772b919af18653b78ffeaa2d48b66e`](https://github.com/SagerNet/sing-box/tree/83b73048ff772b919af18653b78ffeaa2d48b66e)
+
+这些值来自 `gradle/libbox.properties`，构建时会进行校验。
 
 ## 限制
 

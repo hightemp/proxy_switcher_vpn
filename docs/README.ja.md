@@ -11,6 +11,7 @@
   <a href="../LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue" alt="License: GPL-3.0-or-later" /></a>
   <a href="https://developer.android.com/about/versions/nougat"><img src="https://img.shields.io/badge/android-7.0%2B-3DDC84?logo=android&amp;logoColor=white" alt="Android 7.0+" /></a>
   <a href="https://kotlinlang.org/"><img src="https://img.shields.io/badge/kotlin-2.0.0-7F52FF?logo=kotlin&amp;logoColor=white" alt="Kotlin" /></a>
+  <a href="https://github.com/SagerNet/sing-box/tree/83b73048ff772b919af18653b78ffeaa2d48b66e"><img src="https://img.shields.io/badge/sing--box-1.13.13-2F80ED" alt="sing-box 1.13.13" /></a>
   <img src="https://asdertasd.site/counter/proxy_switcher_vpn" alt="Statistics" />
 </p>
 
@@ -52,6 +53,15 @@ Android API 35 上のデバッグ版アプリ（v0.4.1）で撮影しました�
 ## 言語
 
 アプリは英語、ロシア語、ウクライナ語、ドイツ語、フランス語、スペイン語、イタリア語、ポルトガル語（ブラジル）、ポーランド語、中国語（簡体字）、日本語、韓国語に対応しています。システムの言語に従いますが、「設定 → 言語」や、Android 13 以降ではシステムのアプリ別言語設定でも選択できます。ログの内容と診断の技術的な値は、バグ報告を読みやすくするため英語のままです。
+
+## sing-box コア
+
+アプリには、次の sing-box リビジョンからビルドした `libbox.aar` が組み込まれています。
+
+- バージョン: [`v1.13.13`](https://github.com/SagerNet/sing-box/releases/tag/v1.13.13)
+- コミット: [`83b73048ff772b919af18653b78ffeaa2d48b66e`](https://github.com/SagerNet/sing-box/tree/83b73048ff772b919af18653b78ffeaa2d48b66e)
+
+これらの値は `gradle/libbox.properties` から取得され、ビルド時に検証されます。
 
 ## 制限事項
 

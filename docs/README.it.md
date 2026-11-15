@@ -11,6 +11,7 @@
   <a href="../LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue" alt="License: GPL-3.0-or-later" /></a>
   <a href="https://developer.android.com/about/versions/nougat"><img src="https://img.shields.io/badge/android-7.0%2B-3DDC84?logo=android&amp;logoColor=white" alt="Android 7.0+" /></a>
   <a href="https://kotlinlang.org/"><img src="https://img.shields.io/badge/kotlin-2.0.0-7F52FF?logo=kotlin&amp;logoColor=white" alt="Kotlin" /></a>
+  <a href="https://github.com/SagerNet/sing-box/tree/83b73048ff772b919af18653b78ffeaa2d48b66e"><img src="https://img.shields.io/badge/sing--box-1.13.13-2F80ED" alt="sing-box 1.13.13" /></a>
   <img src="https://asdertasd.site/counter/proxy_switcher_vpn" alt="Statistics" />
 </p>
 
@@ -62,6 +63,15 @@ coreano. Segue la lingua di sistema; puoi anche scegliere una lingua in
 Impostazioni → Lingua oppure, su Android 13+, nelle impostazioni di sistema
 della lingua per app. Le voci di log e i valori tecnici della diagnostica
 restano in inglese, così le segnalazioni di bug sono facili da leggere.
+
+## Core sing-box
+
+L’app incorpora `libbox.aar`, compilato da questa revisione di sing-box:
+
+- Versione: [`v1.13.13`](https://github.com/SagerNet/sing-box/releases/tag/v1.13.13)
+- Commit: [`83b73048ff772b919af18653b78ffeaa2d48b66e`](https://github.com/SagerNet/sing-box/tree/83b73048ff772b919af18653b78ffeaa2d48b66e)
+
+I valori provengono da `gradle/libbox.properties`, verificato durante la build.
 
 ## Limiti
 

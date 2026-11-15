@@ -11,6 +11,7 @@
   <a href="../LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue" alt="License: GPL-3.0-or-later" /></a>
   <a href="https://developer.android.com/about/versions/nougat"><img src="https://img.shields.io/badge/android-7.0%2B-3DDC84?logo=android&amp;logoColor=white" alt="Android 7.0+" /></a>
   <a href="https://kotlinlang.org/"><img src="https://img.shields.io/badge/kotlin-2.0.0-7F52FF?logo=kotlin&amp;logoColor=white" alt="Kotlin" /></a>
+  <a href="https://github.com/SagerNet/sing-box/tree/83b73048ff772b919af18653b78ffeaa2d48b66e"><img src="https://img.shields.io/badge/sing--box-1.13.13-2F80ED" alt="sing-box 1.13.13" /></a>
   <img src="https://asdertasd.site/counter/proxy_switcher_vpn" alt="Statistics" />
 </p>
 
@@ -52,6 +53,15 @@ Android API 35에서 디버그 앱(v0.4.1)으로 촬영했습니다. 프록시 �
 ## 언어
 
 앱은 영어, 러시아어, 우크라이나어, 독일어, 프랑스어, 스페인어, 이탈리아어, 포르투갈어(브라질), 폴란드어, 중국어(간체), 일본어, 한국어를 지원합니다. 기본적으로 시스템 언어를 따르며, 설정 → 언어 또는 Android 13 이상에서는 시스템의 앱별 언어 설정에서도 언어를 선택할 수 있습니다. 로그 항목과 진단의 기술적인 값은 버그 보고서를 읽기 쉽도록 영어로 유지됩니다.
+
+## sing-box 코어
+
+앱에는 다음 sing-box 리비전으로 빌드한 `libbox.aar`가 포함되어 있습니다.
+
+- 버전: [`v1.13.13`](https://github.com/SagerNet/sing-box/releases/tag/v1.13.13)
+- 커밋: [`83b73048ff772b919af18653b78ffeaa2d48b66e`](https://github.com/SagerNet/sing-box/tree/83b73048ff772b919af18653b78ffeaa2d48b66e)
+
+이 값은 빌드 시 검증되는 `gradle/libbox.properties`에서 가져옵니다.
 
 ## 제한 사항
 
