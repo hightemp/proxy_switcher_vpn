@@ -28,7 +28,7 @@ Upstreams compatibles: SOCKS5, HTTP, HTTPS (HTTP CONNECT sobre TLS) y servidores
 
 ## Capturas de pantalla
 
-Tomadas de la app de depuración (v0.4.1) en Android API 35. Los perfiles de proxy
+Tomadas de la app de depuración (v0.5.0) en Android API 35. Los perfiles de proxy
 solo usan direcciones TEST-NET reservadas y no contienen credenciales; los
 resultados de comprobación de proxies son datos de ejemplo.
 

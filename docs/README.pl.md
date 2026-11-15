@@ -27,7 +27,7 @@ Obsługiwane upstreamy: SOCKS5, HTTP, HTTPS (HTTP CONNECT przez TLS) i serwery S
 
 ## Zrzuty ekranu
 
-Wykonane w aplikacji debug (v0.4.1) na Android API 35. Profile proxy używają
+Wykonane w aplikacji debug (v0.5.0) na Android API 35. Profile proxy używają
 tylko zastrzeżonych adresów TEST-NET i nie zawierają danych logowania; wyniki
 sprawdzania proxy są przykładowe.
 

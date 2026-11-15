@@ -28,7 +28,7 @@ Upstreams pris en charge : SOCKS5, HTTP, HTTPS (HTTP CONNECT sur TLS) et serveur
 
 ## Captures d’écran
 
-Prises sur l’application de débogage (v0.4.1) sous Android API 35. Les profils
+Prises sur l’application de débogage (v0.5.0) sous Android API 35. Les profils
 de proxy n’utilisent que des adresses TEST-NET réservées et ne contiennent aucun
 identifiant ; les résultats de vérification des proxys sont des données d’exemple.
 

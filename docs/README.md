@@ -27,7 +27,7 @@ Supported upstreams: SOCKS5, HTTP, HTTPS (HTTP CONNECT over TLS) and SSH servers
 
 ## Screenshots
 
-Captured from the debug app (v0.4.1) on Android API 35. Proxy profiles use only
+Captured from the debug app (v0.5.0) on Android API 35. Proxy profiles use only
 reserved TEST-NET addresses and contain no credentials; proxy check results are
 sample data.
 
