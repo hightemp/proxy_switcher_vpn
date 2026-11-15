@@ -2913,6 +2913,96 @@ Decisions (agreed with the user on 2026-10-20):
     unavailable proxy is readable, the last card's actions are clear of the
     add button after scrolling to the end, the placeholder fits one line.
 
+### TASK-234: Choose An SSH Client Library For Checks (IMP-24)
+
+- Status: pending
+- Goal: Pick the Kotlin/Java SSH library used for proxy checks and host key
+  discovery before the SSH upstream is implemented.
+- Candidates: `com.github.mwiede:jsch` (BSD-style, no required
+  dependencies) and `com.hierynomus:sshj` (Apache-2.0, needs BouncyCastle,
+  EdDSA and SLF4J). Both are GPL-3.0-compatible.
+- Acceptance criteria:
+  - On API 24 and API 35 the library authenticates with a password and with
+    ed25519, rsa and ecdsa keys (with and without a passphrase), opens a
+    `direct-tcpip` channel and reports the server host key.
+  - APK size growth, R8 rules and license are recorded in this task and in
+    `docs/legal/dependency-license-audit.md`.
+  - Key formats accepted by the library match sing-box (Go `x/crypto/ssh`):
+    OpenSSH and PEM; PuTTY `.ppk` is rejected with a clear message.
+- Files likely to create/change:
+  - `gradle/libs.versions.toml`, `app/build.gradle.kts`, `app/proguard-rules.pro`
+  - `docs/legal/dependency-license-audit.md`, `docs/THIRD_PARTY_NOTICES.md`
+  - `TASKS.md`
+- Test/smoke commands:
+  - Local `sshd` (or Docker `linuxserver/openssh-server`) reached from the
+    emulator as `10.0.2.2`; throwaway prototype test, not committed.
+- Dependencies:
+  - none
+- Estimated risk: medium
+
+### TASK-235: Add SSH Upstream Proxy Type (IMP-24)
+
+- Status: pending
+- Goal: Route all VPN TCP traffic through an SSH server using the sing-box
+  `ssh` outbound.
+- Decisions: see IMP-24 in `docs/IMPROVEMENT_PLAN.md` (agreed 2026-11-15).
+- Implementation notes:
+  - `ProxyType.SSH`; Room v3 → v4 with nullable `privateKey`,
+    `privateKeyPassphrase` and `hostKey` columns, migration test and
+    exported schema. `username` and `password` are reused; default port 22.
+  - `SingBoxConfigGenerator`: `ssh` outbound with `server`, `server_port`,
+    `user`, `password`, inline `private_key`, `private_key_passphrase` and
+    `host_key` = the confirmed key. Never `private_key_path`.
+  - Start is refused with a clear error while an SSH proxy has no confirmed
+    host key; a host key mismatch stops the VPN fail-closed and is shown as
+    such (no silent fallback to Direct).
+  - Add/Edit: SSH in the protocol selector; private key field (paste or pick
+    a file), passphrase, host key field, "Fetch server key" action showing the
+    SHA256 fingerprint for confirmation. Changing host or port clears the
+    confirmed key.
+  - Checks: `ProxyTester` opens a `direct-tcpip` channel through the library
+    from TASK-234; latency, exit IP and geo work as for SOCKS5/HTTP. A first
+    check without a confirmed key asks for confirmation; a changed key fails
+    with a warning and an explicit "Trust new key" action.
+  - Upstream monitor keeps its TCP reachability probe to the SSH port.
+  - Masking: password, private key and passphrase are added to
+    `sensitiveValues()`, `LogRedactor`, diagnostics and config preview;
+    `ProxyEntity.toString()` hides them.
+  - Import/export: `ssh://user:pass@host:port` in quick and line import
+    (explicit scheme only); JSON carries `privateKey`,
+    `privateKeyPassphrase`, `hostKey`. Export dialog gets one "Include
+    passwords and keys" checkbox, on by default, for all proxy types.
+  - Strings for all 12 locales; PRD proxy type list, README limits/features.
+- Files likely to create/change:
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/data/local/ProxyEntity.kt`,
+    `AppDatabase.kt`, `app/schemas/`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/vpn/singbox/SingBoxConfigGenerator.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/proxy/ProxyTester.kt`,
+    `ProxyStringParser.kt`, `ProxyLineImport.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/utils/ProxyTransfer.kt`,
+    `LogExport.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/ui/screens/AddEditProxyScreen.kt`,
+    `ProxyListScreen.kt`
+  - `app/src/main/java/com/hightemp/proxy_switcher_vpn/ui/viewmodel/VpnViewModel.kt`
+  - `app/src/main/res/values*/strings.xml`
+  - `PRD.md`, `AGENTS.md` (supported proxy types), `docs/README*.md`
+- Acceptance criteria:
+  - Config generator tests: password, key, key + passphrase, host key; no
+    `private_key_path`; DNS stays proxy-safe; UDP/443 still blocked.
+  - Masking tests: no password, key or passphrase in logs, diagnostics,
+    config preview, `toString()` or redacted log export.
+  - Migration 3 → 4 test; transfer round trip with and without secrets;
+    `ssh://` parser tests.
+  - Manual on the emulator with a local `sshd`: VPN works with password and
+    with key auth, exit IP is the SSH server, DNS leak check passes, a
+    changed server key stops the VPN with an error.
+- Test/smoke commands:
+  - `./gradlew test assembleDebug lintDebug`
+  - `docs/qa/manual-vpn-checklist.md` SSH section (added in this task).
+- Dependencies:
+  - TASK-234
+- Estimated risk: medium-high
+
 ## Phase 20: Post-MVP Improvements
 
 ### TASK-200: Evaluate Full UDP Proxying
