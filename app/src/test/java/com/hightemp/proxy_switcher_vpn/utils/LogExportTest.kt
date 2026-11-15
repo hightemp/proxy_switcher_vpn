@@ -25,6 +25,17 @@ class LogExportTest {
     }
 
     @Test
+    fun sshKeyAndPassphraseAreAlwaysHidden() {
+        val key = "-----BEGIN OPENSSH PRIVATE KEY-----\nkey-body\n-----END OPENSSH PRIVATE KEY-----"
+        val ssh = ProxyEntity(id = 3L, host = "ssh.example", port = 22, type = ProxyType.SSH, username = "tester", privateKey = key, privateKeyPassphrase = "key-pass")
+        val redactor = LogRedactor(proxies + ssh, hideAddresses = false)
+
+        val text = redactor.redact("bad key $key with passphrase key-pass for tester")
+
+        assertEquals("bad key *** with passphrase *** for ***", text)
+    }
+
+    @Test
     fun proxyHostsAndLabelsBecomeStableTags() {
         val redactor = LogRedactor(proxies, hideAddresses = true)
 

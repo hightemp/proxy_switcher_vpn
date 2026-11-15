@@ -63,6 +63,28 @@ class VpnRuntimeControllerTest {
     }
 
     @Test
+    fun permanentProbeFailureIsMarkedSoRetriesStop() = runTest {
+        val message = UserText.of(R.string.ssh_error_host_key_changed)
+        val transient = VpnRuntimeController(
+            engine = FakeVpnEngine(),
+            proxyTester = FakeReachabilityTester(ProxyTestResult(success = false, message = UserText.raw("timeout"))),
+            proxyNetworkResolver = FakeProxyNetworkResolver()
+        )
+        val permanent = VpnRuntimeController(
+            engine = FakeVpnEngine(),
+            proxyTester = FakeReachabilityTester(ProxyTestResult(success = false, message = message, permanent = true)),
+            proxyNetworkResolver = FakeProxyNetworkResolver()
+        )
+
+        val transientResult = transient.start(proxyRoute(), stopEngineOnFailure = false)
+        val permanentResult = permanent.start(proxyRoute(), stopEngineOnFailure = false)
+
+        assertEquals(false, (transientResult as VpnRuntimeControllerResult.Failure).permanent)
+        assertEquals(true, (permanentResult as VpnRuntimeControllerResult.Failure).permanent)
+        assertEquals(UserText.of(R.string.error_upstream_failed, message), permanentResult.message)
+    }
+
+    @Test
     fun proxyProbeFailureCanBeReportedWithoutStoppingEngineDuringReconnect() = runTest {
         val engine = FakeVpnEngine()
         val controller = VpnRuntimeController(

@@ -90,6 +90,8 @@ git -C tmp/sing-box status --short
 | Guava ListenableFuture | AndroidX transitive runtime | Apache-2.0 |
 | `javax.inject` | Dagger transitive runtime | Apache-2.0 |
 | `com.google.code.findbugs:jsr305` | Hilt transitive annotations | Apache-2.0 |
+| `com.github.mwiede:jsch` 2.28.8 (IMP-24) | SSH client for proxy checks and server key confirmation | BSD-3-Clause (JSch, Copyright (c) 2002-2015 Atsuhiko Yamanaka, JCraft,Inc.); bundled JZlib BSD-3-Clause (Copyright (c) 2000-2011 ymnk, JCraft,Inc.); bundled jBCrypt ISC (Copyright (c) 2006 Damien Miller) |
+| `org.bouncycastle:bcprov-jdk18on` 1.86 (IMP-24) | Ed25519/X25519 and ciphers for JSch | MIT (Copyright (c) 2000-2026 The Legion of the Bouncy Castle Inc.) |
 | Pinned downloaded `libbox.aar` | Native VPN/proxy engine | GPL-3.0-or-later plus the dependencies below |
 
 AndroidX POM constraints show several requested versions in the dependency

@@ -2,6 +2,7 @@ package com.hightemp.proxy_switcher_vpn.ui.screens
 
 import com.hightemp.proxy_switcher_vpn.R
 import com.hightemp.proxy_switcher_vpn.i18n.UserText
+import com.hightemp.proxy_switcher_vpn.proxy.SshKeys
 
 data class ProxyFormValidationResult(
     val host: String = "",
@@ -44,5 +45,24 @@ object ProxyFormValidator {
             password = password,
             errorMessage = error
         )
+    }
+
+    /**
+     * Extra SSH rules on top of [validate]: a username and a password or a
+     * private key in a format sing-box accepts. A missing server key does not
+     * block saving; the VPN refuses to start until it is confirmed.
+     */
+    fun validateSsh(
+        usernameInput: String,
+        passwordInput: String,
+        privateKeyInput: String
+    ): UserText? {
+        val privateKey = SshKeys.normalizePrivateKey(privateKeyInput)
+        return when {
+            usernameInput.isBlank() -> UserText.of(R.string.validation_ssh_username_required)
+            passwordInput.isEmpty() && privateKey == null -> UserText.of(R.string.ssh_error_credentials_required)
+            privateKey != null -> SshKeys.privateKeyProblem(privateKey)
+            else -> null
+        }
     }
 }

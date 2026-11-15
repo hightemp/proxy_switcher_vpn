@@ -56,6 +56,7 @@ import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -103,7 +104,7 @@ fun ProxyListScreen(
     onSelectProxy: (ProxyEntity) -> Unit,
     onDeleteProxy: (ProxyEntity, (DeletedProxy) -> Unit) -> Unit,
     onTestProxy: (ProxyEntity) -> Unit,
-    onExportProxies: () -> String,
+    onExportProxies: (includeSecrets: Boolean) -> String,
     onImportProxies: (String, (Int, UserText?) -> Unit) -> Unit,
     modifier: Modifier = Modifier,
     proxyDeleteCheck: (ProxyEntity) -> ProxyDeleteCheck = { ProxyDeleteCheck.ALLOWED },
@@ -250,7 +251,6 @@ fun ProxyListScreen(
                     }
                     IconButton(
                         onClick = {
-                            exportText = onExportProxies()
                             showExportDialog = true
                         }
                     ) {
@@ -368,7 +368,7 @@ fun ProxyListScreen(
 
     if (showExportDialog) {
         ExportProxyDialog(
-            text = exportText,
+            exportText = { includeSecrets -> onExportProxies(includeSecrets).also { exportText = it } },
             onDismiss = { showExportDialog = false },
             onSaveToFile = { saveFileLauncher.launch("proxies.json") }
         )
@@ -395,22 +395,39 @@ fun ProxyListScreen(
 
 @Composable
 private fun ExportProxyDialog(
-    text: String,
+    exportText: (includeSecrets: Boolean) -> String,
     onDismiss: () -> Unit,
     onSaveToFile: () -> Unit
 ) {
     val clipboard = LocalClipboardManager.current
     val context = LocalContext.current
+    var includeSecrets by remember { mutableStateOf(true) }
+    val text = remember(includeSecrets) { exportText(includeSecrets) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.proxy_export_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    text = stringResource(R.string.proxy_export_warning),
-                    style = MaterialTheme.typography.bodyMedium
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = stringResource(R.string.proxy_export_include_secrets),
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Switch(checked = includeSecrets, onCheckedChange = { includeSecrets = it })
+                }
+                if (includeSecrets) {
+                    Text(
+                        text = stringResource(R.string.proxy_export_warning),
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
                 OutlinedTextField(
                     value = text,
                     onValueChange = {},

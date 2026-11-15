@@ -156,4 +156,22 @@ class ProxyLineImportTest {
         assertFalse(display.contains("secret"))
         assertFalse(line.toString().contains("secret"))
     }
+
+    @Test
+    fun sshLinesKeepTheSavedKeyAndDropItWhenTheTypeChanges() {
+        val existing = ProxyEntity(
+            id = 5L, host = "ssh.example", port = 22, type = ProxyType.SSH, username = "tester",
+            privateKey = "key", hostKey = "ssh-ed25519 AAAA"
+        )
+
+        val sshLine = ProxyLineImport.preview("ssh://tester:new@ssh.example:22", auto, listOf(existing)).lines.single()
+        val socksLine = ProxyLineImport.preview("socks5://tester@ssh.example:22", auto, listOf(existing)).lines.single()
+
+        val updatedSsh = ProxyLineImport.updatedProxy(existing, sshLine.proxy!!)
+        val updatedSocks = ProxyLineImport.updatedProxy(existing, socksLine.proxy!!)
+        assertEquals(existing.copy(password = "new"), updatedSsh)
+        assertEquals(ProxyType.SOCKS5, updatedSocks.type)
+        assertNull(updatedSocks.privateKey)
+        assertNull(updatedSocks.hostKey)
+    }
 }

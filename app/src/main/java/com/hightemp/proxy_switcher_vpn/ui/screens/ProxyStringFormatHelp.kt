@@ -55,7 +55,8 @@ object ProxyStringFormatHelp {
                 "http://proxy.example:8080",
                 "https://user:pass@proxy.example:8443",
                 "socks5://user:pass@proxy.example:1080",
-                "socks5h://proxy.example:1080"
+                "socks5h://proxy.example:1080",
+                "ssh://user:pass@ssh.example:22"
             )
         ),
         ProxyStringFormatGroup(

@@ -7,7 +7,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
     entities = [ProxyEntity::class, ProxyCheckEntity::class],
-    version = 3,
+    version = 4,
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -29,6 +29,19 @@ abstract class AppDatabase : RoomDatabase() {
                 db.execSQL(ADD_PROXY_GROUP_V3)
             }
         }
+
+        /** Adds the SSH private key, its passphrase and the confirmed server key. */
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                ADD_SSH_COLUMNS_V4.forEach(db::execSQL)
+            }
+        }
+
+        val ADD_SSH_COLUMNS_V4 = listOf(
+            "ALTER TABLE `proxies` ADD COLUMN `privateKey` TEXT",
+            "ALTER TABLE `proxies` ADD COLUMN `privateKeyPassphrase` TEXT",
+            "ALTER TABLE `proxies` ADD COLUMN `hostKey` TEXT"
+        )
 
         const val ADD_PROXY_GROUP_V3 = "ALTER TABLE `proxies` ADD COLUMN `groupName` TEXT"
 

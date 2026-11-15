@@ -192,7 +192,8 @@ class MainActivity : AppCompatActivity() {
                                 navController.popBackStack()
                             },
                             onDetectProtocol = viewModel::detectProxyProtocol,
-                            groups = ProxyListQuery.groups(proxyList)
+                            groups = ProxyListQuery.groups(proxyList),
+                            onFetchSshHostKey = viewModel::fetchSshHostKey
                         )
                     }
                     composable(
@@ -212,7 +213,8 @@ class MainActivity : AppCompatActivity() {
                                 navController.popBackStack()
                             },
                             onDetectProtocol = viewModel::detectProxyProtocol,
-                            groups = ProxyListQuery.groups(proxyList)
+                            groups = ProxyListQuery.groups(proxyList),
+                            onFetchSshHostKey = viewModel::fetchSshHostKey
                         )
                     }
                 }

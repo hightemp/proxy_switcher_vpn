@@ -24,6 +24,8 @@ Direktmodus leitet.
 Die App ändert keine Android-System-Proxy-Einstellungen. Sie nutzt
 `VpnService` und einen eingebetteten sing-box-Kern.
 
+Unterstützte Upstreams: SOCKS5, HTTP, HTTPS (HTTP CONNECT über TLS) und SSH-Server.
+
 ## Screenshots
 
 Aufgenommen mit der Debug-App (v0.4.1) unter Android API 35. Die Proxy-Profile
@@ -80,6 +82,7 @@ Die Werte stammen aus `gradle/libbox.properties`, das der Build prüft.
 - IPv6 wird ausdrücklich nicht unterstützt;
 - UDP/443 ist standardmäßig blockiert, damit QUIC/HTTP3 den Proxy nicht
   umgeht;
+- ein SSH-Upstream überträgt nur TCP, und sein Serverschlüssel muss vor dem ersten Start im Proxy-Editor bestätigt werden; ein geänderter Serverschlüssel stoppt das VPN;
 - bleibt der ausgewählte Upstream-Proxy nach Wiederholungen nicht erreichbar,
   stoppt das VPN fail-closed;
 - der Direktmodus wird ausdrücklich gewählt und nie stillschweigend als

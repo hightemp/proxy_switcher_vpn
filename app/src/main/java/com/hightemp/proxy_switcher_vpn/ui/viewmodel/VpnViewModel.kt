@@ -18,6 +18,8 @@ import com.hightemp.proxy_switcher_vpn.proxy.ProxyInspector
 import com.hightemp.proxy_switcher_vpn.proxy.ProxyLineImport
 import com.hightemp.proxy_switcher_vpn.proxy.ProxyProtocolDetector
 import com.hightemp.proxy_switcher_vpn.proxy.ProxyReachabilityTester
+import com.hightemp.proxy_switcher_vpn.proxy.SshHostKeyFetcher
+import com.hightemp.proxy_switcher_vpn.proxy.SshHostKeyResult
 import com.hightemp.proxy_switcher_vpn.proxy.SpeedTestResult
 import com.hightemp.proxy_switcher_vpn.service.VpnRuntimeState
 import com.hightemp.proxy_switcher_vpn.ui.screens.ProxyGroupFilter
@@ -120,7 +122,8 @@ class VpnViewModel @Inject constructor(
     private val restrictionChecker: BackgroundRestrictionChecker,
     private val processExitHistory: ProcessExitHistory,
     private val proxyCheckRepository: ProxyCheckRepository,
-    private val proxyInspector: ProxyInspector
+    private val proxyInspector: ProxyInspector,
+    private val sshHostKeyFetcher: SshHostKeyFetcher
 ) : ViewModel() {
     private val protocolDetector = ProxyProtocolDetector(proxyTester)
     private val _uiState = MutableStateFlow(VpnPermissionUiState())
@@ -459,7 +462,14 @@ class VpnViewModel @Inject constructor(
         }
     }
 
-    fun exportProxiesToText(): String = ProxyTransfer.export(proxyList.value)
+    fun exportProxiesToText(includeSecrets: Boolean): String =
+        ProxyTransfer.export(proxyList.value, includeSecrets)
+
+    fun fetchSshHostKey(host: String, port: Int, onResult: (SshHostKeyResult) -> Unit) {
+        viewModelScope.launch {
+            onResult(sshHostKeyFetcher.fetchSshHostKey(host, port))
+        }
+    }
 
     fun importProxiesFromText(
         text: String,

@@ -218,6 +218,92 @@ class SingBoxConfigGeneratorTest {
     }
 
     @Test
+    fun generatesSshOutboundWithPasswordAndPinnedHostKey() {
+        val generated = generator.generate(
+            proxy(type = ProxyType.SSH, port = 22, username = "tester", password = "ssh-secret")
+        )
+
+        val outbound = firstOutbound(generated.json)
+
+        assertEquals("ssh", outbound["type"]?.jsonPrimitive?.content)
+        assertEquals(DEFAULT_PROXY_OUTBOUND_TAG, outbound["tag"]?.jsonPrimitive?.content)
+        assertEquals("proxy.example", outbound["server"]?.jsonPrimitive?.content)
+        assertEquals(22, outbound["server_port"]?.jsonPrimitive?.int)
+        assertEquals("tester", outbound["user"]?.jsonPrimitive?.content)
+        assertEquals("ssh-secret", outbound["password"]?.jsonPrimitive?.content)
+        assertEquals(listOf(ED25519_HOST_KEY), outbound.stringArray("host_key"))
+        assertEquals(listOf("ssh-ed25519"), outbound.stringArray("host_key_algorithms"))
+        assertEquals(
+            DEFAULT_PROXY_HOST_BOOTSTRAP_DNS_TAG,
+            outbound["domain_resolver"]?.jsonPrimitive?.content
+        )
+        assertNull(outbound["private_key"])
+        assertNull(outbound["private_key_path"])
+    }
+
+    @Test
+    fun generatesSshOutboundWithKeyAndPassphrase() {
+        val generated = generator.generate(
+            proxy(
+                type = ProxyType.SSH,
+                username = "tester",
+                privateKey = PRIVATE_KEY,
+                privateKeyPassphrase = "key-pass",
+                hostKey = "[proxy.example]:22 $RSA_HOST_KEY"
+            )
+        )
+
+        val outbound = firstOutbound(generated.json)
+        val masked = firstOutbound(generated.maskedPreview)
+
+        assertEquals(
+            "-----BEGIN OPENSSH PRIVATE KEY-----\nb3BlbnNzaC1rZXktdjEAAAAA-secret-body\n-----END OPENSSH PRIVATE KEY-----",
+            outbound["private_key"]?.jsonPrimitive?.content
+        )
+        assertEquals("key-pass", outbound["private_key_passphrase"]?.jsonPrimitive?.content)
+        assertNull(outbound["password"])
+        assertNull(outbound["private_key_path"])
+        assertEquals(listOf(RSA_HOST_KEY), outbound.stringArray("host_key"))
+        assertEquals(listOf("rsa-sha2-512", "rsa-sha2-256"), outbound.stringArray("host_key_algorithms"))
+        assertEquals("***", masked["user"]?.jsonPrimitive?.content)
+        assertEquals("***", masked["private_key"]?.jsonPrimitive?.content)
+        assertEquals("***", masked["private_key_passphrase"]?.jsonPrimitive?.content)
+        assertFalse(generated.maskedPreview.contains("secret-body"))
+        assertFalse(generated.maskedPreview.contains("key-pass"))
+        assertTrue(generated.maskedPreview.contains(RSA_HOST_KEY))
+    }
+
+    @Test
+    fun sshProxyWithoutConfirmedHostKeyIsRejected() {
+        listOf(null, "", "ssh-ed25519 not-base64!").forEach { hostKey ->
+            val error = runCatching {
+                generator.generate(proxy(type = ProxyType.SSH, username = "tester", password = "p", hostKey = hostKey))
+            }.exceptionOrNull()
+
+            assertTrue("hostKey=$hostKey", error is IllegalArgumentException)
+        }
+    }
+
+    @Test
+    fun sshConfigKeepsProxySafeDnsAndUdpBlock() {
+        val generated = generator.generate(proxy(type = ProxyType.SSH, username = "tester", password = "p"))
+
+        val dohServer = dns(generated.json).getValue("servers").jsonArray.first().jsonObject
+        val rules = route(generated.json).getValue("rules").jsonArray.map { it.jsonObject }
+
+        assertEquals(DEFAULT_PROXY_OUTBOUND_TAG, dohServer["detour"]?.jsonPrimitive?.content)
+        assertEquals(DEFAULT_PROXY_OUTBOUND_TAG, route(generated.json)["final"]?.jsonPrimitive?.content)
+        assertTrue(
+            rules.any { rule ->
+                rule["network"]?.jsonPrimitive?.content == "udp" &&
+                    rule["port"]?.jsonPrimitive?.int == UdpPolicy.UDP_443_PORT &&
+                    rule["action"]?.jsonPrimitive?.content == "reject"
+            }
+        )
+        assertEquals(1, root(generated.json).getValue("outbounds").jsonArray.size)
+    }
+
+    @Test
     fun generatedConfigContainsLogSectionAndParseableJson() {
         val generated = generator.generate(proxy(type = ProxyType.HTTP))
 
@@ -492,7 +578,10 @@ class SingBoxConfigGeneratorTest {
         type: ProxyType,
         port: Int = 1080,
         username: String? = null,
-        password: String? = null
+        password: String? = null,
+        privateKey: String? = null,
+        privateKeyPassphrase: String? = null,
+        hostKey: String? = if (type == ProxyType.SSH) ED25519_HOST_KEY else null
     ): ProxyEntity {
         return ProxyEntity(
             id = 1L,
@@ -501,7 +590,22 @@ class SingBoxConfigGeneratorTest {
             type = type,
             username = username,
             password = password,
-            label = "Test proxy"
+            label = "Test proxy",
+            privateKey = privateKey,
+            privateKeyPassphrase = privateKeyPassphrase,
+            hostKey = hostKey
         )
+    }
+
+    private companion object {
+        const val ED25519_HOST_KEY =
+            "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICB8BYL3UC44wKFmebFbQCgtyM5cVbO/fjpf4CKx82rh"
+        const val RSA_HOST_KEY = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCgjZZr7uV9r/YGQdfAtCqpSNf8JJpRfB7UqKF" +
+            "UO5lGgdxbwR+hD9YuysoScDhVNaB/bgEGx+r3gAX8uTiG6V/ex0u+qKqU+tmoPgjBo59uxhtNWDZwgNbV84bhVNiQArWxp/A" +
+            "aEohJGq4TSphMOYmkm4MpU6YiFAZMC6dCVZ3UUbgkGIUD4EbIhG+qnetVEUVRiONhRGvDasj4IhrJtc/w0GJNtiD4PlEAWaa" +
+            "P8+b9Ayk/w2sxwlxNaXj26aiqkzLZJ2G6wsvX1Kiy446/7ifL7QraYWA3TUVAzDyyt43x9BfEuh8+/qHQ8YPDXgnjEh+omX/s" +
+            "Gg7XP2bPb8o7QB2p"
+        const val PRIVATE_KEY = "-----BEGIN OPENSSH PRIVATE KEY-----\r\nb3BlbnNzaC1rZXktdjEAAAAA-secret-body" +
+            "\r\n-----END OPENSSH PRIVATE KEY-----\r\n"
     }
 }

@@ -15,8 +15,8 @@ data class LogExportHeader(
 )
 
 /**
- * Removes secrets from exported text. Saved proxy usernames and passwords are
- * always replaced; with [hideAddresses] saved proxy hosts and labels, public
+ * Removes secrets from exported text. Saved proxy usernames, passwords, SSH
+ * private keys and passphrases are always replaced; with [hideAddresses] saved proxy hosts and labels, public
  * IPv4 addresses and domain names become stable tags (`proxy-N`, `ip-N`,
  * `domain-N`). Keep one instance per report so tags stay consistent.
  */
@@ -31,7 +31,7 @@ class LogRedactor(
     init {
         val values = mutableMapOf<String, String>()
         proxies.forEach { proxy ->
-            listOfNotNull(proxy.username, proxy.password).forEach { values[it] = MASK }
+            proxy.sensitiveValues().forEach { values[it] = MASK }
         }
         if (hideAddresses) {
             proxies.forEachIndexed { index, proxy ->

@@ -17,6 +17,8 @@ import com.hightemp.proxy_switcher_vpn.proxy.ExitInfo
 import com.hightemp.proxy_switcher_vpn.proxy.ParsedProxyString
 import com.hightemp.proxy_switcher_vpn.proxy.ProxyFieldOrder
 import com.hightemp.proxy_switcher_vpn.proxy.ProxyInspector
+import com.hightemp.proxy_switcher_vpn.proxy.SshHostKeyFetcher
+import com.hightemp.proxy_switcher_vpn.proxy.SshHostKeyResult
 import com.hightemp.proxy_switcher_vpn.proxy.ProxyLineImport
 import com.hightemp.proxy_switcher_vpn.proxy.ProxyLineImportOptions
 import com.hightemp.proxy_switcher_vpn.proxy.ProxyReachabilityTester
@@ -413,7 +415,11 @@ class VpnViewModelTest {
             restrictionChecker = restrictionChecker,
             processExitHistory = processExitHistory,
             proxyCheckRepository = ProxyCheckRepository(checkDao),
-            proxyInspector = inspector
+            proxyInspector = inspector,
+            sshHostKeyFetcher = object : SshHostKeyFetcher {
+                override suspend fun fetchSshHostKey(host: String, port: Int) =
+                    SshHostKeyResult.Failure(UserText.raw("not used"))
+            }
         )
     }
 

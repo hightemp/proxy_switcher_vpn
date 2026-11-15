@@ -26,6 +26,20 @@ class AppDatabaseSchemaTest {
         assertEquals("ALTER TABLE `proxies` ADD COLUMN `groupName` TEXT", AppDatabase.ADD_PROXY_GROUP_V3)
     }
 
+    /** v3 → v4 adds three nullable TEXT columns for SSH. */
+    @Test
+    fun sshColumnsMigrationMatchesExportedSchema() {
+        val v3 = proxiesCreateSql(schema(version = 3))
+        val v4 = proxiesCreateSql(schema(version = 4))
+        val columns = listOf("privateKey", "privateKeyPassphrase", "hostKey")
+
+        assertEquals(v3.removeSuffix(")") + columns.joinToString("") { ", `$it` TEXT" } + ")", v4)
+        assertEquals(
+            columns.map { "ALTER TABLE `proxies` ADD COLUMN `$it` TEXT" },
+            AppDatabase.ADD_SSH_COLUMNS_V4
+        )
+    }
+
     private fun proxiesCreateSql(schema: String): String {
         return Regex("\"tableName\": \"proxies\",\\s*\"createSql\": \"([^\"]+)\"")
             .find(schema)!!.groupValues[1]

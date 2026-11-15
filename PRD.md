@@ -18,7 +18,8 @@ The old system proxy screen is not part of this product. It should be replaced b
 
 - Start and stop a local Android VPN from the app UI.
 - Route TCP traffic through the selected upstream proxy.
-- Support SOCKS5, HTTP proxy, and HTTPS proxy upstreams.
+- Support SOCKS5, HTTP proxy, and HTTPS proxy upstreams, plus SSH servers
+  as upstreams (post-MVP, IMP-24).
 - Support username/password authentication where each proxy type allows it.
 - Keep DNS proxy-safe and prevent direct DNS leaks.
 - Make IPv6 unsupported explicit for MVP and prevent IPv6 leaks.
@@ -99,6 +100,24 @@ New project should keep these conventions, but replace system proxy management w
   - SOCKS5.
   - HTTP.
   - HTTPS, defined as HTTP CONNECT over TLS to the proxy server.
+  - SSH (post-MVP, IMP-24): an SSH server carries all VPN TCP traffic through
+    `direct-tcpip` channels, like `ssh -D`. Port forwarding (`-L`) is out of
+    scope. Rules:
+    - username is required; authentication by password and/or an OpenSSH or
+      PEM private key (ed25519, rsa, ecdsa) with an optional passphrase. The
+      key is pasted or read from a file picked with the system file picker.
+      PuTTY `.ppk` keys are rejected with a conversion hint.
+    - The server key is trusted on first use: the app fetches it, shows the
+      type and SHA256 fingerprint, and saves it only after the user confirms;
+      it can also be pasted from a `.pub`/`known_hosts` line. Changing host or
+      port clears it. VPN start is refused while no key is confirmed.
+    - A changed server key, rejected credentials or an unreadable key are
+      permanent failures: start, route switch and reconnect stop at once with
+      that error instead of retrying. The upstream monitor reads the SSH banner
+      on most probes and runs the full handshake (with the key check) once a
+      minute, so a key change during a session also stops the VPN.
+    - Only TCP goes through SSH. DNS stays DoH over the tunnel; UDP rules are
+      unchanged.
 - Required fields:
   - protocol.
   - host.
@@ -111,13 +130,18 @@ New project should keep these conventions, but replace system proxy management w
 - Mask proxy passwords in logs, config previews, and UI summaries.
 - Import/export proxy list as a JSON array compatible with the reference
   `proxy_switcher` app fields: `host`, `port`, `type`, optional `username`,
-  optional `password`, optional `label`, and `isEnabled`.
+  optional `password`, optional `label`, and `isEnabled`. App-specific
+  optional fields: `group`, `privateKey`, `privateKeyPassphrase`, `hostKey`.
+  The export dialog has an "Include passwords and keys" switch, on by
+  default; when off, passwords, private keys and passphrases are omitted.
 - Add/Edit proxy accepts one pasted proxy string and a Parse action that fills
   the form fields; the user still reviews and saves manually. Supported forms:
   - `host:port`, `host:port:username:password`, `username:password:host:port`
     (proxyline), `username[:password]@host:port`.
   - `scheme://[username[:password]@]host:port[/]` for `http`, `https`,
-    `socks5`, `socks5h`; URI credentials are percent-decoded once.
+    `socks5`, `socks5h`, `ssh`; URI credentials are percent-decoded once.
+    SSH is only recognized by an explicit `ssh` scheme or protocol name;
+    protocol detection never selects it.
   - A protocol name before or after the record, separated by whitespace.
   - Space-separated `host port [username password] [protocol]`.
   - One headerless CSV/TSV row `host,port[,username,password][,protocol]`
@@ -282,6 +306,10 @@ Proxy protocol mapping for sing-box config:
 - SOCKS5 maps to `socks` outbound.
 - HTTP proxy maps to `http` outbound.
 - HTTPS proxy maps to `http` outbound with TLS enabled.
+- SSH maps to `ssh` outbound with inline `private_key` (never
+  `private_key_path`), `host_key` set to the confirmed key and
+  `host_key_algorithms` pinned to that key's type, because sing-box compares
+  the key byte for byte but negotiates the algorithm itself.
 - Username/password maps to the matching sing-box outbound auth fields.
 
 Failure behavior:
@@ -349,6 +377,9 @@ Initial Room entities should follow the reference style but adapt names to VPN:
 - `password: String?` or encrypted/secure reference if secure storage is added.
 - `label: String?`.
 - `isEnabled: Boolean`.
+- `groupName: String?` (IMP-11).
+- `privateKey: String?`, `privateKeyPassphrase: String?`, `hostKey: String?`
+  (SSH only, IMP-24; Room v4).
 - Optional post-MVP fields: test result, last used timestamp, last error, tags.
 
 ### ProxyType
@@ -356,6 +387,7 @@ Initial Room entities should follow the reference style but adapt names to VPN:
 - `SOCKS5`.
 - `HTTP`.
 - `HTTPS`.
+- `SSH` (post-MVP, IMP-24).
 
 ### Runtime State
 
@@ -432,7 +464,9 @@ Expected screens:
    - test proxy action if available.
 
 3. Add/Edit proxy screen
-   - protocol selection: SOCKS5, HTTP, HTTPS.
+   - protocol selection: SOCKS5, HTTP, HTTPS, SSH.
+   - for SSH: private key (paste or file), passphrase, server key with
+     "Get key" and "Enter manually".
    - host.
    - port.
    - username/password optional.

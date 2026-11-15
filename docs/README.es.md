@@ -24,6 +24,8 @@ explícitamente.
 La app no cambia la configuración de proxy del sistema Android. Usa
 `VpnService` y un núcleo sing-box integrado.
 
+Upstreams compatibles: SOCKS5, HTTP, HTTPS (HTTP CONNECT sobre TLS) y servidores SSH.
+
 ## Capturas de pantalla
 
 Tomadas de la app de depuración (v0.4.1) en Android API 35. Los perfiles de proxy
@@ -78,6 +80,7 @@ Los valores provienen de `gradle/libbox.properties`, que la compilación verific
 - solo IPv4;
 - IPv6 no es compatible de forma explícita;
 - UDP/443 se bloquea por defecto para que QUIC/HTTP3 no evite el proxy;
+- un upstream SSH solo transporta TCP, y su clave de servidor debe confirmarse en el editor del proxy antes del primer inicio; si la clave del servidor cambia, la VPN se detiene;
 - si el proxy de salida seleccionado sigue sin estar disponible tras los
   reintentos, la VPN se detiene en modo fail-closed;
 - el modo Directo se elige explícitamente y nunca se usa como alternativa

@@ -2952,9 +2952,9 @@ Decisions (agreed with the user on 2026-10-20):
 - Files changed:
   - `TASKS.md`, `docs/IMPROVEMENT_PLAN.md`
 
-### TASK-235: Add SSH Upstream Proxy Type (IMP-24)
+### ✅ TASK-235: Add SSH Upstream Proxy Type (IMP-24)
 
-- Status: pending
+- Status: done
 - Goal: Route all VPN TCP traffic through an SSH server using the sing-box
   `ssh` outbound.
 - Decisions: see IMP-24 in `docs/IMPROVEMENT_PLAN.md` (agreed 2026-11-15).
@@ -3031,6 +3031,63 @@ Decisions (agreed with the user on 2026-10-20):
 - Dependencies:
   - TASK-234
 - Estimated risk: medium-high
+- Result:
+  - `ProxyType.SSH`, Room v4 (`privateKey`, `privateKeyPassphrase`,
+    `hostKey`; `MIGRATION_3_4`, schema `4.json`, schema test).
+    `ProxyEntity.sensitiveValues()` replaces three local copies and also
+    covers the key and passphrase; `withoutStaleSshFields()` drops SSH fields
+    when the type is not SSH (editor, line import, JSON import).
+  - `proxy/SshKeys.kt`: host key parsing (`.pub` and `known_hosts` lines,
+    type checked against the key data), SHA256 fingerprint, pinned algorithms,
+    private key checks (OpenSSH/PEM block, PuTTY rejected, 16 KB limit).
+  - `proxy/SshConnector.kt` (JSch + BouncyCastle): sessions over the same
+    protected, non-VPN sockets as the other checks; `direct-tcpip` channels
+    are bridged to a loopback socket so `ProxyInspector` layers TLS on them
+    unchanged; banner probe; host key fetch without credentials.
+  - `SingBoxSshOutbound`: user, password, inline key, passphrase (all masked
+    in the preview), `host_key`, `host_key_algorithms`, `domain_resolver`;
+    the generator refuses an SSH proxy without a confirmed key.
+  - Permanent failures: `ProxyTestResult.permanent` (validation errors,
+    unconfirmed or changed server key, rejected credentials, unreadable key)
+    flows through `VpnRuntimeControllerResult.Failure.permanent`; the retry
+    loop stops at once and the VPN shows that error. Without this a changed
+    key retried forever with unlimited reconnects.
+  - Upstream monitor: for SSH most probes read the banner; every 12th probe
+    (about once a minute) runs the full handshake. A permanent probe failure
+    skips the failure threshold, so a key change during a session stops the
+    VPN.
+  - UI: SSH in the protocol selector (port 22 by default); private key field
+    with "From file" and "Clear key", passphrase, server key with type and
+    fingerprint, "Get key" (confirmation dialog, warning when it differs from
+    the saved key) and "Enter manually". Host or port edits clear the key.
+    Username label drops "(optional)" for SSH. Export dialog switch "Include
+    passwords and keys" (on by default). Format help lists `ssh://`.
+  - Strings: 30 new keys and 3 updated keys in all 12 locales.
+  - Docs: PRD, AGENTS.md, README (12 languages), QA checklist SSH section,
+    license audit and third-party notices.
+- Deviation from the plan: the list's Check does not ask for key
+  confirmation; an unconfirmed key fails with "open the proxy and get the
+  server key", and trusting a new key happens in the editor.
+- Verification:
+  - `./gradlew test lintDebug`: 259 tests pass; lint has no errors; the only
+    new warning is `AuthLeak` on the `ssh://user:pass@…` format help example,
+    like the three existing examples.
+  - Emulator API 35, Russian, against a local OpenSSH 9.7 container:
+    fingerprint matches `ssh-keygen`; Check works with a password and with an
+    ed25519 key with passphrase loaded from a file (also while the VPN runs);
+    VPN works with both, sshd logs `Accepted password`/`Accepted publickey`,
+    DoH (`1.1.1.1:443`) goes through sshd; a changed key stops the VPN at
+    once on start and within 51 s during a session; the editor warns about the
+    changed key; export without secrets keeps only username and server key.
+- Remaining risks:
+  - Not run on API 24 (no image could be installed); static checks from
+    TASK-234 apply.
+  - The banner probe makes sshd log one "Connection closed" line every 5 s;
+    aggressive fail2ban modes might count it.
+  - JSch sessions use the 4 s check timeout as read timeout, which is fine for
+    the short checks but would end an idle session.
+  - SSH keys are stored like passwords (plaintext Room, see IMP-01); release
+    notice bundling (license audit item 2) is still open.
 
 ## Phase 20: Post-MVP Improvements
 

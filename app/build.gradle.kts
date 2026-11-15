@@ -154,6 +154,10 @@ android {
     buildFeatures {
         compose = true
     }
+    packaging {
+        // JSch and BouncyCastle both ship this multi-release OSGi manifest.
+        resources.excludes += "META-INF/versions/*/OSGI-INF/MANIFEST.MF"
+    }
     androidResources {
         generateLocaleConfig = true
     }
@@ -332,6 +336,8 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.kotlinx.serialization.json)
+    implementation(libs.jsch)
+    implementation(libs.bouncycastle.bcprov)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

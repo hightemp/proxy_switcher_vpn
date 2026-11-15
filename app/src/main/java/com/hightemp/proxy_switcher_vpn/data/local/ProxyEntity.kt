@@ -6,7 +6,8 @@ import androidx.room.PrimaryKey
 enum class ProxyType {
     SOCKS5,
     HTTP,
-    HTTPS
+    HTTPS,
+    SSH
 }
 
 @Entity(tableName = "proxies")
@@ -20,8 +21,26 @@ data class ProxyEntity(
     val label: String? = null,
     val isEnabled: Boolean = true,
     /** Optional user-defined group, shown as a filter on the proxy list. */
-    val groupName: String? = null
+    val groupName: String? = null,
+    /** SSH only: OpenSSH or PEM private key text. */
+    val privateKey: String? = null,
+    /** SSH only: passphrase of [privateKey]. */
+    val privateKeyPassphrase: String? = null,
+    /** SSH only: confirmed server key in `authorized_keys` form; null until the user confirms it. */
+    val hostKey: String? = null
 ) {
+    /** Secret values that must be masked wherever text about this proxy is logged or shown. */
+    fun sensitiveValues(): List<String> {
+        return listOfNotNull(username, password, privateKey, privateKeyPassphrase)
+            .filter { it.isNotBlank() }
+    }
+
+    /** SSH key fields mean nothing for other protocols; drop them when the type changes. */
+    fun withoutStaleSshFields(): ProxyEntity {
+        if (type == ProxyType.SSH) return this
+        return copy(privateKey = null, privateKeyPassphrase = null, hostKey = null)
+    }
+
     override fun toString(): String {
         return "ProxyEntity(" +
             "id=$id, " +
@@ -32,7 +51,10 @@ data class ProxyEntity(
             "password=${password?.let { "'***'" }}, " +
             "label=${label?.let { "'$it'" }}, " +
             "isEnabled=$isEnabled, " +
-            "groupName=${groupName?.let { "'$it'" }}" +
+            "groupName=${groupName?.let { "'$it'" }}, " +
+            "privateKey=${privateKey?.let { "'***'" }}, " +
+            "privateKeyPassphrase=${privateKeyPassphrase?.let { "'***'" }}, " +
+            "hostKey=${hostKey?.let { "'$it'" }}" +
             ")"
     }
 }

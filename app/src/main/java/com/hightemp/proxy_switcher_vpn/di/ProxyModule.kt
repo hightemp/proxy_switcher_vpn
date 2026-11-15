@@ -7,6 +7,7 @@ import com.hightemp.proxy_switcher_vpn.proxy.ProxyNetworkResolver
 import com.hightemp.proxy_switcher_vpn.proxy.ProxyReachabilityTester
 import com.hightemp.proxy_switcher_vpn.proxy.ProxyTester
 import com.hightemp.proxy_switcher_vpn.proxy.ProxyTunnelOpener
+import com.hightemp.proxy_switcher_vpn.proxy.SshHostKeyFetcher
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -24,6 +25,11 @@ abstract class ProxyModule {
     abstract fun bindProxyTunnelOpener(
         tester: ProxyTester
     ): ProxyTunnelOpener
+
+    @Binds
+    abstract fun bindSshHostKeyFetcher(
+        tester: ProxyTester
+    ): SshHostKeyFetcher
 
     @Binds
     abstract fun bindProxyInspector(

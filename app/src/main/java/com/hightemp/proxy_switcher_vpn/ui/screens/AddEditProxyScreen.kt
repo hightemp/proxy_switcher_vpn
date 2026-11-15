@@ -1,5 +1,8 @@
 package com.hightemp.proxy_switcher_vpn.ui.screens
 
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,6 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -32,6 +36,7 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -41,7 +46,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
@@ -54,6 +61,9 @@ import com.hightemp.proxy_switcher_vpn.data.local.ProxyType
 import com.hightemp.proxy_switcher_vpn.proxy.ParsedProxyString
 import com.hightemp.proxy_switcher_vpn.proxy.ProxyStringParseResult
 import com.hightemp.proxy_switcher_vpn.proxy.ProxyStringParser
+import com.hightemp.proxy_switcher_vpn.proxy.SshHostKey
+import com.hightemp.proxy_switcher_vpn.proxy.SshHostKeyResult
+import com.hightemp.proxy_switcher_vpn.proxy.SshKeys
 import com.hightemp.proxy_switcher_vpn.ui.theme.Proxy_switcher_vpnTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -65,7 +75,8 @@ fun AddEditProxyScreen(
     onSave: (ProxyEntity) -> Unit,
     onDetectProtocol: (ParsedProxyString, (ProxyType?) -> Unit) -> Unit,
     modifier: Modifier = Modifier,
-    groups: List<String> = emptyList()
+    groups: List<String> = emptyList(),
+    onFetchSshHostKey: (host: String, port: Int, (SshHostKeyResult) -> Unit) -> Unit = { _, _, _ -> }
 ) {
     Scaffold(
         topBar = {
@@ -100,6 +111,7 @@ fun AddEditProxyScreen(
                 onDetectProtocol = onDetectProtocol,
                 onCancel = onBack,
                 groups = groups,
+                onFetchSshHostKey = onFetchSshHostKey,
                 modifier = Modifier
                     .padding(innerPadding)
                     .fillMaxSize()
@@ -136,6 +148,7 @@ private fun ProxyForm(
     onDetectProtocol: (ParsedProxyString, (ProxyType?) -> Unit) -> Unit,
     onCancel: () -> Unit,
     groups: List<String>,
+    onFetchSshHostKey: (host: String, port: Int, (SshHostKeyResult) -> Unit) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var label by remember(proxy?.id) { mutableStateOf(proxy?.label.orEmpty()) }
@@ -146,6 +159,9 @@ private fun ProxyForm(
     var username by remember(proxy?.id) { mutableStateOf(proxy?.username.orEmpty()) }
     var password by remember(proxy?.id) { mutableStateOf(proxy?.password.orEmpty()) }
     var isEnabled by remember(proxy?.id) { mutableStateOf(proxy?.isEnabled ?: true) }
+    var privateKey by remember(proxy?.id) { mutableStateOf(proxy?.privateKey.orEmpty()) }
+    var passphrase by remember(proxy?.id) { mutableStateOf(proxy?.privateKeyPassphrase.orEmpty()) }
+    var hostKey by remember(proxy?.id) { mutableStateOf(proxy?.hostKey) }
     var errorMessage by remember(proxy?.id) { mutableStateOf<UserText?>(null) }
     var proxyString by remember(proxy?.id) { mutableStateOf("") }
     var proxyStringError by remember(proxy?.id) { mutableStateOf<UserText?>(null) }
@@ -158,6 +174,7 @@ private fun ProxyForm(
     var detectGeneration by remember(proxy?.id) { mutableIntStateOf(0) }
 
     val applyParsed = { parsed: ParsedProxyString ->
+        if (parsed.host != host.trim() || parsed.port.toString() != port.trim()) hostKey = null
         host = parsed.host
         port = parsed.port.toString()
         username = parsed.username.orEmpty()
@@ -243,6 +260,7 @@ private fun ProxyForm(
         OutlinedTextField(
             value = host,
             onValueChange = {
+                if (it.trim() != host.trim()) hostKey = null
                 host = it
                 errorMessage = null
             },
@@ -253,6 +271,7 @@ private fun ProxyForm(
         OutlinedTextField(
             value = port,
             onValueChange = {
+                if (it.trim() != port.trim()) hostKey = null
                 port = it
                 errorMessage = null
             },
@@ -265,6 +284,7 @@ private fun ProxyForm(
             selectedType = type,
             onTypeSelected = {
                 type = it
+                if (it == ProxyType.SSH && port.isBlank()) port = SshKeys.DEFAULT_PORT.toString()
                 errorMessage = null
             }
         )
@@ -274,7 +294,13 @@ private fun ProxyForm(
                 username = it
                 errorMessage = null
             },
-            label = { Text(stringResource(R.string.proxy_field_username)) },
+            label = {
+                Text(
+                    stringResource(
+                        if (type == ProxyType.SSH) R.string.proxy_field_ssh_username else R.string.proxy_field_username
+                    )
+                )
+            },
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
         )
@@ -290,6 +316,29 @@ private fun ProxyForm(
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
         )
+        if (type == ProxyType.SSH) {
+            SshFields(
+                privateKey = privateKey,
+                onPrivateKeyChange = {
+                    privateKey = it
+                    errorMessage = null
+                },
+                passphrase = passphrase,
+                onPassphraseChange = { passphrase = it },
+                hostKey = hostKey,
+                onHostKeyChange = { hostKey = it },
+                onFetchHostKey = { onResult ->
+                    val portNumber = port.trim().toIntOrNull()
+                    if (host.isBlank() || portNumber == null || portNumber !in 1..65535) {
+                        errorMessage = UserText.of(R.string.validation_host_required).takeIf { host.isBlank() }
+                            ?: UserText.of(R.string.validation_port_range)
+                        onResult(null)
+                    } else {
+                        onFetchSshHostKey(host.trim(), portNumber) { result -> onResult(result) }
+                    }
+                }
+            )
+        }
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -331,10 +380,17 @@ private fun ProxyForm(
                         usernameInput = username,
                         passwordInput = password
                     )
+                    val sshError = if (selectedType == ProxyType.SSH) {
+                        ProxyFormValidator.validateSsh(username, password, privateKey)
+                    } else {
+                        null
+                    }
                     if (ambiguousParse != null) {
                         errorMessage = UserText.of(R.string.proxy_form_choose_order)
                     } else if (selectedType == null) {
                         errorMessage = UserText.of(R.string.proxy_form_select_protocol)
+                    } else if (validation.isValid && sshError != null) {
+                        errorMessage = sshError
                     } else if (validation.isValid) {
                         onSave(
                             ProxyEntity(
@@ -346,8 +402,11 @@ private fun ProxyForm(
                                 password = validation.password,
                                 label = label.trim().ifBlank { null },
                                 isEnabled = isEnabled,
-                                groupName = groupName.trim().ifBlank { null }
-                            )
+                                groupName = groupName.trim().ifBlank { null },
+                                privateKey = SshKeys.normalizePrivateKey(privateKey),
+                                privateKeyPassphrase = passphrase.ifEmpty { null },
+                                hostKey = hostKey
+                            ).withoutStaleSshFields()
                         )
                     } else {
                         errorMessage = validation.errorMessage
@@ -490,6 +549,231 @@ private fun GroupField(
             }
         }
     }
+}
+
+/** SSH private key, its passphrase and the confirmed server key. */
+@Composable
+private fun SshFields(
+    privateKey: String,
+    onPrivateKeyChange: (String) -> Unit,
+    passphrase: String,
+    onPassphraseChange: (String) -> Unit,
+    hostKey: String?,
+    onHostKeyChange: (String?) -> Unit,
+    onFetchHostKey: ((SshHostKeyResult?) -> Unit) -> Unit
+) {
+    val context = LocalContext.current
+    var fetching by remember { mutableStateOf(false) }
+    var fetchError by remember { mutableStateOf<UserText?>(null) }
+    var pendingKey by remember { mutableStateOf<SshHostKey?>(null) }
+    var showManualEntry by remember { mutableStateOf(false) }
+    val confirmedKey = hostKey?.let(SshKeys::parseHostKey)
+    val keyFileLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        val text = runCatching {
+            context.contentResolver.openInputStream(uri)?.use { input ->
+                // One byte over the limit is enough for validation to report "too long".
+                val buffer = ByteArray(SshKeys.MAX_PRIVATE_KEY_LENGTH + 1)
+                var total = 0
+                while (total < buffer.size) {
+                    val count = input.read(buffer, total, buffer.size - total)
+                    if (count < 0) break
+                    total += count
+                }
+                String(buffer, 0, total, Charsets.UTF_8)
+            }
+        }.getOrNull()
+        if (text == null) {
+            Toast.makeText(context, R.string.ssh_key_file_error, Toast.LENGTH_SHORT).show()
+        } else {
+            onPrivateKeyChange(text)
+        }
+    }
+
+    OutlinedTextField(
+        value = privateKey,
+        onValueChange = onPrivateKeyChange,
+        label = { Text(stringResource(R.string.proxy_field_private_key)) },
+        supportingText = { Text(stringResource(R.string.proxy_field_private_key_hint)) },
+        visualTransformation = PasswordVisualTransformation(),
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+        maxLines = 3,
+        modifier = Modifier.fillMaxWidth()
+    )
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        OutlinedButton(onClick = { keyFileLauncher.launch(arrayOf("*/*")) }) {
+            Text(stringResource(R.string.ssh_key_from_file))
+        }
+        if (privateKey.isNotEmpty()) {
+            TextButton(onClick = { onPrivateKeyChange("") }) {
+                Text(stringResource(R.string.ssh_key_clear))
+            }
+        }
+    }
+    OutlinedTextField(
+        value = passphrase,
+        onValueChange = onPassphraseChange,
+        label = { Text(stringResource(R.string.proxy_field_passphrase)) },
+        visualTransformation = PasswordVisualTransformation(),
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+        singleLine = true,
+        modifier = Modifier.fillMaxWidth()
+    )
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            text = stringResource(R.string.ssh_host_key_title),
+            style = MaterialTheme.typography.titleSmall
+        )
+        if (confirmedKey != null) {
+            Text(confirmedKey.type, style = MaterialTheme.typography.bodySmall)
+            Text(
+                text = confirmedKey.fingerprint,
+                style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace)
+            )
+        } else {
+            Text(
+                text = stringResource(R.string.ssh_host_key_unconfirmed),
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            OutlinedButton(
+                enabled = !fetching,
+                onClick = {
+                    fetching = true
+                    fetchError = null
+                    onFetchHostKey { result ->
+                        fetching = false
+                        when (result) {
+                            is SshHostKeyResult.Success -> pendingKey = result.key
+                            is SshHostKeyResult.Failure -> fetchError = result.message
+                            null -> Unit
+                        }
+                    }
+                }
+            ) {
+                Text(stringResource(R.string.ssh_host_key_fetch))
+            }
+            TextButton(onClick = { showManualEntry = true }) {
+                Text(stringResource(R.string.ssh_host_key_enter))
+            }
+            if (fetching) {
+                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+            }
+        }
+        fetchError?.let {
+            Text(it.asString(), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+        }
+    }
+
+    pendingKey?.let { key ->
+        HostKeyConfirmDialog(
+            key = key,
+            changed = confirmedKey != null && confirmedKey != key,
+            onTrust = {
+                onHostKeyChange(key.toOpenSsh())
+                pendingKey = null
+            },
+            onDismiss = { pendingKey = null }
+        )
+    }
+    if (showManualEntry) {
+        ManualHostKeyDialog(
+            initial = hostKey.orEmpty(),
+            onConfirm = { key ->
+                onHostKeyChange(key.toOpenSsh())
+                showManualEntry = false
+            },
+            onDismiss = { showManualEntry = false }
+        )
+    }
+}
+
+@Composable
+private fun HostKeyConfirmDialog(
+    key: SshHostKey,
+    changed: Boolean,
+    onTrust: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.ssh_host_key_dialog_title)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (changed) {
+                    Text(
+                        text = stringResource(R.string.ssh_host_key_changed_warning),
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+                Text(key.type, style = MaterialTheme.typography.bodyMedium)
+                Text(
+                    text = key.fingerprint,
+                    style = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace)
+                )
+                Text(stringResource(R.string.ssh_host_key_dialog_text), style = MaterialTheme.typography.bodySmall)
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onTrust) { Text(stringResource(R.string.ssh_host_key_trust)) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
+        }
+    )
+}
+
+@Composable
+private fun ManualHostKeyDialog(
+    initial: String,
+    onConfirm: (SshHostKey) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var text by remember { mutableStateOf(initial) }
+    var invalid by remember { mutableStateOf(false) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.ssh_host_key_title)) },
+        text = {
+            OutlinedTextField(
+                value = text,
+                onValueChange = {
+                    text = it
+                    invalid = false
+                },
+                supportingText = {
+                    Text(
+                        stringResource(
+                            if (invalid) R.string.ssh_host_key_invalid else R.string.ssh_host_key_manual_hint
+                        )
+                    )
+                },
+                isError = invalid,
+                textStyle = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
+                maxLines = 4,
+                modifier = Modifier.fillMaxWidth()
+            )
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    val key = SshKeys.parseHostKey(text)
+                    if (key == null) invalid = true else onConfirm(key)
+                }
+            ) {
+                Text(stringResource(R.string.ssh_host_key_trust))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
+        }
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

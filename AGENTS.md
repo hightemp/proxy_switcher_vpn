@@ -117,7 +117,7 @@ Useful reference files:
 - The old System Proxy screen must not be copied as-is.
 - Replace system proxy wording and controls with VPN diagnostics.
 - Home must show selected proxy, START/STOP VPN, status, bytes in/out, last error, and diagnostics summary.
-- Add/Edit proxy must support SOCKS5, HTTP, and HTTPS.
+- Add/Edit proxy must support SOCKS5, HTTP, HTTPS, and SSH (IMP-24).
 - Logs must support filtering and clearing.
 - Diagnostics must show permission, foreground service, sing-box, TUN, DNS, IPv4, IPv6 unsupported, UDP policy, selected proxy, counters, last error, and masked config preview.
 
@@ -142,6 +142,9 @@ Useful reference files:
 - SOCKS5 maps to sing-box `socks` outbound.
 - HTTP maps to sing-box `http` outbound.
 - HTTPS proxy maps to sing-box `http` outbound with TLS enabled.
+- SSH maps to sing-box `ssh` outbound with a confirmed `host_key` and pinned
+  `host_key_algorithms`; never start without a confirmed server key and never
+  accept a changed one silently.
 - DNS must go through proxy/proxy-safe route.
 - UDP/443 is blocked by default for MVP.
 - Other non-DNS UDP is blocked unless safe protected bypass is validated.
@@ -155,6 +158,8 @@ Useful reference files:
 - Proxy passwords are sensitive.
 - Do not store proxy passwords in plaintext if the existing project has a safer pattern or if a safe storage abstraction is added.
 - Mask secrets in logs, UI summaries, diagnostics, and config previews.
+  SSH private keys and passphrases are secrets like passwords
+  (`ProxyEntity.sensitiveValues()`).
 - Domain and destination address logs are sensitive.
 - Detailed domain/destination logging must be user-visible and controllable.
 - DNS leaks are unacceptable for default MVP behavior.

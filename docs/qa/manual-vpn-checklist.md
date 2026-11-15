@@ -160,6 +160,38 @@ Expected results:
 - Production config must not use `tls.insecure=true` except in an explicit local test build.
 - Credentials remain masked.
 
+## SSH Outbound
+
+Use a reachable OpenSSH server with `AllowTcpForwarding yes`, for example a
+local container published on the host and reached from the emulator as
+`10.0.2.2`.
+
+1. Add an SSH proxy with a password, tap "Get key", compare the fingerprint
+   with `ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub` on the server and
+   trust it.
+2. Run Check, then start VPN and browse.
+3. Replace the password with a private key (ed25519 with a passphrase) loaded
+   through "From file"; check again with VPN running, restart VPN.
+4. Regenerate the server host keys and start VPN.
+5. Trust the new key, start VPN, then regenerate the host keys again while the
+   VPN runs.
+6. Try a PuTTY `.ppk` key and a wrong password.
+
+Expected results:
+
+- The fingerprint shown in the app matches `ssh-keygen`.
+- Check shows latency, exit IP and country; the server logs
+  `Accepted password` / `Accepted publickey`.
+- Server-side connections include `1.1.1.1:443` (DoH through the tunnel).
+- Config preview shows an `ssh` outbound with `host_key`,
+  `host_key_algorithms`, and `***` for user, password, key and passphrase.
+- Step 4: VPN stops at once with "The SSH server key has changed", without
+  retries, even with unlimited reconnects.
+- Step 5: the upstream monitor stops VPN with the same error within about a
+  minute.
+- Step 6: the `.ppk` key is rejected on save with a conversion hint; a wrong
+  password stops VPN with "rejected the username, password or key".
+
 ## DNS Through Proxy
 
 1. Start VPN with each proxy type.

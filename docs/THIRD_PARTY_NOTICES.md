@@ -52,6 +52,13 @@ Apache-2.0: AndroidX and Compose, Dagger/Hilt, Kotlin, kotlinx coroutines,
 kotlinx serialization, Okio, JetBrains annotations, `javax.inject`, Guava
 ListenableFuture, and `com.google.code.findbugs:jsr305`.
 
+The SSH proxy checks use JSch (`com.github.mwiede:jsch`, BSD-3-Clause,
+Copyright (c) 2002-2015 Atsuhiko Yamanaka, JCraft,Inc.), which bundles JZlib
+(BSD-3-Clause, Copyright (c) 2000-2011 ymnk, JCraft,Inc.) and jBCrypt (ISC,
+Copyright (c) 2006 Damien Miller), together with Bouncy Castle
+(`bcprov-jdk18on`, MIT, Copyright (c) 2000-2026 The Legion of the Bouncy Castle
+Inc.).
+
 JUnit 4 (EPL-1.0) and Hamcrest (BSD-3-Clause) are test-only and are not part of
 the release APK. Gradle, Android Gradle Plugin, KSP, and the other build plugins
 are build-time tools and are not shipped as application runtime code.

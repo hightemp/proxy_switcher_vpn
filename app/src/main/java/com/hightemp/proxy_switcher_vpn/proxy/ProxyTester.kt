@@ -37,13 +37,19 @@ private const val SOCKS_METHOD_USERNAME_PASSWORD = 0x02
 private const val SOCKS_METHOD_NONE_ACCEPTABLE = 0xff
 private const val SOCKS_COMMAND_CONNECT = 0x01
 private const val SOCKS_ADDRESS_DOMAIN = 0x03
+private const val SSH_FULL_PROBE_EVERY = 12
 
 data class ProxyTestResult(
     val success: Boolean,
     val message: UserText,
     val resolvedProxyHost: String? = null,
     /** Time until the tunnel through the proxy was open; set on success. */
-    val latencyMillis: Long? = null
+    val latencyMillis: Long? = null,
+    /**
+     * Retrying cannot help (rejected credentials, changed or unconfirmed SSH
+     * server key, invalid settings); the VPN stops instead of reconnecting.
+     */
+    val permanent: Boolean = false
 )
 
 /** A connection through the proxy to a target host, ready for application data. */
@@ -76,12 +82,20 @@ interface ProxyReachabilityTester {
         targetPort: Int = DEFAULT_TEST_TARGET_PORT,
         timeoutMillis: Int = DEFAULT_TIMEOUT_MILLIS
     ): ProxyTestResult
+
+    /** Periodic upstream monitor probe; lighter than [test] where the protocol allows it. */
+    suspend fun probeUpstream(proxy: ProxyEntity, timeoutMillis: Int): ProxyTestResult {
+        return test(proxy = proxy, timeoutMillis = timeoutMillis)
+    }
 }
 
 class ProxyTester @Inject constructor(
     private val activeVpnServiceBridge: ActiveVpnServiceBridge,
     private val proxyNetworkResolver: ProxyNetworkResolver
-) : ProxyReachabilityTester, ProxyTunnelOpener {
+) : ProxyReachabilityTester, ProxyTunnelOpener, SshHostKeyFetcher {
+    private val ssh = SshConnector(activeVpnServiceBridge, proxyNetworkResolver)
+    private var sshProbeCount = 0
+
     override suspend fun test(
         proxy: ProxyEntity,
         targetHost: String,
@@ -95,7 +109,7 @@ class ProxyTester @Inject constructor(
                 type = LogType.PROXY,
                 sensitiveValues = proxy.sensitiveValues()
             )
-            return@withContext ProxyTestResult(success = false, message = validationError)
+            return@withContext ProxyTestResult(success = false, message = validationError, permanent = true)
         }
 
         AppLogger.debug(
@@ -143,6 +157,38 @@ class ProxyTester @Inject constructor(
         result
     }
 
+    /**
+     * For SSH most probes only read the server banner, so the server does not
+     * see a login every few seconds; every [SSH_FULL_PROBE_EVERY]th probe runs
+     * the full handshake, which also re-checks the server key.
+     */
+    override suspend fun probeUpstream(proxy: ProxyEntity, timeoutMillis: Int): ProxyTestResult {
+        if (proxy.type != ProxyType.SSH || ++sshProbeCount % SSH_FULL_PROBE_EVERY == 0) {
+            return test(proxy = proxy, timeoutMillis = timeoutMillis)
+        }
+        return withContext(Dispatchers.IO) { ssh.probeBanner(proxy, timeoutMillis) }
+    }
+
+    override suspend fun fetchSshHostKey(host: String, port: Int): SshHostKeyResult {
+        return withContext(Dispatchers.IO) {
+            AppLogger.debug(
+                message = "SSH host key requested for $host:$port.",
+                type = LogType.PROXY
+            )
+            runCatching { ssh.fetchHostKey(host, port, DEFAULT_TIMEOUT_MILLIS) }
+                .getOrElse { SshHostKeyResult.Failure(UserText.of(R.string.ssh_error_failed)) }
+                .also { result ->
+                    AppLogger.info(
+                        message = when (result) {
+                            is SshHostKeyResult.Success -> "SSH host key received for $host:$port: ${result.key}."
+                            is SshHostKeyResult.Failure -> "SSH host key request failed for $host:$port: ${result.message.english()}"
+                        },
+                        type = LogType.PROXY
+                    )
+                }
+        }
+    }
+
     private fun validate(
         proxy: ProxyEntity,
         targetHost: String,
@@ -155,7 +201,19 @@ class ProxyTester @Inject constructor(
             targetHost.isBlank() -> UserText.of(R.string.proxy_test_target_required)
             targetPort !in 1..65535 -> UserText.of(R.string.proxy_test_target_port_range)
             timeoutMillis <= 0 -> UserText.of(R.string.proxy_test_timeout_positive)
+            proxy.type == ProxyType.SSH -> sshProblem(proxy)
             else -> null
+        }
+    }
+
+    private fun sshProblem(proxy: ProxyEntity): UserText? {
+        val privateKey = SshKeys.normalizePrivateKey(proxy.privateKey)
+        return when {
+            proxy.password.isNullOrEmpty() && privateKey == null -> UserText.of(R.string.ssh_error_credentials_required)
+            privateKey != null -> SshKeys.privateKeyProblem(privateKey)
+            else -> null
+        } ?: UserText.of(R.string.ssh_error_host_key_unconfirmed).takeIf {
+            proxy.hostKey?.let(SshKeys::parseHostKey) == null
         }
     }
 
@@ -182,6 +240,7 @@ class ProxyTester @Inject constructor(
             ProxyType.SOCKS5 -> openSocks5Tunnel(proxy, targetHost, targetPort, timeoutMillis)
             ProxyType.HTTP -> openHttpTunnel(proxy, useTls = false, targetHost, targetPort, timeoutMillis)
             ProxyType.HTTPS -> openHttpTunnel(proxy, useTls = true, targetHost, targetPort, timeoutMillis)
+            ProxyType.SSH -> ssh.openTunnel(proxy, targetHost, targetPort, timeoutMillis)
         }
     }
 
@@ -487,11 +546,6 @@ class ProxyTester @Inject constructor(
 
     private fun ProxyEntity.debugLabel(): String {
         return "$type ${label ?: host}:$port"
-    }
-
-    private fun ProxyEntity.sensitiveValues(): List<String> {
-        return listOfNotNull(username, password)
-            .filter { it.isNotBlank() }
     }
 
     private fun socks5ReplyMessage(reply: Int): UserText {

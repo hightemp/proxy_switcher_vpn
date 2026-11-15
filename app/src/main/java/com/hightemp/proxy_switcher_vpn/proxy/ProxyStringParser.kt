@@ -49,7 +49,9 @@ sealed interface ProxyStringParseResult {
 
 /**
  * Parses a single proxy record in the text formats accepted by proxy-vouch,
- * limited to what this app supports (SOCKS5/HTTP/HTTPS, IPv4/DNS hosts).
+ * limited to what this app supports (SOCKS5/HTTP/HTTPS, plus SSH with an
+ * explicit `ssh://` scheme; IPv4/DNS hosts). An SSH private key cannot be
+ * part of a string; it is added in the editor.
  *
  * Error messages never include the input or credentials.
  */
@@ -275,6 +277,7 @@ object ProxyStringParser {
             "http" -> ProxyType.HTTP
             "https" -> ProxyType.HTTPS
             "socks5", "socks5h" -> ProxyType.SOCKS5
+            "ssh" -> ProxyType.SSH
             "socks4", "socks4a" -> fail(R.string.proxy_string_error_socks4)
             "socks" -> fail(R.string.proxy_string_error_socks)
             else -> null

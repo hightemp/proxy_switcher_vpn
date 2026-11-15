@@ -23,6 +23,8 @@ selected upstream proxy or through explicit Direct mode.
 The app does not change Android system proxy settings. It uses `VpnService`
 and an embedded sing-box core.
 
+Supported upstreams: SOCKS5, HTTP, HTTPS (HTTP CONNECT over TLS) and SSH servers.
+
 ## Screenshots
 
 Captured from the debug app (v0.4.1) on Android API 35. Proxy profiles use only
@@ -77,6 +79,7 @@ The values come from `gradle/libbox.properties`, which the build verifies.
 - IPv4 only;
 - IPv6 is explicitly unsupported;
 - UDP/443 is blocked by default to avoid QUIC/HTTP3 bypass;
+- an SSH upstream carries TCP only, and its server key must be confirmed in the proxy editor before the first start; a changed server key stops the VPN;
 - if the selected upstream proxy remains unavailable after retries, VPN stops
   fail-closed;
 - Direct mode is explicit and is never used as a silent fallback;

@@ -13,7 +13,6 @@ import android.os.ParcelFileDescriptor
 import androidx.core.app.NotificationCompat
 import com.hightemp.proxy_switcher_vpn.MainActivity
 import com.hightemp.proxy_switcher_vpn.R
-import com.hightemp.proxy_switcher_vpn.data.local.ProxyEntity
 import com.hightemp.proxy_switcher_vpn.data.repository.ProxyRepository
 import com.hightemp.proxy_switcher_vpn.data.settings.SettingsRepository
 import com.hightemp.proxy_switcher_vpn.i18n.AppLanguages
@@ -270,10 +269,9 @@ class ProxyVpnService : VpnService(), ActiveVpnService {
                 restartMonitorOnSuccess = true
             )
             if (!result.success) {
-                val finalMessage = UserText.of(
-                    R.string.error_engine_exhausted,
-                    result.lastFailure ?: UserText.raw(message)
-                )
+                val finalMessage = result.finalMessage {
+                    UserText.of(R.string.error_engine_exhausted, result.lastFailure ?: UserText.raw(message))
+                }
                 runtimeController.stop()
                 failClosedAndStop(finalMessage)
             }
@@ -318,11 +316,13 @@ class ProxyVpnService : VpnService(), ActiveVpnService {
                 restartMonitorOnSuccess = true
             )
             if (!result.success) {
-                val message = UserText.of(
-                    R.string.error_start_exhausted,
-                    reconnectPolicy.attemptBudgetLabel,
-                    result.lastFailure ?: UserText.of(R.string.error_unknown)
-                )
+                val message = result.finalMessage {
+                    UserText.of(
+                        R.string.error_start_exhausted,
+                        reconnectPolicy.attemptBudgetLabel,
+                        result.lastFailure ?: UserText.of(R.string.error_unknown)
+                    )
+                }
                 runtimeController.stop()
                 failClosedAndStop(message)
             }
@@ -363,11 +363,13 @@ class ProxyVpnService : VpnService(), ActiveVpnService {
                 restartMonitorOnSuccess = true
             )
             if (!result.success) {
-                val message = UserText.of(
-                    R.string.error_switch_exhausted,
-                    reconnectPolicy.attemptBudgetLabel,
-                    result.lastFailure ?: UserText.of(R.string.error_unknown)
-                )
+                val message = result.finalMessage {
+                    UserText.of(
+                        R.string.error_switch_exhausted,
+                        reconnectPolicy.attemptBudgetLabel,
+                        result.lastFailure ?: UserText.of(R.string.error_unknown)
+                    )
+                }
                 runtimeController.stop()
                 failClosedAndStop(message)
             }
@@ -538,7 +540,7 @@ class ProxyVpnService : VpnService(), ActiveVpnService {
 
                 val startedAtMillis = System.currentTimeMillis()
                 val probeResult = runCatching {
-                    proxyReachabilityTester.test(
+                    proxyReachabilityTester.probeUpstream(
                         proxy = selectedProxy,
                         timeoutMillis = UPSTREAM_MONITOR_TIMEOUT_MILLIS
                     )
@@ -581,7 +583,8 @@ class ProxyVpnService : VpnService(), ActiveVpnService {
                     sensitiveValues = selectedProxy.sensitiveValues()
                 )
 
-                if (consecutiveFailures < reconnectPolicy.monitorFailureThreshold) {
+                // A permanent failure (e.g. a changed SSH server key) skips the threshold.
+                if (probe?.permanent != true && consecutiveFailures < reconnectPolicy.monitorFailureThreshold) {
                     continue
                 }
 
@@ -598,12 +601,14 @@ class ProxyVpnService : VpnService(), ActiveVpnService {
                     continue
                 }
 
-                val message = UserText.of(
-                    R.string.error_upstream_not_recovered,
-                    consecutiveFailures,
-                    reconnectPolicy.attemptBudgetLabel,
-                    result.lastFailure ?: failureMessage
-                )
+                val message = result.finalMessage {
+                    UserText.of(
+                        R.string.error_upstream_not_recovered,
+                        consecutiveFailures,
+                        reconnectPolicy.attemptBudgetLabel,
+                        result.lastFailure ?: failureMessage
+                    )
+                }
                 AppLogger.error(
                     message = message.english(),
                     type = LogType.PROXY,
@@ -680,6 +685,13 @@ class ProxyVpnService : VpnService(), ActiveVpnService {
                         type = LogType.VPN,
                         sensitiveValues = routeSelection.sensitiveValues()
                     )
+                    if (result.permanent) {
+                        AppLogger.warning(
+                            message = "VPN route failure is permanent; no further attempts.",
+                            type = LogType.VPN
+                        )
+                        return RouteStartAttemptsResult(success = false, lastFailure = lastFailure, permanent = true)
+                    }
                 }
             }
 
@@ -721,19 +733,20 @@ class ProxyVpnService : VpnService(), ActiveVpnService {
         VpnTileService.requestRefresh(this)
     }
 
-    private fun ProxyEntity.sensitiveValues(): List<String> {
-        return listOfNotNull(username, password)
-            .filter { it.isNotBlank() }
-    }
-
     private fun Throwable.toMonitorMessage(): String {
         return "${javaClass.simpleName}: ${message ?: "No error message."}"
     }
 
     private data class RouteStartAttemptsResult(
         val success: Boolean,
-        val lastFailure: UserText? = null
-    )
+        val lastFailure: UserText? = null,
+        /** The last failure cannot be fixed by retrying; it is shown as is. */
+        val permanent: Boolean = false
+    ) {
+        fun finalMessage(exhausted: () -> UserText): UserText {
+            return lastFailure?.takeIf { permanent } ?: exhausted()
+        }
+    }
 
     private fun createNotification(contentText: UserText): Notification {
         val contentIntent = PendingIntent.getActivity(

@@ -24,6 +24,8 @@ explicitement.
 L’application ne modifie pas les paramètres de proxy système d’Android. Elle
 utilise `VpnService` et un cœur sing-box intégré.
 
+Upstreams pris en charge : SOCKS5, HTTP, HTTPS (HTTP CONNECT sur TLS) et serveurs SSH.
+
 ## Captures d’écran
 
 Prises sur l’application de débogage (v0.4.1) sous Android API 35. Les profils
@@ -80,6 +82,7 @@ Ces valeurs proviennent de `gradle/libbox.properties`, vérifié lors de la comp
 - IPv6 n’est explicitement pas pris en charge ;
 - UDP/443 est bloqué par défaut pour éviter que QUIC/HTTP3 contourne le
   proxy ;
+- un upstream SSH ne transporte que le TCP, et sa clé de serveur doit être confirmée dans l’éditeur de proxy avant le premier démarrage ; une clé de serveur modifiée arrête le VPN ;
 - si le proxy amont sélectionné reste indisponible après les nouvelles
   tentatives, le VPN s’arrête en mode fail-closed ;
 - le mode Direct est choisi explicitement et n’est jamais utilisé en secours

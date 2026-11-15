@@ -343,4 +343,16 @@ class ProxyStringParserTest {
         val result = ProxyStringParser.parse(input)
         assertEquals(input, ProxyStringParseResult.Failure(UserText.of(expectedMessage)), result)
     }
+
+    @Test
+    fun sshNeedsAnExplicitScheme() {
+        assertParsed(
+            input = "ssh://tester:secret@ssh.example:2222",
+            expected = ParsedProxyString("ssh.example", 2222, ProxyType.SSH, "tester", "secret")
+        )
+        assertParsed(
+            input = "ssh.example:22:tester:secret ssh",
+            expected = ParsedProxyString("ssh.example", 22, ProxyType.SSH, "tester", "secret")
+        )
+    }
 }

@@ -131,4 +131,22 @@ class ProxyTesterTest {
             }
         }
     }
+
+    @Test
+    fun sshProxyIsCheckedBeforeAnyNetworkAccess() = runTest {
+        val ssh = ProxyEntity(host = "ssh.example", port = 22, type = ProxyType.SSH, username = "tester")
+
+        val noCredentials = tester.test(ssh.copy(hostKey = HOST_KEY))
+        val puttyKey = tester.test(ssh.copy(privateKey = "PuTTY-User-Key-File-3: ssh-rsa", hostKey = HOST_KEY))
+        val noHostKey = tester.test(ssh.copy(password = "secret"))
+
+        assertEquals(UserText.of(R.string.ssh_error_credentials_required), noCredentials.message)
+        assertEquals(UserText.of(R.string.ssh_key_error_putty), puttyKey.message)
+        assertEquals(UserText.of(R.string.ssh_error_host_key_unconfirmed), noHostKey.message)
+        assertEquals(null, resolver.lastHost)
+    }
+
+    private companion object {
+        const val HOST_KEY = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICB8BYL3UC44wKFmebFbQCgtyM5cVbO/fjpf4CKx82rh"
+    }
 }

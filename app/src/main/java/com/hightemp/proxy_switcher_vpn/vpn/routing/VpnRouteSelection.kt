@@ -38,8 +38,5 @@ fun VpnRouteSelection.proxyOrNull(): ProxyEntity? {
 }
 
 fun VpnRouteSelection.sensitiveValues(): List<String> {
-    return proxyOrNull()
-        ?.let { proxy -> listOfNotNull(proxy.username, proxy.password) }
-        ?.filter { it.isNotBlank() }
-        ?: emptyList()
+    return proxyOrNull()?.sensitiveValues() ?: emptyList()
 }

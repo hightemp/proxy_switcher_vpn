@@ -23,6 +23,8 @@ przez wybrane nadrzędne proxy lub przez wyraźnie wybrany tryb bezpośredni.
 Aplikacja nie zmienia systemowych ustawień proxy Androida. Używa `VpnService`
 i wbudowanego rdzenia sing-box.
 
+Obsługiwane upstreamy: SOCKS5, HTTP, HTTPS (HTTP CONNECT przez TLS) i serwery SSH.
+
 ## Zrzuty ekranu
 
 Wykonane w aplikacji debug (v0.4.1) na Android API 35. Profile proxy używają
@@ -77,6 +79,7 @@ Wartości pochodzą z `gradle/libbox.properties`, sprawdzanego podczas budowania
 - tylko IPv4;
 - IPv6 nie jest obsługiwane;
 - UDP/443 jest domyślnie blokowane, aby QUIC/HTTP3 nie omijał proxy;
+- upstream SSH przenosi tylko TCP, a jego klucz serwera trzeba potwierdzić w edytorze proxy przed pierwszym uruchomieniem; zmiana klucza serwera zatrzymuje VPN;
 - jeśli wybrane nadrzędne proxy pozostaje niedostępne po ponowieniach, VPN
   zatrzymuje się w trybie fail-closed;
 - tryb bezpośredni wybiera się jawnie i nigdy nie jest używany po cichu jako

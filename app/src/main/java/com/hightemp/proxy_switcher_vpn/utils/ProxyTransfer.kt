@@ -19,8 +19,9 @@ import kotlinx.serialization.json.put
  * Compatible proxy list transfer format shared with the reference proxy_switcher app.
  *
  * The format is a JSON array of proxy objects containing host, port, type,
- * optional username/password/label, and isEnabled. The optional `group` field
- * is specific to this app; the reference app ignores it.
+ * optional username/password/label, and isEnabled. The optional `group`,
+ * `privateKey`, `privateKeyPassphrase` and `hostKey` fields are specific to
+ * this app; the reference app ignores them.
  */
 object ProxyTransfer {
     private val json = Json {
@@ -28,7 +29,8 @@ object ProxyTransfer {
         ignoreUnknownKeys = true
     }
 
-    fun export(proxies: List<ProxyEntity>): String {
+    /** With [includeSecrets] off, passwords, private keys and passphrases are left out. */
+    fun export(proxies: List<ProxyEntity>, includeSecrets: Boolean = true): String {
         val array = buildJsonArray {
             proxies.forEach { proxy ->
                 add(
@@ -37,10 +39,15 @@ object ProxyTransfer {
                         put("port", proxy.port)
                         put("type", proxy.type.name)
                         proxy.username?.let { put("username", it) }
-                        proxy.password?.let { put("password", it) }
+                        if (includeSecrets) proxy.password?.let { put("password", it) }
                         proxy.label?.let { put("label", it) }
                         put("isEnabled", proxy.isEnabled)
                         proxy.groupName?.let { put("group", it) }
+                        if (includeSecrets) {
+                            proxy.privateKey?.let { put("privateKey", it) }
+                            proxy.privateKeyPassphrase?.let { put("privateKeyPassphrase", it) }
+                        }
+                        proxy.hostKey?.let { put("hostKey", it) }
                     }
                 )
             }
@@ -96,8 +103,11 @@ object ProxyTransfer {
             password = optionalString("password"),
             label = optionalString("label"),
             isEnabled = booleanValue("isEnabled") ?: true,
-            groupName = optionalString("group")?.trim()
-        )
+            groupName = optionalString("group")?.trim(),
+            privateKey = optionalString("privateKey"),
+            privateKeyPassphrase = optionalString("privateKeyPassphrase"),
+            hostKey = optionalString("hostKey")?.trim()
+        ).withoutStaleSshFields()
     }
 
     private fun JsonObject.optionalString(key: String): String? {

@@ -198,6 +198,41 @@ data class SingBoxHttpOutbound(
     }
 }
 
+/** sing-box `ssh` outbound; only TCP goes through it. */
+data class SingBoxSshOutbound(
+    override val tag: String,
+    val server: String,
+    val serverPort: Int,
+    val user: String? = null,
+    val password: String? = null,
+    val privateKey: String? = null,
+    val privateKeyPassphrase: String? = null,
+    val hostKey: List<String>,
+    val hostKeyAlgorithms: List<String>,
+    val domainResolver: String? = null
+) : SingBoxOutbound {
+    override fun toJsonObject(maskSecrets: Boolean): JsonObject {
+        return buildJsonObject {
+            put("type", "ssh")
+            put("tag", tag)
+            put("server", server)
+            put("server_port", serverPort)
+            putOptionalSecret("user", user, maskSecrets)
+            putOptionalSecret("password", password, maskSecrets)
+            putOptionalSecret("private_key", privateKey, maskSecrets)
+            putOptionalSecret("private_key_passphrase", privateKeyPassphrase, maskSecrets)
+            putStringArray("host_key", hostKey)
+            putStringArray("host_key_algorithms", hostKeyAlgorithms)
+            domainResolver?.let { put("domain_resolver", it) }
+        }
+    }
+
+    override fun toString(): String {
+        return "SingBoxSshOutbound(tag=$tag, server=$server, serverPort=$serverPort, " +
+            "hostKey=$hostKey, hostKeyAlgorithms=$hostKeyAlgorithms, domainResolver=$domainResolver)"
+    }
+}
+
 data class SingBoxTlsConfig(
     val enabled: Boolean = true,
     val serverName: String? = null,

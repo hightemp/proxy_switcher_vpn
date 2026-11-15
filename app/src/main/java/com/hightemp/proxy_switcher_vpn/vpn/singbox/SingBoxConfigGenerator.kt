@@ -2,6 +2,7 @@ package com.hightemp.proxy_switcher_vpn.vpn.singbox
 
 import com.hightemp.proxy_switcher_vpn.data.local.ProxyEntity
 import com.hightemp.proxy_switcher_vpn.data.local.ProxyType
+import com.hightemp.proxy_switcher_vpn.proxy.SshKeys
 import com.hightemp.proxy_switcher_vpn.vpn.dns.DnsMode
 import com.hightemp.proxy_switcher_vpn.vpn.dns.DnsTransport
 import com.hightemp.proxy_switcher_vpn.vpn.tun.TunConfig
@@ -152,6 +153,22 @@ class SingBoxConfigGenerator(
                 username = username,
                 password = password
             )
+            ProxyType.SSH -> {
+                val confirmedKey = hostKey?.let(SshKeys::parseHostKey)
+                requireNotNull(confirmedKey) { "SSH proxy needs a confirmed server key." }
+                SingBoxSshOutbound(
+                    tag = DEFAULT_PROXY_OUTBOUND_TAG,
+                    server = endpoint.server,
+                    serverPort = port,
+                    user = username,
+                    password = password,
+                    privateKey = SshKeys.normalizePrivateKey(privateKey),
+                    privateKeyPassphrase = privateKeyPassphrase,
+                    hostKey = listOf(confirmedKey.toOpenSsh()),
+                    hostKeyAlgorithms = confirmedKey.algorithms,
+                    domainResolver = endpoint.domainResolver
+                )
+            }
             ProxyType.HTTPS -> SingBoxHttpOutbound(
                 tag = DEFAULT_PROXY_OUTBOUND_TAG,
                 server = endpoint.server,

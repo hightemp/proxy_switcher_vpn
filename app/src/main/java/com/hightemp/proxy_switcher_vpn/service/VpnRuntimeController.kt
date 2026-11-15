@@ -19,7 +19,11 @@ import javax.inject.Inject
 
 sealed interface VpnRuntimeControllerResult {
     data object Success : VpnRuntimeControllerResult
-    data class Failure(val message: UserText) : VpnRuntimeControllerResult
+    data class Failure(
+        val message: UserText,
+        /** See [com.hightemp.proxy_switcher_vpn.proxy.ProxyTestResult.permanent]. */
+        val permanent: Boolean = false
+    ) : VpnRuntimeControllerResult
 }
 
 class VpnRuntimeController @Inject constructor(
@@ -57,7 +61,7 @@ class VpnRuntimeController @Inject constructor(
                 message = UserText.of(R.string.error_upstream_failed, probe.message),
                 selectedProxy = selectedProxy,
                 stopEngineOnFailure = stopEngineOnFailure
-            )
+            ).copy(permanent = probe.permanent)
         }
 
         val proxyEndpoint = probe.resolvedProxyHost

@@ -103,4 +103,24 @@ class ProxyFormValidatorTest {
         assertEquals("user", result.username)
         assertEquals("secret ", result.password)
     }
+
+    @Test
+    fun sshNeedsUsernameAndPasswordOrKey() {
+        val key = "-----BEGIN OPENSSH PRIVATE KEY-----\nAAAA\n-----END OPENSSH PRIVATE KEY-----"
+
+        assertEquals(
+            UserText.of(R.string.validation_ssh_username_required),
+            ProxyFormValidator.validateSsh(" ", "secret", "")
+        )
+        assertEquals(
+            UserText.of(R.string.ssh_error_credentials_required),
+            ProxyFormValidator.validateSsh("tester", "", " \n ")
+        )
+        assertEquals(
+            UserText.of(R.string.ssh_key_error_putty),
+            ProxyFormValidator.validateSsh("tester", "", "PuTTY-User-Key-File-3: ssh-rsa")
+        )
+        assertEquals(null, ProxyFormValidator.validateSsh("tester", "secret", ""))
+        assertEquals(null, ProxyFormValidator.validateSsh("tester", "", key))
+    }
 }

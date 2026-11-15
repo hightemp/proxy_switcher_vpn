@@ -101,7 +101,7 @@ object ProxyLineImport {
             type = line.type ?: existing.type,
             password = line.password,
             groupName = group ?: existing.groupName
-        )
+        ).withoutStaleSshFields()
     }
 
     fun newProxy(line: ParsedProxyString, type: ProxyType, group: String? = null): ProxyEntity {

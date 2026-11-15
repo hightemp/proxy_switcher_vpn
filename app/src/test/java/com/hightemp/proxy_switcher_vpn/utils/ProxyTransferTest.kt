@@ -108,4 +108,54 @@ class ProxyTransferTest {
         assertNull(proxy.password)
         assertNull(proxy.label)
     }
+
+    private val sshProxy = ProxyEntity(
+        id = 9L,
+        host = "ssh.example",
+        port = 2222,
+        type = ProxyType.SSH,
+        username = "tester",
+        password = "ssh-pass",
+        label = "Jump",
+        privateKey = "-----BEGIN OPENSSH PRIVATE KEY-----\nkey-body\n-----END OPENSSH PRIVATE KEY-----",
+        privateKeyPassphrase = "key-pass",
+        hostKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICB8BYL3UC44wKFmebFbQCgtyM5cVbO/fjpf4CKx82rh"
+    )
+
+    @Test
+    fun sshProxyRoundTripsWithSecrets() {
+        val result = ProxyTransfer.import(ProxyTransfer.export(listOf(sshProxy)))
+
+        assertTrue(result.isSuccess)
+        assertEquals(sshProxy.copy(id = 0L), result.proxies.single())
+    }
+
+    @Test
+    fun exportWithoutSecretsKeepsHostKeyAndDropsPasswordsAndKeys() {
+        val http = ProxyEntity(host = "proxy.example", port = 8080, type = ProxyType.HTTP, username = "u", password = "http-pass")
+
+        val text = ProxyTransfer.export(listOf(sshProxy, http), includeSecrets = false)
+        val imported = ProxyTransfer.import(text).proxies
+
+        listOf("ssh-pass", "key-body", "key-pass", "http-pass").forEach { secret ->
+            assertTrue(secret, !text.contains(secret))
+        }
+        assertEquals(sshProxy.hostKey, imported[0].hostKey)
+        assertEquals("tester", imported[0].username)
+        assertNull(imported[0].password)
+        assertNull(imported[0].privateKey)
+        assertNull(imported[1].password)
+    }
+
+    @Test
+    fun sshFieldsAreDroppedForOtherProtocols() {
+        val text = ProxyTransfer.export(listOf(sshProxy)).replace("\"SSH\"", "\"SOCKS5\"")
+
+        val proxy = ProxyTransfer.import(text).proxies.single()
+
+        assertEquals(ProxyType.SOCKS5, proxy.type)
+        assertNull(proxy.privateKey)
+        assertNull(proxy.privateKeyPassphrase)
+        assertNull(proxy.hostKey)
+    }
 }
