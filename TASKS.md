@@ -2913,32 +2913,44 @@ Decisions (agreed with the user on 2026-10-20):
     unavailable proxy is readable, the last card's actions are clear of the
     add button after scrolling to the end, the placeholder fits one line.
 
-### TASK-234: Choose An SSH Client Library For Checks (IMP-24)
+### ✅ TASK-234: Choose An SSH Client Library For Checks (IMP-24)
 
-- Status: pending
+- Status: done
 - Goal: Pick the Kotlin/Java SSH library used for proxy checks and host key
   discovery before the SSH upstream is implemented.
-- Candidates: `com.github.mwiede:jsch` (BSD-style, no required
-  dependencies) and `com.hierynomus:sshj` (Apache-2.0, needs BouncyCastle,
-  EdDSA and SLF4J). Both are GPL-3.0-compatible.
-- Acceptance criteria:
-  - On API 24 and API 35 the library authenticates with a password and with
-    ed25519, rsa and ecdsa keys (with and without a passphrase), opens a
-    `direct-tcpip` channel and reports the server host key.
-  - APK size growth, R8 rules and license are recorded in this task and in
-    `docs/legal/dependency-license-audit.md`.
-  - Key formats accepted by the library match sing-box (Go `x/crypto/ssh`):
-    OpenSSH and PEM; PuTTY `.ppk` is rejected with a clear message.
-- Files likely to create/change:
-  - `gradle/libs.versions.toml`, `app/build.gradle.kts`, `app/proguard-rules.pro`
-  - `docs/legal/dependency-license-audit.md`, `docs/THIRD_PARTY_NOTICES.md`
-  - `TASKS.md`
-- Test/smoke commands:
-  - Local `sshd` (or Docker `linuxserver/openssh-server`) reached from the
-    emulator as `10.0.2.2`; throwaway prototype test, not committed.
-- Dependencies:
-  - none
-- Estimated risk: medium
+- Decision: `com.github.mwiede:jsch` 2.28.8 (Revised BSD; bundled JZlib
+  Revised BSD, jBCrypt ISC) with `org.bouncycastle:bcprov-jdk18on` 1.86
+  (MIT). All are GPL-3.0-compatible.
+- Results (throwaway instrumented test on the API 35 emulator against a local
+  OpenSSH 9.7 container; not committed):
+  - JSch + BouncyCastle: password and all seven keys pass (ed25519, rsa
+    OpenSSH, rsa PEM, ecdsa P-256; ed25519, rsa and ecdsa P-384 with a
+    passphrase) and open a `direct-tcpip` channel; the server key is
+    `ssh-ed25519` with the same SHA256 fingerprint as OpenSSH reports. A
+    wrong passphrase fails with "Incorrect passphrase provided".
+  - JSch without BouncyCastle (Android JCA only): ed25519 user keys fail and
+    the server key falls back to ecdsa, so BouncyCastle is required.
+  - sshj 0.41.2 passes the same cases but needs bcprov, bcpkix, bcutil,
+    SLF4J and asn-one, and the full BC provider has to replace Android's
+    built-in `BC` provider process-wide. Rejected.
+  - A PuTTY `.ppk` key fails inside JSch with an unhelpful
+    `NumberFormatException`; the app must detect the PuTTY header itself.
+- API 24: no API 24 emulator image could be installed in this environment.
+  Static check against `api-versions.xml`: JSch's calls above API 24
+  (`String.join`, `Long.compareUnsigned`, `Integer.toUnsigned*`) are
+  backported by D8 (verified in the dex); `java.time` and `java.nio.file`
+  are only used by OpenSSH certificates, SFTP, `~/.ssh/config` and the
+  ssh-agent connector, which the app does not use. The BouncyCastle
+  classes JSch uses have no references above API 24. Remaining risk: run
+  the SSH check on an API 24 device or emulator in TASK-235.
+- Size: release APK (x86_64 only, no R8) grows by 2.4 MB (83.3 → 85.7 MB);
+  dex grows from 45 MB to 51 MB uncompressed.
+- Build: JSch and bcprov both ship `META-INF/versions/*/OSGI-INF/MANIFEST.MF`;
+  exclude it in `packaging.resources`.
+- License audit and third-party notices are updated in TASK-235, when the
+  dependency is actually added.
+- Files changed:
+  - `TASKS.md`, `docs/IMPROVEMENT_PLAN.md`
 
 ### TASK-235: Add SSH Upstream Proxy Type (IMP-24)
 
@@ -2973,6 +2985,20 @@ Decisions (agreed with the user on 2026-10-20):
     `privateKeyPassphrase`, `hostKey`. Export dialog gets one "Include
     passwords and keys" checkbox, on by default, for all proxy types.
   - Strings for all 12 locales; PRD proxy type list, README limits/features.
+  - From TASK-234: add `jsch` 2.28.8 and `bcprov-jdk18on` 1.86, exclude
+    `META-INF/versions/*/OSGI-INF/MANIFEST.MF`, set the JSch `ssh-ed25519`,
+    `keypairgen.eddsa` and `xdh` implementations to the `com.jcraft.jsch.bc`
+    classes explicitly, and open JSch sockets through the same protected
+    socket path as the existing SOCKS5/HTTP checks.
+  - sing-box compares the server key byte for byte but negotiates the key
+    algorithm itself, so the generated outbound also sets
+    `host_key_algorithms` from the confirmed key type (for RSA:
+    `rsa-sha2-512`, `rsa-sha2-256`).
+  - Reject PuTTY `.ppk` keys with a clear message before JSch or sing-box
+    sees them.
+  - Update `docs/legal/dependency-license-audit.md` and
+    `docs/THIRD_PARTY_NOTICES.md` for JSch, JZlib, jBCrypt and
+    BouncyCastle.
 - Files likely to create/change:
   - `app/src/main/java/com/hightemp/proxy_switcher_vpn/data/local/ProxyEntity.kt`,
     `AppDatabase.kt`, `app/schemas/`
@@ -2986,6 +3012,8 @@ Decisions (agreed with the user on 2026-10-20):
   - `app/src/main/java/com/hightemp/proxy_switcher_vpn/ui/viewmodel/VpnViewModel.kt`
   - `app/src/main/res/values*/strings.xml`
   - `PRD.md`, `AGENTS.md` (supported proxy types), `docs/README*.md`
+  - `gradle/libs.versions.toml`, `app/build.gradle.kts`
+  - `docs/legal/dependency-license-audit.md`, `docs/THIRD_PARTY_NOTICES.md`
 - Acceptance criteria:
   - Config generator tests: password, key, key + passphrase, host key; no
     `private_key_path`; DNS stays proxy-safe; UDP/443 still blocked.
@@ -2996,6 +3024,7 @@ Decisions (agreed with the user on 2026-10-20):
   - Manual on the emulator with a local `sshd`: VPN works with password and
     with key auth, exit IP is the SSH server, DNS leak check passes, a
     changed server key stops the VPN with an error.
+  - SSH check with key auth on an API 24 device or emulator.
 - Test/smoke commands:
   - `./gradlew test assembleDebug lintDebug`
   - `docs/qa/manual-vpn-checklist.md` SSH section (added in this task).
