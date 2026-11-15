@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="proxy_switcher_vpn_logox1254.png" width="120" alt="Proxy Switcher VPN" />
+  <img src="../proxy_switcher_vpn_logox1254.png" width="120" alt="Proxy Switcher VPN" />
 </p>
 
 <h1 align="center">Proxy Switcher VPN</h1>
@@ -8,7 +8,7 @@
   <a href="https://github.com/hightemp/proxy_switcher_vpn/releases/latest"><img src="https://img.shields.io/github/v/release/hightemp/proxy_switcher_vpn" alt="GitHub release (latest SemVer)" /></a>
   <a href="https://github.com/hightemp/proxy_switcher_vpn/releases"><img src="https://img.shields.io/github/downloads/hightemp/proxy_switcher_vpn/total" alt="GitHub all releases" /></a>
   <a href="https://github.com/hightemp/proxy_switcher_vpn/actions/workflows/android-ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/hightemp/proxy_switcher_vpn/android-ci.yml?branch=main&amp;label=ci" alt="Android CI" /></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue" alt="License: GPL-3.0-or-later" /></a>
+  <a href="../LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue" alt="License: GPL-3.0-or-later" /></a>
   <a href="https://developer.android.com/about/versions/nougat"><img src="https://img.shields.io/badge/android-7.0%2B-3DDC84?logo=android&amp;logoColor=white" alt="Android 7.0+" /></a>
   <a href="https://kotlinlang.org/"><img src="https://img.shields.io/badge/kotlin-2.0.0-7F52FF?logo=kotlin&amp;logoColor=white" alt="Kotlin" /></a>
   <img src="https://asdertasd.site/counter/proxy_switcher_vpn" alt="Statistics" />
@@ -30,22 +30,22 @@ Android API 35에서 디버그 앱(v0.4.1)으로 촬영했습니다. 프록시 �
     <th>프록시 프로필</th>
   </tr>
   <tr>
-    <td align="center"><img src="docs/screenshots/home.png" width="320" alt="홈 — VPN 실행 중" /></td>
-    <td align="center"><img src="docs/screenshots/proxies.png" width="320" alt="프록시 프로필" /></td>
+    <td align="center"><img src="screenshots/home.png" width="320" alt="홈 — VPN 실행 중" /></td>
+    <td align="center"><img src="screenshots/proxies.png" width="320" alt="프록시 프로필" /></td>
   </tr>
   <tr>
     <th>프록시 추가</th>
     <th>VPN 진단</th>
   </tr>
   <tr>
-    <td align="center"><img src="docs/screenshots/add-proxy.png" width="320" alt="프록시 추가" /></td>
-    <td align="center"><img src="docs/screenshots/diagnostics.png" width="320" alt="VPN 진단" /></td>
+    <td align="center"><img src="screenshots/add-proxy.png" width="320" alt="프록시 추가" /></td>
+    <td align="center"><img src="screenshots/diagnostics.png" width="320" alt="VPN 진단" /></td>
   </tr>
   <tr>
     <th colspan="2">필터링한 VPN 로그</th>
   </tr>
   <tr>
-    <td colspan="2" align="center"><img src="docs/screenshots/logs.png" width="320" alt="필터링한 VPN 로그" /></td>
+    <td colspan="2" align="center"><img src="screenshots/logs.png" width="320" alt="필터링한 VPN 로그" /></td>
   </tr>
 </table>
 
@@ -121,4 +121,4 @@ make release
 
 ## 라이선스
 
-Proxy Switcher VPN은 [GNU GPL v3 이상](LICENSE)으로 배포됩니다. 릴리스에는 sing-box/libbox가 포함되므로 배포자는 서드파티 고지를 유지하고 GPLv3가 요구하는 정확히 대응하는 소스 코드도 제공해야 합니다. [서드파티 고지](THIRD_PARTY_NOTICES.md)와 [의존성 라이선스 감사](docs/legal/dependency-license-audit.md)를 참고하세요.
+Proxy Switcher VPN은 [GNU GPL v3 이상](../LICENSE)으로 배포됩니다. 릴리스에는 sing-box/libbox가 포함되므로 배포자는 서드파티 고지를 유지하고 GPLv3가 요구하는 정확히 대응하는 소스 코드도 제공해야 합니다. [서드파티 고지](THIRD_PARTY_NOTICES.md)와 [의존성 라이선스 감사](legal/dependency-license-audit.md)를 참고하세요.

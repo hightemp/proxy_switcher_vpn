@@ -3,7 +3,7 @@
 Proxy Switcher VPN is licensed under `GPL-3.0-or-later`. Third-party
 components remain under their own licenses. This file is an attribution index;
 the detailed, versioned audit and the remaining release obligations are in
-[`docs/legal/dependency-license-audit.md`](docs/legal/dependency-license-audit.md).
+[`docs/legal/dependency-license-audit.md`](legal/dependency-license-audit.md).
 
 ## sing-box and libbox
 

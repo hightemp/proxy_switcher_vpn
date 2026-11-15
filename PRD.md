@@ -411,7 +411,7 @@ Localization:
 - Core layers return `UserText` (resource id + arguments); the UI resolves it
   in the current language. Log entries, technical diagnostic tokens and the
   config preview stay in English.
-- README is maintained in every app language (`README.<lang>.md`).
+- README is maintained in every app language (`docs/README.<lang>.md`).
 
 Expected screens:
 
@@ -583,7 +583,7 @@ permissive-license claim that would conflict with the selected architecture.
 
 The versioned dependency audit is recorded in
 `docs/legal/dependency-license-audit.md`; third-party attribution is indexed in
-`THIRD_PARTY_NOTICES.md`.
+`docs/THIRD_PARTY_NOTICES.md`.
 
 Distribution requirements:
 

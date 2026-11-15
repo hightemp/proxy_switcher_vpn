@@ -65,7 +65,7 @@ License:
 - `tmp/sing-box-for-android/LICENSE` is GPLv3-or-later.
 - `tmp/sing-box-for-android/third_party/termux-app/LICENSE.md` is GPLv3 only, with exceptions for some subcomponents.
 - The application license decision is `GPL-3.0-or-later`; see `LICENSE`,
-  `THIRD_PARTY_NOTICES.md`, and
+  `docs/THIRD_PARTY_NOTICES.md`, and
   `docs/legal/dependency-license-audit.md` for the versioned inventory.
 - Any release that embeds or derives from sing-box/libbox must provide exact
   corresponding source/build scripts and third-party notices. Do not plan a

@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="proxy_switcher_vpn_logox1254.png" width="120" alt="Proxy Switcher VPN" />
+  <img src="../proxy_switcher_vpn_logox1254.png" width="120" alt="Proxy Switcher VPN" />
 </p>
 
 <h1 align="center">Proxy Switcher VPN</h1>
@@ -8,7 +8,7 @@
   <a href="https://github.com/hightemp/proxy_switcher_vpn/releases/latest"><img src="https://img.shields.io/github/v/release/hightemp/proxy_switcher_vpn" alt="GitHub release (latest SemVer)" /></a>
   <a href="https://github.com/hightemp/proxy_switcher_vpn/releases"><img src="https://img.shields.io/github/downloads/hightemp/proxy_switcher_vpn/total" alt="GitHub all releases" /></a>
   <a href="https://github.com/hightemp/proxy_switcher_vpn/actions/workflows/android-ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/hightemp/proxy_switcher_vpn/android-ci.yml?branch=main&amp;label=ci" alt="Android CI" /></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue" alt="License: GPL-3.0-or-later" /></a>
+  <a href="../LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue" alt="License: GPL-3.0-or-later" /></a>
   <a href="https://developer.android.com/about/versions/nougat"><img src="https://img.shields.io/badge/android-7.0%2B-3DDC84?logo=android&amp;logoColor=white" alt="Android 7.0+" /></a>
   <a href="https://kotlinlang.org/"><img src="https://img.shields.io/badge/kotlin-2.0.0-7F52FF?logo=kotlin&amp;logoColor=white" alt="Kotlin" /></a>
   <img src="https://asdertasd.site/counter/proxy_switcher_vpn" alt="Statistics" />
@@ -35,22 +35,22 @@ verifiche dei proxy sono dati di esempio.
     <th>Profili proxy</th>
   </tr>
   <tr>
-    <td align="center"><img src="docs/screenshots/home.png" width="320" alt="Home — VPN attiva" /></td>
-    <td align="center"><img src="docs/screenshots/proxies.png" width="320" alt="Profili proxy" /></td>
+    <td align="center"><img src="screenshots/home.png" width="320" alt="Home — VPN attiva" /></td>
+    <td align="center"><img src="screenshots/proxies.png" width="320" alt="Profili proxy" /></td>
   </tr>
   <tr>
     <th>Aggiungi proxy</th>
     <th>Diagnostica VPN</th>
   </tr>
   <tr>
-    <td align="center"><img src="docs/screenshots/add-proxy.png" width="320" alt="Aggiungi proxy" /></td>
-    <td align="center"><img src="docs/screenshots/diagnostics.png" width="320" alt="Diagnostica VPN" /></td>
+    <td align="center"><img src="screenshots/add-proxy.png" width="320" alt="Aggiungi proxy" /></td>
+    <td align="center"><img src="screenshots/diagnostics.png" width="320" alt="Diagnostica VPN" /></td>
   </tr>
   <tr>
     <th colspan="2">Log VPN filtrati</th>
   </tr>
   <tr>
-    <td colspan="2" align="center"><img src="docs/screenshots/logs.png" width="320" alt="Log VPN filtrati" /></td>
+    <td colspan="2" align="center"><img src="screenshots/logs.png" width="320" alt="Log VPN filtrati" /></td>
   </tr>
 </table>
 
@@ -154,8 +154,8 @@ o del keystore.
 ## Licenza
 
 Proxy Switcher VPN è distribuito con licenza
-[GNU GPL v3 o successiva](LICENSE). Le release includono sing-box/libbox,
+[GNU GPL v3 o successiva](../LICENSE). Le release includono sing-box/libbox,
 quindi chi le distribuisce deve anche conservare le note sui componenti di
 terze parti e fornire il sorgente corrispondente esatto richiesto dalla GPLv3.
 Vedi le [note sui componenti di terze parti](THIRD_PARTY_NOTICES.md) e
-l’[audit delle licenze delle dipendenze](docs/legal/dependency-license-audit.md).
+l’[audit delle licenze delle dipendenze](legal/dependency-license-audit.md).
